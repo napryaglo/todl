@@ -11,6 +11,7 @@ import { tokenize, TokenKind, type Token } from "./lexer.js";
 import { Cardinality } from "../model/graph.js";
 import {
   DeclKind,
+  ValueKind,
   type NamespaceNode,
   type Declaration,
   type ConceptDecl,
@@ -20,6 +21,9 @@ import {
   type RelationshipDecl,
   type InvariantDecl,
   type EnumCase,
+  type InstanceDecl,
+  type AssignmentNode,
+  type ValueNode,
 } from "./ast.js";
 
 export function parse(source: string): NamespaceNode {
@@ -57,7 +61,46 @@ class Parser {
     if (this.checkKeyword("primitive")) return this.parsePrimitive();
     if (this.checkKeyword("enum")) return this.parseEnum();
     if (this.checkKeyword("concept")) return this.parseConcept();
-    throw this.error(`expected a declaration (primitive / enum / concept)`);
+    if (this.check(TokenKind.Identifier)) return this.parseInstance();
+    throw this.error(`expected a declaration (primitive / enum / concept / instance)`);
+  }
+
+  private parseInstance(): InstanceDecl {
+    const concept = this.expectIdentifier();
+    const id = this.expectIdentifier();
+    const assignments: AssignmentNode[] = [];
+    this.expect(TokenKind.LBrace);
+    while (!this.check(TokenKind.RBrace)) {
+      const name = this.expectIdentifier();
+      this.expect(TokenKind.Equals);
+      const value = this.parseValue();
+      this.expect(TokenKind.Semicolon);
+      assignments.push({ name, value });
+    }
+    this.expect(TokenKind.RBrace);
+    return { kind: DeclKind.Instance, concept, id, assignments };
+  }
+
+  private parseValue(): ValueNode {
+    if (this.check(TokenKind.String) || this.check(TokenKind.RawString)) {
+      return { kind: ValueKind.String, text: this.advance().value };
+    }
+    if (this.match(TokenKind.Amp)) {
+      return { kind: ValueKind.Ref, ref: this.parseDottedPath() };
+    }
+    if (this.match(TokenKind.LBracket)) {
+      const items: ValueNode[] = [];
+      if (!this.check(TokenKind.RBracket)) {
+        items.push(this.parseValue());
+        while (this.match(TokenKind.Comma)) items.push(this.parseValue());
+      }
+      this.expect(TokenKind.RBracket);
+      return { kind: ValueKind.List, items };
+    }
+    if (this.check(TokenKind.Identifier)) {
+      return { kind: ValueKind.Name, name: this.advance().value };
+    }
+    throw this.error(`expected a value`);
   }
 
   private parsePrimitive(): PrimitiveDecl {

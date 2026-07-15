@@ -12,6 +12,50 @@ export enum DeclKind {
   Primitive,
   Enum,
   Concept,
+  Instance,
+}
+
+export enum ValueKind {
+  String,
+  Name,
+  Ref,
+  List,
+}
+
+export interface StringValue {
+  kind: ValueKind.String;
+  text: string;
+}
+
+/** A bare identifier value — an enum member (`service`). */
+export interface NameValue {
+  kind: ValueKind.Name;
+  name: string;
+}
+
+/** A `&`-prefixed record reference. */
+export interface RefValue {
+  kind: ValueKind.Ref;
+  ref: string;
+}
+
+export interface ListValue {
+  kind: ValueKind.List;
+  items: ValueNode[];
+}
+
+export type ValueNode = StringValue | NameValue | RefValue | ListValue;
+
+export interface AssignmentNode {
+  name: string;
+  value: ValueNode;
+}
+
+export interface InstanceDecl {
+  kind: DeclKind.Instance;
+  concept: string;
+  id: string;
+  assignments: AssignmentNode[];
 }
 
 export interface FieldDecl {
@@ -63,7 +107,7 @@ export interface PrimitiveDecl {
   regex: string | null;
 }
 
-export type Declaration = ConceptDecl | EnumDecl | PrimitiveDecl;
+export type Declaration = ConceptDecl | EnumDecl | PrimitiveDecl | InstanceDecl;
 
 export interface NamespaceNode {
   path: string;

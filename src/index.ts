@@ -68,3 +68,8 @@ export {
   type JsonNode,
   type JsonEdge,
 } from "./emit/json.js";
+
+export { load } from "./parse/loader.js";
+export { parse } from "./parse/parser.js";
+export { parsePredicate } from "./parse/predicate-parser.js";
+export { tokenize, TokenKind, type Token } from "./parse/lexer.js";

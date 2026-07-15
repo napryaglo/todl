@@ -91,8 +91,18 @@ function checkInvariants(out: Diagnostic[], model: Model, node: Node): void {
   }
 }
 
+const BUILTIN_PRIMITIVES: ReadonlySet<string> = new Set([
+  "string",
+  "text",
+  "integer",
+  "number",
+  "boolean",
+  "any",
+  "code",
+]);
+
 function countField(model: Model, node: Node, field: FieldSchema): number {
-  const isScalar = model.resolve(field.type)?.typeOf === "primitive";
+  const isScalar = BUILTIN_PRIMITIVES.has(field.type) || model.resolve(field.type)?.typeOf === "primitive";
   if (isScalar) {
     return node.attrs.has(field.name) ? 1 : 0;
   }

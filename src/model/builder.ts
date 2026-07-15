@@ -17,6 +17,7 @@ import { Graph, EdgeKind, Tier, Cardinality, type Node, type NodeId, type Scalar
 /** Meta-kind ids a node's `typeOf` points at when it is an ontology declaration. */
 const CONCEPT_KIND = "concept";
 const PRIMITIVE_KIND = "primitive";
+const ENUM_KIND = "enum";
 const FIELD_KIND = "field";
 const RELATIONSHIP_KIND = "relationship";
 
@@ -83,10 +84,10 @@ export class Builder {
     const attrs = new Map<string, Scalar>([
       ["name", name],
       ["cardinality", cardinality],
+      ["type", type],
     ]);
     this.stagedNodes.push({ id: memberId, tier: Tier.Ontology, typeOf: FIELD_KIND, attrs });
     this.stagedEdges.push({ kind: EdgeKind.HasField, via: null, from: concept, to: memberId });
-    this.stagedEdges.push({ kind: EdgeKind.Relationship, via: "type", from: memberId, to: type });
     return this;
   }
 
@@ -102,13 +103,22 @@ export class Builder {
     const attrs = new Map<string, Scalar>([
       ["name", name],
       ["cardinality", cardinality],
+      ["target", target],
     ]);
     if (inverse !== null) {
       attrs.set("inverse", inverse);
     }
     this.stagedNodes.push({ id: memberId, tier: Tier.Ontology, typeOf: RELATIONSHIP_KIND, attrs });
     this.stagedEdges.push({ kind: EdgeKind.HasRelationship, via: null, from: concept, to: memberId });
-    this.stagedEdges.push({ kind: EdgeKind.Relationship, via: "target", from: memberId, to: target });
+    return this;
+  }
+
+  /** Stage an enum declaration: the enum node plus a node per case (typed by the enum). */
+  defineEnum(name: NodeId, cases: readonly string[]): this {
+    this.stageNode(name, Tier.Ontology, ENUM_KIND);
+    for (const caseId of cases) {
+      this.stageNode(caseId, Tier.Ontology, name);
+    }
     return this;
   }
 

@@ -147,7 +147,7 @@ export class Model {
       if (node === undefined) continue;
       fields.push({
         name: readString(node.attrs.get("name")),
-        type: this.firstTarget(memberId, "type"),
+        type: readString(node.attrs.get("type")),
         cardinality: readCardinality(node.attrs.get("cardinality")),
       });
     }
@@ -159,17 +159,13 @@ export class Model {
       const inverse = node.attrs.get("inverse");
       relationships.push({
         name: readString(node.attrs.get("name")),
-        target: this.firstTarget(memberId, "target"),
+        target: readString(node.attrs.get("target")),
         cardinality: readCardinality(node.attrs.get("cardinality")),
         inverse: typeof inverse === "string" ? inverse : null,
       });
     }
 
     return { concept, extends: parents[0] ?? null, fields, relationships };
-  }
-
-  private firstTarget(from: NodeId, via: NodeId): NodeId {
-    return this.graph.related(from, EdgeKind.Relationship, Direction.Out, via)[0] ?? "";
   }
 
   /** A concept's schema merged with everything it extends (subtype members win). */
