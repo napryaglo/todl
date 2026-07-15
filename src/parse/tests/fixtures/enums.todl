@@ -1,0 +1,28 @@
+namespace adl.meta-models.bpmn.enums
+{
+    enum task-type
+    {
+        description = "Classifies a BPMN task by what kind of work performs it.";
+        values
+        {
+            | none    { label = "Unspecialised"; }
+            | user    { label = "User Task"; }
+            | service { label = "Service Task"; }
+            | manual  { label = "Manual Task"; }
+            | script  { label = "Script Task"; }
+            | send    { label = "Send Task"; }
+            | receive { label = "Receive Task"; }
+        }
+    }
+
+    enum event-type
+    {
+        description = "Position of an event in the flow.";
+        values
+        {
+            | start        { label = "Start"; }
+            | intermediate { label = "Intermediate"; }
+            | end          { label = "End"; }
+        }
+    }
+}

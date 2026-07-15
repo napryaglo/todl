@@ -1,0 +1,8 @@
+namespace adl.meta-models.bpmn.primitives
+{
+    primitive identifier : string
+    {
+        description = "Stable kebab-case identifier.";
+        regex       = "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$";
+    }
+}

@@ -1,0 +1,28 @@
+namespace demo.order-fulfillment
+{
+    lane sales { label = "Sales"; }
+
+    event order-placed
+    {
+        label      = "Order Placed";
+        event-type = start;
+        trigger    = message;
+        lives-in   = &sales;
+        outgoing   = [&order-to-validate];
+    }
+
+    task validate-payment
+    {
+        label    = "Validate Payment";
+        type     = service;
+        lives-in = &sales;
+        incoming = [&order-to-validate];
+    }
+
+    sequence-flow order-to-validate
+    {
+        from = &order-placed;
+        to   = &validate-payment;
+        type = sequence;
+    }
+}
