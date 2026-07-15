@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { Signal } from "./signal.js";
+import { Signal } from "../signal.js";
 
 test("Signal delivers emitted values to a subscriber in order", () => {
   const signal = new Signal<number>();
