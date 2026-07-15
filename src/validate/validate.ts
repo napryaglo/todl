@@ -7,7 +7,7 @@
  */
 
 import { Tier, EdgeKind, Direction, Cardinality, type NodeId, type Node } from "../model/graph.js";
-import type { Model, FieldSchema } from "../model/model.js";
+import type { Model, FieldSchema, RelationshipSchema } from "../model/model.js";
 import { satisfies } from "../predicate/evaluate.js";
 
 export enum Severity {
@@ -19,6 +19,7 @@ export enum DiagnosticCode {
   RequiredMissing = "cardinality.required-missing",
   TooMany = "cardinality.too-many",
   EmptyNotAllowed = "cardinality.empty-not-allowed",
+  TargetTypeMismatch = "relationship.target-type",
   InvariantFailed = "invariant.failed",
 }
 
@@ -41,12 +42,37 @@ export function validate(model: Model): Diagnostic[] {
       checkCardinality(diagnostics, node, field.name, field.cardinality, countField(model, node, field));
     }
     for (const relationship of schema.relationships) {
-      const count = model.related(node.id, EdgeKind.Relationship, Direction.Out, relationship.name).length;
-      checkCardinality(diagnostics, node, relationship.name, relationship.cardinality, count);
+      const targets = model.related(node.id, EdgeKind.Relationship, Direction.Out, relationship.name);
+      checkCardinality(diagnostics, node, relationship.name, relationship.cardinality, targets.length);
+      checkTargetTypes(diagnostics, model, node, relationship, targets);
     }
     checkInvariants(diagnostics, model, node);
   }
   return diagnostics;
+}
+
+function checkTargetTypes(
+  out: Diagnostic[],
+  model: Model,
+  node: Node,
+  relationship: RelationshipSchema,
+  targets: NodeId[],
+): void {
+  if (relationship.target === "") return;
+  const allowed = new Set<NodeId>([relationship.target, ...model.subtypesOf(relationship.target)]);
+  const path = `${node.typeOf}.${relationship.name}`;
+  for (const target of targets) {
+    const targetNode = model.resolve(target);
+    if (targetNode !== undefined && !allowed.has(targetNode.typeOf)) {
+      out.push({
+        code: DiagnosticCode.TargetTypeMismatch,
+        severity: Severity.Error,
+        node: node.id,
+        path,
+        message: `"${path}" expects ${relationship.target} but "${target}" is a ${targetNode.typeOf}`,
+      });
+    }
+  }
 }
 
 function checkInvariants(out: Diagnostic[], model: Model, node: Node): void {
