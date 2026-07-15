@@ -1,6 +1,6 @@
 /**
  * JS-module emitter (design spec §7.3) — project a TODL {@link Model}'s
- * ontology tier to a legacy `<slug>.meta.js` ES module, the shape the browser
+ * ontology tier to a legacy `<slug>.js` ES module, the shape the browser
  * runtime (`todl-runtime` / Mural / Plexus) consumes. Faithful to the legacy
  * `tools/todl/js_emit.py` contract:
  *
@@ -32,7 +32,7 @@ export interface MetaModuleOptions {
   registryName?: string;
 }
 
-/** Emit a bundled `<slug>.meta.js` ES module from `model`'s ontology tier. */
+/** Emit a bundled `<slug>.js` ES module from `model`'s ontology tier. */
 export function toMetaModule(model: Model, options: MetaModuleOptions): string {
   const runtimeImport = options.runtimeImport ?? DEFAULT_RUNTIME_IMPORT;
   const registryName = options.registryName ?? camelCase(options.slug);
