@@ -88,6 +88,8 @@ export interface GraphChangeArgs {
   node: NodeId;
   /** Field / relationship name, or `null` for whole-node and structural changes. */
   property: string | null;
+  /** For an edge change, the other endpoint (the item); `null` otherwise. */
+  target: NodeId | null;
 }
 
 export class Graph {
@@ -112,7 +114,7 @@ export class Graph {
     }
     bucket.add(node.id);
 
-    this.changed.emit({ kind: GraphChangeKind.NodeAdded, node: node.id, property: null });
+    this.changed.emit({ kind: GraphChangeKind.NodeAdded, node: node.id, property: null, target: null });
   }
 
   getNode(id: NodeId): Node | undefined {
@@ -150,7 +152,7 @@ export class Graph {
 
     const property =
       edge.kind === EdgeKind.Relationship || edge.kind === EdgeKind.Derived ? edge.via : null;
-    this.changed.emit({ kind: GraphChangeKind.EdgeAdded, node: edge.from, property });
+    this.changed.emit({ kind: GraphChangeKind.EdgeAdded, node: edge.from, property, target: edge.to });
   }
 
   /** Set a scalar field value on a node and emit {@link GraphChangeKind.AttrSet}. */
@@ -160,7 +162,7 @@ export class Graph {
       throw new Error(`node "${id}" does not exist`);
     }
     node.attrs.set(name, value);
-    this.changed.emit({ kind: GraphChangeKind.AttrSet, node: id, property: name });
+    this.changed.emit({ kind: GraphChangeKind.AttrSet, node: id, property: name, target: null });
   }
 
   /** All edges leaving `id` (forward adjacency). */

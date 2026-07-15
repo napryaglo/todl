@@ -27,7 +27,7 @@ test("addNode emits a NodeAdded change", () => {
   graph.addNode(instance("react", "technology"));
 
   assert.deepEqual(changes, [
-    { kind: GraphChangeKind.NodeAdded, node: "react", property: null },
+    { kind: GraphChangeKind.NodeAdded, node: "react", property: null, target: null },
   ]);
 });
 
@@ -40,7 +40,7 @@ test("addEdge for a domain relationship emits EdgeAdded carrying the relationshi
   graph.addEdge({ kind: EdgeKind.Relationship, via: "implemented-by", from: "shop-web", to: "react" });
 
   assert.deepEqual(changes, [
-    { kind: GraphChangeKind.EdgeAdded, node: "shop-web", property: "implemented-by" },
+    { kind: GraphChangeKind.EdgeAdded, node: "shop-web", property: "implemented-by", target: "react" },
   ]);
 });
 
@@ -53,7 +53,7 @@ test("addEdge for a structural edge emits EdgeAdded with a null property", () =>
   graph.addEdge({ kind: EdgeKind.Extends, via: null, from: "frontend", to: "component" });
 
   assert.deepEqual(changes, [
-    { kind: GraphChangeKind.EdgeAdded, node: "frontend", property: null },
+    { kind: GraphChangeKind.EdgeAdded, node: "frontend", property: null, target: "component" },
   ]);
 });
 
@@ -66,7 +66,7 @@ test("setAttr writes the value and emits AttrSet", () => {
 
   assert.equal(graph.getNode("react")?.attrs.get("label"), "React");
   assert.deepEqual(changes, [
-    { kind: GraphChangeKind.AttrSet, node: "react", property: "label" },
+    { kind: GraphChangeKind.AttrSet, node: "react", property: "label", target: null },
   ]);
 });
 

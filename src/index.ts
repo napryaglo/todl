@@ -19,8 +19,11 @@ export {
 export {
   ReactiveNode,
   PropertyChangeKind,
+  CollectionChangeKind,
   type PropertyChangedArgs,
+  type CollectionChangedArgs,
   type INotifyPropertyChanged,
+  type INotifyCollectionChanged,
 } from "./model/reactive.js";
 
 export { Builder } from "./model/builder.js";

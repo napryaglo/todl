@@ -88,7 +88,7 @@ export class Model {
 
   /** A live reactive view of one node. */
   view(id: NodeId): ReactiveNode {
-    return new ReactiveNode(this.graph, id);
+    return new ReactiveNode(this, id);
   }
 
   resolve(id: NodeId): Node | undefined {
