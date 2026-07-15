@@ -17,9 +17,27 @@ import {
 } from "./graph.js";
 import { Builder } from "./builder.js";
 import { ReactiveNode } from "./reactive.js";
+import { Derivations } from "../predicate/derivations.js";
+import type { Expr } from "../predicate/ast.js";
 
 export class Model {
-  constructor(private readonly graph: Graph = new Graph()) {}
+  private readonly graph: Graph;
+  private readonly derivations: Derivations;
+
+  constructor(graph: Graph = new Graph()) {
+    this.graph = graph;
+    this.derivations = new Derivations(this);
+  }
+
+  /** Register a derived member (spec §4.4): a comprehension queried per instance. */
+  defineDerived(name: string, expr: Expr): void {
+    this.derivations.define(name, expr);
+  }
+
+  /** Query a derived member for an instance; lazily evaluated and memoized. */
+  derived(instance: NodeId, name: string): NodeId[] {
+    return this.derivations.get(instance, name);
+  }
 
   /** The mutation change stream (spec §R2). */
   get changed(): Signal<GraphChangeArgs> {

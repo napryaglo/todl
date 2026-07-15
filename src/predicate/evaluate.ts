@@ -5,7 +5,7 @@
  * raw value (a set for comprehensions); `satisfies` coerces to boolean.
  */
 
-import { Model } from "../model/model.js";
+import type { Model } from "../model/model.js";
 import { EdgeKind, Direction, type NodeId } from "../model/graph.js";
 import { ExprKind, BinaryOp, QuantifierKind, type Expr } from "./ast.js";
 
