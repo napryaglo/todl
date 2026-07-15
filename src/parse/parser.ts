@@ -166,6 +166,9 @@ class Parser {
     if (this.check(TokenKind.String) || this.check(TokenKind.RawString)) {
       return { kind: ValueKind.String, text: this.advance().value };
     }
+    if (this.check(TokenKind.Number)) {
+      return { kind: ValueKind.String, text: this.advance().value };
+    }
     if (this.match(TokenKind.Amp)) {
       return { kind: ValueKind.Ref, ref: this.parseDottedPath() };
     }
@@ -271,6 +274,12 @@ class Parser {
         relationships.push(this.parseRelationship());
       } else if (this.checkKeyword("invariant")) {
         invariants.push(this.parseInvariant());
+      } else if (this.checkKeyword("authoring")) {
+        // Doc-only authoring-form blocks (`authoring list-form { … }`) carry no
+        // schema; skip them.
+        this.advance();
+        this.expectIdentifier();
+        this.skipBracedBlock();
       } else {
         const memberName = this.expectIdentifier();
         if (this.match(TokenKind.Colon)) {
@@ -279,9 +288,14 @@ class Parser {
           this.expect(TokenKind.Semicolon);
           fields.push({ name: memberName, type, cardinality });
         } else if (this.match(TokenKind.Equals)) {
-          const value = this.parseStringValue();
+          if (this.check(TokenKind.String) || this.check(TokenKind.RawString)) {
+            const value = this.parseStringValue();
+            if (memberName === "description") description = value;
+          } else {
+            // Doc-only non-string members (`references = [ … ]`); skip.
+            this.skipToSemicolon();
+          }
           this.expect(TokenKind.Semicolon);
-          if (memberName === "description") description = value;
         } else {
           throw this.error(`expected ":" (field) or "=" (assignment) after "${memberName}"`);
         }
@@ -379,6 +393,22 @@ class Parser {
       return this.advance().value;
     }
     throw this.error(`expected a string value`);
+  }
+
+  /** Skip a balanced `{ … }` block (raw strings are single tokens, so brace-safe). */
+  private skipBracedBlock(): void {
+    this.expect(TokenKind.LBrace);
+    let depth = 1;
+    while (depth > 0 && !this.check(TokenKind.EOF)) {
+      if (this.check(TokenKind.LBrace)) depth += 1;
+      else if (this.check(TokenKind.RBrace)) depth -= 1;
+      this.advance();
+    }
+  }
+
+  /** Advance to (but not past) the next `;`. */
+  private skipToSemicolon(): void {
+    while (!this.check(TokenKind.Semicolon) && !this.check(TokenKind.EOF)) this.advance();
   }
 
   private collectUntilSemicolon(): Token[] {

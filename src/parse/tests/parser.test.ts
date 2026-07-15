@@ -64,6 +64,26 @@ test("reports a malformed declaration with position", () => {
   assert.throws(() => parse("namespace x { concept }"), /expected .* at 1:23/i);
 });
 
+test("tolerates doc-only concept members (authoring blocks, references, formal invariants)", () => {
+  const ns = parse(`namespace d {
+    concept component {
+      description = "A thing.";
+      label : string;
+      invariant { description = "Ids unique."; formal = "for all c in C"; }
+      authoring list-form { description = "Primary."; example = "components: …"; }
+      references = [ "docs/a.md", "docs/b.md" ];
+    }
+  }`);
+  const concept = ns.declarations[0];
+  assert.ok(concept && concept.kind === DeclKind.Concept);
+  if (concept.kind === DeclKind.Concept) {
+    assert.equal(concept.fields.length, 1);
+    assert.equal(concept.fields[0]?.name, "label");
+    assert.equal(concept.invariants.length, 1);
+    assert.equal(concept.invariants[0]?.predicate, null); // formal downgraded to prose
+  }
+});
+
 test("parses an object-typed field (post-rewrite surface)", () => {
   const ns = parse(`namespace d {
     concept component {

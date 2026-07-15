@@ -56,6 +56,24 @@ test("undefined references become unresolved placeholder nodes", () => {
 
 const UNRESOLVED_TYPEOF = "unresolved";
 
+test("loads a meta-model descriptor with numeric and list members", () => {
+  const model = load([
+    `namespace d {
+      meta-model enterprise-architecture {
+        name = "EA";
+        version = 5;
+        root-concept = model;
+        top-level-concepts = [ component, location ];
+      }
+      concept model { label : string; }
+      concept component { label : string; }
+      concept location { label : string; }
+    }`,
+  ]);
+  assert.ok(model.has("enterprise-architecture"));
+  assert.equal(model.resolve("enterprise-architecture")?.attrs.get("version"), "5");
+});
+
 test("edge-shorthand connector loads from/to as relationship edges", () => {
   const model = load([
     `namespace d {
