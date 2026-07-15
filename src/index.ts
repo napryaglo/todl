@@ -57,3 +57,11 @@ export {
 export { evaluate, satisfies, type EvalValue } from "./predicate/evaluate.js";
 
 export { validate, Severity, DiagnosticCode, type Diagnostic } from "./validate/validate.js";
+
+export {
+  toJSON,
+  fromJSON,
+  type TodlDocument,
+  type JsonNode,
+  type JsonEdge,
+} from "./emit/json.js";

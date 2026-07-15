@@ -13,6 +13,7 @@ import {
   Direction,
   Cardinality,
   type Node,
+  type Edge,
   type NodeId,
   type Scalar,
   type GraphChangeArgs,
@@ -105,6 +106,11 @@ export class Model {
   /** Every node in the model. */
   allNodes(): Node[] {
     return this.graph.allNodes();
+  }
+
+  /** All edges leaving `id` (forward adjacency). */
+  outEdges(id: NodeId): Edge[] {
+    return this.graph.outEdges(id);
   }
 
   related(id: NodeId, kind: EdgeKind, direction: Direction, via: NodeId | null = null): NodeId[] {
