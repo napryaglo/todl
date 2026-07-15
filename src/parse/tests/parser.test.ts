@@ -64,6 +64,16 @@ test("reports a malformed declaration with position", () => {
   assert.throws(() => parse("namespace x { concept }"), /expected .* at 1:23/i);
 });
 
+test("parses a string-keyed record id", () => {
+  const ns = parse(`namespace d { sequence "Conversation via M365 Copilot" { } }`);
+  const inst = ns.declarations[0];
+  assert.ok(inst && inst.kind === DeclKind.Instance);
+  if (inst.kind === DeclKind.Instance) {
+    assert.equal(inst.concept, "sequence");
+    assert.equal(inst.id, "Conversation via M365 Copilot");
+  }
+});
+
 test("parses a |-composed enum-flag value", () => {
   const ns = parse(`namespace d { location on-prem { type = physical | on-premises | logical-grouping; } }`);
   const inst = ns.declarations[0];

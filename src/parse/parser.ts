@@ -67,7 +67,7 @@ class Parser {
 
   private parseInstance(): InstanceDecl {
     const concept = this.expectIdentifier();
-    const id = this.expectIdentifier();
+    const id = this.expectRecordId();
     const assignments: AssignmentNode[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
@@ -323,6 +323,14 @@ class Parser {
 
   private expectIdentifier(): string {
     return this.expect(TokenKind.Identifier).value;
+  }
+
+  /** A record id — a bare identifier or a quoted string (e.g. `sequence "…"`). */
+  private expectRecordId(): string {
+    if (this.check(TokenKind.String) || this.check(TokenKind.RawString)) {
+      return this.advance().value;
+    }
+    return this.expectIdentifier();
   }
 
   private error(message: string): Error {
