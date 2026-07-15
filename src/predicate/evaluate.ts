@@ -37,6 +37,9 @@ function evalExpr(model: Model, expr: Expr, env: Env): EvalValue {
       return new Set([id]);
     }
 
+    case ExprKind.Name:
+      return new Set([expr.id]);
+
     case ExprKind.None:
       return null;
 

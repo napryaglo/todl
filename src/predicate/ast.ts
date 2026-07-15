@@ -13,6 +13,7 @@ import type { NodeId } from "../model/graph.js";
 export enum ExprKind {
   This,
   Var,
+  Name,
   None,
   Member,
   Comprehension,
@@ -46,6 +47,12 @@ export interface ThisExpr {
 export interface VarExpr {
   kind: ExprKind.Var;
   name: string;
+}
+
+/** A bare reference to a node by id — an enum member (`service`) or a record (`&x`). */
+export interface NameExpr {
+  kind: ExprKind.Name;
+  id: NodeId;
 }
 
 export interface NoneExpr {
@@ -89,6 +96,7 @@ export interface UnaryExpr {
 export type Expr =
   | ThisExpr
   | VarExpr
+  | NameExpr
   | NoneExpr
   | MemberExpr
   | ComprehensionExpr
@@ -103,6 +111,10 @@ export const NONE: NoneExpr = { kind: ExprKind.None };
 
 export function variable(name: string): VarExpr {
   return { kind: ExprKind.Var, name };
+}
+
+export function name(id: NodeId): NameExpr {
+  return { kind: ExprKind.Name, id };
 }
 
 export function member(target: Expr, name: string): MemberExpr {
