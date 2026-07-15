@@ -1,0 +1,37 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+
+import { rewrite } from "../rewriter.js";
+
+test("rewrites @ref to &ref", () => {
+  assert.equal(rewrite("in = @m365;"), "in = &m365;");
+});
+
+test("rewrites [0..1] cardinality to ?", () => {
+  assert.equal(rewrite("implemented-by : identifier [0..1];"), "implemented-by : identifier?;");
+});
+
+test("rewrites [1..*] cardinality to [+]", () => {
+  assert.equal(rewrite("lanes : pool [1..*];"), "lanes : pool[+];");
+});
+
+test("rewrites bare [*] cardinality to []", () => {
+  assert.equal(rewrite("relationship realised-by -> technology [*];"), "relationship realised-by -> technology[];");
+});
+
+test("drops a redundant [1] cardinality", () => {
+  assert.equal(rewrite("id : identifier [1];"), "id : identifier;");
+});
+
+test("rewrites list<T> [*] to T[]", () => {
+  assert.equal(rewrite("realised-by : list<technology> [*];"), "realised-by : technology[];");
+});
+
+test("rewrites a bare list<T> to T[]", () => {
+  assert.equal(rewrite("views : list<view>;"), "views : view[];");
+});
+
+test("lowers a nested list<object{ list<...> }> innermost-first", () => {
+  const out = rewrite("slots : list<object { ports : list<ingress-kind> [*]; }> [*];");
+  assert.match(out, /slots : object \{ ports : ingress-kind\[\]; \}\[\];/);
+});

@@ -72,6 +72,8 @@ export {
 
 export { toMetaModule, type MetaModuleOptions } from "./emit/js-module.js";
 
+export { rewrite } from "./migrate/rewriter.js";
+
 export { load } from "./parse/loader.js";
 export { parse } from "./parse/parser.js";
 export { parsePredicate } from "./parse/predicate-parser.js";
