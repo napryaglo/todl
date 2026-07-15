@@ -32,6 +32,12 @@ export enum EdgeKind {
   Derived,
 }
 
+/** Which way to walk an edge from a node. */
+export enum Direction {
+  Out,
+  In,
+}
+
 /** A literal field value. Enum selections and references are edges, not attrs. */
 export type Scalar = string | number | boolean;
 
@@ -109,6 +115,52 @@ export class Graph {
   /** All edges entering `id` (reverse adjacency). */
   inEdges(id: NodeId): Edge[] {
     return this._in.get(id) ?? [];
+  }
+
+  /**
+   * Neighbours reached from `id` by edges of `kind` in `direction`. When `via`
+   * is given, only domain-relationship / derived edges realising that member
+   * match.
+   */
+  related(id: NodeId, kind: EdgeKind, direction: Direction, via: NodeId | null = null): NodeId[] {
+    const edges = direction === Direction.Out ? this.outEdges(id) : this.inEdges(id);
+    const result: NodeId[] = [];
+    for (const edge of edges) {
+      if (edge.kind !== kind) continue;
+      if (via !== null && edge.via !== via) continue;
+      result.push(direction === Direction.Out ? edge.to : edge.from);
+    }
+    return result;
+  }
+
+  /**
+   * Transitive closure of {@link related} from `start`. `reflexive` includes
+   * `start` itself (the `*` form; `false` gives the proper `+` form). Cycle-safe.
+   */
+  closure(
+    start: NodeId,
+    kind: EdgeKind,
+    direction: Direction,
+    reflexive: boolean,
+    via: NodeId | null = null,
+  ): NodeId[] {
+    const seen = new Set<NodeId>();
+    const result: NodeId[] = [];
+    const queue: NodeId[] = this.related(start, kind, direction, via);
+    let head = 0;
+    while (head < queue.length) {
+      const current = queue[head++];
+      if (current === undefined || seen.has(current)) continue;
+      seen.add(current);
+      result.push(current);
+      for (const next of this.related(current, kind, direction, via)) {
+        if (!seen.has(next)) queue.push(next);
+      }
+    }
+    if (reflexive && !seen.has(start)) {
+      result.unshift(start);
+    }
+    return result;
   }
 }
 
