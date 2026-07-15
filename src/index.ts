@@ -25,3 +25,27 @@ export {
 export { Builder } from "./model/builder.js";
 
 export { Model } from "./model/model.js";
+
+export {
+  ExprKind,
+  BinaryOp,
+  UnaryOp,
+  QuantifierKind,
+  THIS,
+  NONE,
+  variable,
+  member,
+  comprehension,
+  all,
+  any,
+  and,
+  or,
+  implies,
+  eq,
+  neq,
+  isIn,
+  not,
+  type Expr,
+} from "./predicate/ast.js";
+
+export { evaluate, satisfies, type EvalValue } from "./predicate/evaluate.js";

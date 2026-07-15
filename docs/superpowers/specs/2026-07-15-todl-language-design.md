@@ -230,7 +230,7 @@ An invariant is a boolean expression over `this`, evaluated per instance. The le
 invariant
 {
     description = "A component's location must be offered by its implementing technology.";
-    predicate   = this.implemented-by == none
+    predicate   = this.implemented-by != none
                     implies this.in in this.implemented-by.available-in;
 }
 ```
