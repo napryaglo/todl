@@ -21,6 +21,7 @@ import { Builder } from "./builder.js";
 import { ReactiveNode } from "./reactive.js";
 import { Derivations } from "../predicate/derivations.js";
 import type { Expr } from "../predicate/ast.js";
+import { validate as runValidation, type Diagnostic } from "../validate/validate.js";
 
 export interface FieldSchema {
   name: string;
@@ -88,6 +89,11 @@ export class Model {
     return this.graph.instancesOf(concept);
   }
 
+  /** Every node in the model. */
+  allNodes(): Node[] {
+    return this.graph.allNodes();
+  }
+
   related(id: NodeId, kind: EdgeKind, direction: Direction, via: NodeId | null = null): NodeId[] {
     return this.graph.related(id, kind, direction, via);
   }
@@ -145,6 +151,32 @@ export class Model {
 
   private firstTarget(from: NodeId, via: NodeId): NodeId {
     return this.graph.related(from, EdgeKind.Relationship, Direction.Out, via)[0] ?? "";
+  }
+
+  /** A concept's schema merged with everything it extends (subtype members win). */
+  effectiveSchema(concept: NodeId): ConceptSchema {
+    const fields = new Map<string, FieldSchema>();
+    const relationships = new Map<string, RelationshipSchema>();
+    for (const current of [concept, ...this.supertypesOf(concept)]) {
+      const schema = this.schemaOf(current);
+      for (const field of schema.fields) {
+        if (!fields.has(field.name)) fields.set(field.name, field);
+      }
+      for (const relationship of schema.relationships) {
+        if (!relationships.has(relationship.name)) relationships.set(relationship.name, relationship);
+      }
+    }
+    return {
+      concept,
+      extends: this.schemaOf(concept).extends,
+      fields: [...fields.values()],
+      relationships: [...relationships.values()],
+    };
+  }
+
+  /** Validate the model, returning structured diagnostics (spec §6). */
+  validate(): Diagnostic[] {
+    return runValidation(this);
   }
 }
 

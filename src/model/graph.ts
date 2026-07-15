@@ -127,6 +127,11 @@ export class Graph {
     return this._nodes.size;
   }
 
+  /** Every node in the graph. */
+  allNodes(): Node[] {
+    return [...this._nodes.values()];
+  }
+
   /** Node ids whose `typeOf` is `concept`. */
   instancesOf(concept: NodeId): NodeId[] {
     const bucket = this._byType.get(concept);

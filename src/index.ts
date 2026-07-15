@@ -55,3 +55,5 @@ export {
 } from "./predicate/ast.js";
 
 export { evaluate, satisfies, type EvalValue } from "./predicate/evaluate.js";
+
+export { validate, Severity, DiagnosticCode, type Diagnostic } from "./validate/validate.js";
