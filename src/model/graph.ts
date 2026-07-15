@@ -40,6 +40,14 @@ export enum Direction {
   In,
 }
 
+/** Field / relationship multiplicity — the surface `T` / `T?` / `T[]` / `T[+]`. */
+export enum Cardinality {
+  One, // T        required single
+  Optional, // T?  optional single
+  Many, // T[]     list, zero or more
+  NonEmpty, // T[+] non-empty list
+}
+
 /** A literal field value. Enum selections and references are edges, not attrs. */
 export type Scalar = string | number | boolean;
 

@@ -11,14 +11,36 @@ import {
   Graph,
   EdgeKind,
   Direction,
+  Cardinality,
   type Node,
   type NodeId,
+  type Scalar,
   type GraphChangeArgs,
 } from "./graph.js";
 import { Builder } from "./builder.js";
 import { ReactiveNode } from "./reactive.js";
 import { Derivations } from "../predicate/derivations.js";
 import type { Expr } from "../predicate/ast.js";
+
+export interface FieldSchema {
+  name: string;
+  type: NodeId;
+  cardinality: Cardinality;
+}
+
+export interface RelationshipSchema {
+  name: string;
+  target: NodeId;
+  cardinality: Cardinality;
+  inverse: string | null;
+}
+
+export interface ConceptSchema {
+  concept: NodeId;
+  extends: NodeId | null;
+  fields: FieldSchema[];
+  relationships: RelationshipSchema[];
+}
 
 export class Model {
   private readonly graph: Graph;
@@ -89,4 +111,47 @@ export class Model {
   supertypesOf(concept: NodeId): NodeId[] {
     return this.graph.closure(concept, EdgeKind.Extends, Direction.Out, false);
   }
+
+  /** Reflect a concept's declared schema (spec §5): direct parent, fields, relationships. */
+  schemaOf(concept: NodeId): ConceptSchema {
+    const parents = this.graph.related(concept, EdgeKind.Extends, Direction.Out);
+
+    const fields: FieldSchema[] = [];
+    for (const memberId of this.graph.related(concept, EdgeKind.HasField, Direction.Out)) {
+      const node = this.graph.getNode(memberId);
+      if (node === undefined) continue;
+      fields.push({
+        name: readString(node.attrs.get("name")),
+        type: this.firstTarget(memberId, "type"),
+        cardinality: readCardinality(node.attrs.get("cardinality")),
+      });
+    }
+
+    const relationships: RelationshipSchema[] = [];
+    for (const memberId of this.graph.related(concept, EdgeKind.HasRelationship, Direction.Out)) {
+      const node = this.graph.getNode(memberId);
+      if (node === undefined) continue;
+      const inverse = node.attrs.get("inverse");
+      relationships.push({
+        name: readString(node.attrs.get("name")),
+        target: this.firstTarget(memberId, "target"),
+        cardinality: readCardinality(node.attrs.get("cardinality")),
+        inverse: typeof inverse === "string" ? inverse : null,
+      });
+    }
+
+    return { concept, extends: parents[0] ?? null, fields, relationships };
+  }
+
+  private firstTarget(from: NodeId, via: NodeId): NodeId {
+    return this.graph.related(from, EdgeKind.Relationship, Direction.Out, via)[0] ?? "";
+  }
+}
+
+function readString(value: Scalar | undefined): string {
+  return typeof value === "string" ? value : "";
+}
+
+function readCardinality(value: Scalar | undefined): Cardinality {
+  return typeof value === "number" ? value : Cardinality.One;
 }

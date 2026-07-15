@@ -7,6 +7,7 @@ export {
   Tier,
   EdgeKind,
   Direction,
+  Cardinality,
   GraphChangeKind,
   type NodeId,
   type Scalar,
@@ -24,7 +25,12 @@ export {
 
 export { Builder } from "./model/builder.js";
 
-export { Model } from "./model/model.js";
+export {
+  Model,
+  type FieldSchema,
+  type RelationshipSchema,
+  type ConceptSchema,
+} from "./model/model.js";
 
 export {
   ExprKind,
