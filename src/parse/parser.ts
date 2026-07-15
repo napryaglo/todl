@@ -274,7 +274,7 @@ class Parser {
       } else {
         const memberName = this.expectIdentifier();
         if (this.match(TokenKind.Colon)) {
-          const type = this.expectIdentifier();
+          const type = this.parseFieldType();
           const cardinality = this.parseCardinality();
           this.expect(TokenKind.Semicolon);
           fields.push({ name: memberName, type, cardinality });
@@ -326,6 +326,30 @@ class Parser {
     }
     this.expect(TokenKind.RBrace);
     return { description, predicate };
+  }
+
+  /**
+   * A field type: a bare identifier (`string`, `task-type`) or an inline
+   * `object { name : <type> [card]; … }` composite, rendered to the flat
+   * inline string the emitter stores (`object { id: identifier, ports: p[] }`).
+   * Nests recursively. `list<T>` is not handled here — the rewriter lowers it
+   * to `T[]` before the parser sees it.
+   */
+  private parseFieldType(): string {
+    if (!this.checkKeyword("object")) return this.expectIdentifier();
+    this.advance(); // object
+    this.expect(TokenKind.LBrace);
+    const parts: string[] = [];
+    while (!this.check(TokenKind.RBrace)) {
+      const name = this.expectIdentifier();
+      this.expect(TokenKind.Colon);
+      const type = this.parseFieldType();
+      const suffix = cardinalitySuffix(this.parseCardinality());
+      this.expect(TokenKind.Semicolon);
+      parts.push(`${name}: ${type}${suffix}`);
+    }
+    this.expect(TokenKind.RBrace);
+    return `object { ${parts.join(", ")} }`;
   }
 
   private parseCardinality(): Cardinality {
@@ -426,3 +450,17 @@ class Parser {
 }
 
 const EOF_TOKEN: Token = { kind: TokenKind.EOF, value: "", line: 0, column: 0 };
+
+/** Cardinality → surface suffix, for rendering inline object-field types. */
+function cardinalitySuffix(cardinality: Cardinality): string {
+  switch (cardinality) {
+    case Cardinality.Optional:
+      return "?";
+    case Cardinality.Many:
+      return "[]";
+    case Cardinality.NonEmpty:
+      return "[+]";
+    case Cardinality.One:
+      return "";
+  }
+}

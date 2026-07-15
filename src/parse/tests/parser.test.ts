@@ -64,6 +64,29 @@ test("reports a malformed declaration with position", () => {
   assert.throws(() => parse("namespace x { concept }"), /expected .* at 1:23/i);
 });
 
+test("parses an object-typed field (post-rewrite surface)", () => {
+  const ns = parse(`namespace d {
+    concept component {
+      slots : object {
+        id : identifier;
+        label : string;
+        in-resource-group : identifier?;
+        public-ingress : ingress-kind[];
+      }[];
+    }
+  }`);
+  const concept = ns.declarations[0];
+  assert.ok(concept && concept.kind === DeclKind.Concept);
+  if (concept.kind === DeclKind.Concept) {
+    const slots = concept.fields.find((f) => f.name === "slots");
+    assert.equal(slots?.cardinality, Cardinality.Many);
+    assert.match(slots?.type ?? "", /^object \{/);
+    assert.match(slots?.type ?? "", /id: identifier/);
+    assert.match(slots?.type ?? "", /in-resource-group: identifier\?/);
+    assert.match(slots?.type ?? "", /public-ingress: ingress-kind\[\]/);
+  }
+});
+
 test("parses concept-prefixed edge-shorthand with a body", () => {
   const ns = parse(`namespace d { connector &business-agent -> &agent-orchestrator { type = enabled-by; } }`);
   const edge = ns.declarations[0];
