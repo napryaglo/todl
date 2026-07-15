@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { parse } from "../parser.js";
-import { DeclKind } from "../ast.js";
+import { DeclKind, ValueKind } from "../ast.js";
 import { Cardinality } from "../../model/graph.js";
 
 function fixture(name: string): string {
@@ -62,4 +62,17 @@ test("parses concept imports, fields with cardinality, relationships, and invari
 
 test("reports a malformed declaration with position", () => {
   assert.throws(() => parse("namespace x { concept }"), /expected .* at 1:23/i);
+});
+
+test("parses a |-composed enum-flag value", () => {
+  const ns = parse(`namespace d { location on-prem { type = physical | on-premises | logical-grouping; } }`);
+  const inst = ns.declarations[0];
+  assert.ok(inst && inst.kind === DeclKind.Instance);
+  if (inst.kind === DeclKind.Instance) {
+    const value = inst.assignments[0]?.value;
+    assert.equal(value?.kind, ValueKind.Composite);
+    if (value?.kind === ValueKind.Composite) {
+      assert.deepEqual(value.parts, ["physical", "on-premises", "logical-grouping"]);
+    }
+  }
 });

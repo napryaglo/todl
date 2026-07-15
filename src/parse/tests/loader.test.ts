@@ -56,6 +56,13 @@ test("undefined references become unresolved placeholder nodes", () => {
 
 const UNRESOLVED_TYPEOF = "unresolved";
 
+test("a |-composed enum-flag value loads as the legacy scalar string", () => {
+  const model = load([
+    `namespace d { location on-prem { type = physical | on-premises | logical-grouping; } }`,
+  ]);
+  assert.equal(model.resolve("on-prem")?.attrs.get("type"), "physical | on-premises | logical-grouping");
+});
+
 test("the loaded process satisfies its invariants and target types", () => {
   const model = corpus();
   const diagnostics = model.validate();

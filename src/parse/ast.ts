@@ -20,6 +20,7 @@ export enum ValueKind {
   Name,
   Ref,
   List,
+  Composite,
 }
 
 export interface StringValue {
@@ -44,7 +45,13 @@ export interface ListValue {
   items: ValueNode[];
 }
 
-export type ValueNode = StringValue | NameValue | RefValue | ListValue;
+/** A `|`-composed set of enum-flag members, e.g. `physical | on-premises`. */
+export interface CompositeValue {
+  kind: ValueKind.Composite;
+  parts: string[];
+}
+
+export type ValueNode = StringValue | NameValue | RefValue | ListValue | CompositeValue;
 
 export interface AssignmentNode {
   name: string;

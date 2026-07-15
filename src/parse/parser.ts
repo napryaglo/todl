@@ -98,7 +98,13 @@ class Parser {
       return { kind: ValueKind.List, items };
     }
     if (this.check(TokenKind.Identifier)) {
-      return { kind: ValueKind.Name, name: this.advance().value };
+      const first = this.advance().value;
+      if (this.check(TokenKind.Pipe)) {
+        const parts = [first];
+        while (this.match(TokenKind.Pipe)) parts.push(this.expectIdentifier());
+        return { kind: ValueKind.Composite, parts };
+      }
+      return { kind: ValueKind.Name, name: first };
     }
     throw this.error(`expected a value`);
   }

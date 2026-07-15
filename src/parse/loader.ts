@@ -130,6 +130,7 @@ function collectValueRefs(value: ValueNode, referenced: Set<string>): void {
       for (const item of value.items) collectValueRefs(item, referenced);
       break;
     case ValueKind.String:
+    case ValueKind.Composite:
       break;
   }
 }
@@ -147,6 +148,11 @@ function applyValue(builder: Builder, id: string, name: string, value: ValueNode
       break;
     case ValueKind.List:
       for (const item of value.items) applyValue(builder, id, name, item);
+      break;
+    case ValueKind.Composite:
+      // `|`-composed enum flags are stored as the legacy scalar string
+      // (`"cloud | paas"`); the runtime enum table's has() splits on `|`.
+      builder.setField(id, name, value.parts.join(" | "));
       break;
   }
 }
