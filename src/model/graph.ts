@@ -7,6 +7,8 @@
  * Filtered accessors and closure caching layer on top in a later step.
  */
 
+import { Signal } from "../core/signal.js";
+
 export type NodeId = string;
 
 /** Which layer of the reflective tower a node lives in (spec §1). */
@@ -58,11 +60,36 @@ export interface Edge {
   to: NodeId;
 }
 
+/** The kind of mutation reported on {@link Graph.changed}. */
+export enum GraphChangeKind {
+  NodeAdded,
+  NodeRemoved,
+  EdgeAdded,
+  EdgeRemoved,
+  AttrSet,
+}
+
+/**
+ * A single mutation event on the graph change bus (spec §R2). One applied
+ * change → one event → façade re-raise, derived-cache invalidation, and
+ * incremental validation all subscribe to the same stream.
+ */
+export interface GraphChangeArgs {
+  kind: GraphChangeKind;
+  /** The node the change is about; for an edge, its source. */
+  node: NodeId;
+  /** Field / relationship name, or `null` for whole-node and structural changes. */
+  property: string | null;
+}
+
 export class Graph {
   private readonly _nodes = new Map<NodeId, Node>();
   private readonly _out = new Map<NodeId, Edge[]>();
   private readonly _in = new Map<NodeId, Edge[]>();
   private readonly _byType = new Map<NodeId, Set<NodeId>>();
+
+  /** The mutation event bus (spec §R2): one event per applied change. */
+  readonly changed = new Signal<GraphChangeArgs>();
 
   addNode(node: Node): void {
     if (this._nodes.has(node.id)) {
@@ -76,6 +103,8 @@ export class Graph {
       this._byType.set(node.typeOf, bucket);
     }
     bucket.add(node.id);
+
+    this.changed.emit({ kind: GraphChangeKind.NodeAdded, node: node.id, property: null });
   }
 
   getNode(id: NodeId): Node | undefined {
@@ -105,6 +134,20 @@ export class Graph {
     }
     appendEdge(this._out, edge.from, edge);
     appendEdge(this._in, edge.to, edge);
+
+    const property =
+      edge.kind === EdgeKind.Relationship || edge.kind === EdgeKind.Derived ? edge.via : null;
+    this.changed.emit({ kind: GraphChangeKind.EdgeAdded, node: edge.from, property });
+  }
+
+  /** Set a scalar field value on a node and emit {@link GraphChangeKind.AttrSet}. */
+  setAttr(id: NodeId, name: string, value: Scalar): void {
+    const node = this._nodes.get(id);
+    if (node === undefined) {
+      throw new Error(`node "${id}" does not exist`);
+    }
+    node.attrs.set(name, value);
+    this.changed.emit({ kind: GraphChangeKind.AttrSet, node: id, property: name });
   }
 
   /** All edges leaving `id` (forward adjacency). */
