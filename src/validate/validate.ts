@@ -91,22 +91,18 @@ function checkInvariants(out: Diagnostic[], model: Model, node: Node): void {
   }
 }
 
-const BUILTIN_PRIMITIVES: ReadonlySet<string> = new Set([
-  "string",
-  "text",
-  "integer",
-  "number",
-  "boolean",
-  "any",
-  "code",
-]);
-
+/**
+ * Count a field's values without guessing scalar-vs-reference from the type
+ * name. A field is stored exactly one way — a scalar attr (`label = "x"`,
+ * `type = physical | …`) or relationship edges (`type = service`,
+ * `implemented-by = &tech`) — so summing both is correct for every case and
+ * avoids a fragile primitive-name heuristic (EA's `identifier` / `label` /
+ * `slug` are not builtins).
+ */
 function countField(model: Model, node: Node, field: FieldSchema): number {
-  const isScalar = BUILTIN_PRIMITIVES.has(field.type) || model.resolve(field.type)?.typeOf === "primitive";
-  if (isScalar) {
-    return node.attrs.has(field.name) ? 1 : 0;
-  }
-  return model.related(node.id, EdgeKind.Relationship, Direction.Out, field.name).length;
+  const attrCount = node.attrs.has(field.name) ? 1 : 0;
+  const edgeCount = model.related(node.id, EdgeKind.Relationship, Direction.Out, field.name).length;
+  return attrCount + edgeCount;
 }
 
 function checkCardinality(
