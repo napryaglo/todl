@@ -15,7 +15,7 @@ import { parsePredicate } from "./predicate-parser.js";
 import { Model } from "../model/model.js";
 import type { Builder, EnumCaseInput } from "../model/builder.js";
 import type { Expr } from "../predicate/ast.js";
-import { DeclKind, ValueKind, type Declaration, type ValueNode } from "./ast.js";
+import { DeclKind, ValueKind, type Declaration, type InstanceDecl, type ValueNode } from "./ast.js";
 
 const UNRESOLVED = "unresolved";
 
@@ -84,10 +84,7 @@ export function load(sources: string[]): Model {
         }
       }
     } else if (declaration.kind === DeclKind.Instance) {
-      second.assertInstance(declaration.concept, declaration.id);
-      for (const assignment of declaration.assignments) {
-        applyValue(second, declaration.id, assignment.name, assignment.value);
-      }
+      applyInstance(second, declaration, null);
     }
   }
   second.commit();
@@ -112,10 +109,15 @@ function collectNames(declaration: Declaration, defined: Set<string>, referenced
       if (declaration.extends !== null) referenced.add(declaration.extends);
       break;
     case DeclKind.Instance:
-      defined.add(declaration.id);
-      for (const assignment of declaration.assignments) collectValueRefs(assignment.value, referenced);
+      collectInstanceNames(declaration, defined, referenced);
       break;
   }
+}
+
+function collectInstanceNames(decl: InstanceDecl, defined: Set<string>, referenced: Set<string>): void {
+  defined.add(decl.id);
+  for (const assignment of decl.assignments) collectValueRefs(assignment.value, referenced);
+  for (const child of decl.children) collectInstanceNames(child, defined, referenced);
 }
 
 function collectValueRefs(value: ValueNode, referenced: Set<string>): void {
@@ -132,6 +134,18 @@ function collectValueRefs(value: ValueNode, referenced: Set<string>): void {
     case ValueKind.String:
     case ValueKind.Composite:
       break;
+  }
+}
+
+function applyInstance(builder: Builder, decl: InstanceDecl, parent: string | null): void {
+  builder.assertInstance(decl.concept, decl.id);
+  if (decl.binds !== null) builder.setField(decl.id, "meta-model", decl.binds);
+  if (parent !== null) builder.addContains(parent, decl.id);
+  for (const assignment of decl.assignments) {
+    applyValue(builder, decl.id, assignment.name, assignment.value);
+  }
+  for (const child of decl.children) {
+    applyInstance(builder, child, decl.id);
   }
 }
 

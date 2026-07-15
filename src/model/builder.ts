@@ -62,6 +62,12 @@ export class Builder {
     return this;
   }
 
+  /** Stage a containment edge `parent -contains-> child`. */
+  addContains(parent: NodeId, child: NodeId): this {
+    this.stagedEdges.push({ kind: EdgeKind.Contains, via: null, from: parent, to: child });
+    return this;
+  }
+
   // ── Ontology tier ───────────────────────────────────────────────────────
 
   /** Stage a primitive declaration node. */

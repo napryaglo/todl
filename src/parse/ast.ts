@@ -62,7 +62,11 @@ export interface InstanceDecl {
   kind: DeclKind.Instance;
   concept: string;
   id: string;
+  /** Optional `: <meta-model>` binding on a container record (`model m : ea`). */
+  binds: string | null;
   assignments: AssignmentNode[];
+  /** Nested records declared inside this instance's body (containment). */
+  children: InstanceDecl[];
 }
 
 export interface FieldDecl {

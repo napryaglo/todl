@@ -66,19 +66,33 @@ class Parser {
   }
 
   private parseInstance(): InstanceDecl {
-    const concept = this.expectIdentifier();
+    return this.parseInstanceFrom(this.expectIdentifier());
+  }
+
+  /**
+   * Parse an instance record whose leading concept identifier has already been
+   * consumed. Body members are either `name = value;` assignments or nested
+   * `<concept> <id> { … }` records (containment). An optional `: <meta-model>`
+   * binding may follow the id on a container record.
+   */
+  private parseInstanceFrom(concept: string): InstanceDecl {
     const id = this.expectRecordId();
+    const binds = this.match(TokenKind.Colon) ? this.expectIdentifier() : null;
     const assignments: AssignmentNode[] = [];
+    const children: InstanceDecl[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
-      const name = this.expectIdentifier();
-      this.expect(TokenKind.Equals);
-      const value = this.parseValue();
-      this.expect(TokenKind.Semicolon);
-      assignments.push({ name, value });
+      const first = this.expectIdentifier();
+      if (this.match(TokenKind.Equals)) {
+        const value = this.parseValue();
+        this.expect(TokenKind.Semicolon);
+        assignments.push({ name: first, value });
+      } else {
+        children.push(this.parseInstanceFrom(first));
+      }
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Instance, concept, id, assignments };
+    return { kind: DeclKind.Instance, concept, id, binds, assignments, children };
   }
 
   private parseValue(): ValueNode {

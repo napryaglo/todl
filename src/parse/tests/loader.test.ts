@@ -56,6 +56,20 @@ test("undefined references become unresolved placeholder nodes", () => {
 
 const UNRESOLVED_TYPEOF = "unresolved";
 
+test("nested instances load with contains edges and a meta-model binding", () => {
+  const model = load([
+    `namespace d {
+      model m : enterprise-architecture {
+        title = "T";
+        location saas-3p { label = "x"; }
+      }
+    }`,
+  ]);
+  assert.equal(model.resolve("saas-3p")?.typeOf, "location");
+  assert.deepEqual(model.related("m", EdgeKind.Contains, Direction.Out), ["saas-3p"]);
+  assert.equal(model.resolve("m")?.attrs.get("meta-model"), "enterprise-architecture");
+});
+
 test("a |-composed enum-flag value loads as the legacy scalar string", () => {
   const model = load([
     `namespace d { location on-prem { type = physical | on-premises | logical-grouping; } }`,

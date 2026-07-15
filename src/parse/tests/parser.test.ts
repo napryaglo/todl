@@ -64,6 +64,25 @@ test("reports a malformed declaration with position", () => {
   assert.throws(() => parse("namespace x { concept }"), /expected .* at 1:23/i);
 });
 
+test("parses nested container instances with a meta-model binding", () => {
+  const ns = parse(`namespace d {
+    model m : enterprise-architecture {
+      title = "T";
+      location saas-3p { label = "3rd-Party SaaS"; type = logical-grouping; }
+    }
+  }`);
+  const model = ns.declarations[0];
+  assert.ok(model && model.kind === DeclKind.Instance);
+  if (model.kind === DeclKind.Instance) {
+    assert.equal(model.concept, "model");
+    assert.equal(model.binds, "enterprise-architecture");
+    assert.equal(model.assignments[0]?.name, "title");
+    assert.equal(model.children.length, 1);
+    assert.equal(model.children[0]?.concept, "location");
+    assert.equal(model.children[0]?.id, "saas-3p");
+  }
+});
+
 test("parses a string-keyed record id", () => {
   const ns = parse(`namespace d { sequence "Conversation via M365 Copilot" { } }`);
   const inst = ns.declarations[0];
