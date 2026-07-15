@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { parse } from "../parser.js";
-import { DeclKind, ValueKind } from "../ast.js";
+import { DeclKind, ValueKind, type InstanceDecl, type RefValue } from "../ast.js";
 import { Cardinality } from "../../model/graph.js";
 
 function fixture(name: string): string {
@@ -62,6 +62,34 @@ test("parses concept imports, fields with cardinality, relationships, and invari
 
 test("reports a malformed declaration with position", () => {
   assert.throws(() => parse("namespace x { concept }"), /expected .* at 1:23/i);
+});
+
+test("parses concept-prefixed edge-shorthand with a body", () => {
+  const ns = parse(`namespace d { connector &business-agent -> &agent-orchestrator { type = enabled-by; } }`);
+  const edge = ns.declarations[0];
+  assert.ok(edge && edge.kind === DeclKind.Instance);
+  if (edge.kind === DeclKind.Instance) {
+    assert.equal(edge.concept, "connector");
+    const from = edge.assignments.find((a) => a.name === "from")?.value;
+    const to = edge.assignments.find((a) => a.name === "to")?.value;
+    assert.equal(from?.kind, ValueKind.Ref);
+    assert.equal((from as RefValue).ref, "business-agent");
+    assert.equal((to as RefValue).ref, "agent-orchestrator");
+    assert.ok(edge.assignments.find((a) => a.name === "type"));
+  }
+});
+
+test("parses an application-connectors block of --> edges", () => {
+  const ns = parse(`namespace d {
+    model m : ea {
+      application-connectors { &external-agent-bridge --> &agent-service }
+    }
+  }`);
+  const model = ns.declarations[0] as InstanceDecl;
+  const block = model.children.find((c) => c.concept === "application-connectors");
+  assert.ok(block);
+  assert.equal(block?.children.length, 1);
+  assert.equal(block?.children[0]?.concept, "connector");
 });
 
 test("parses nested container instances with a meta-model binding", () => {

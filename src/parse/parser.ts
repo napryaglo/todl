@@ -32,6 +32,8 @@ export function parse(source: string): NamespaceNode {
 
 class Parser {
   private pos = 0;
+  /** Monotonic counter for synthesizing ids of id-less edge records. */
+  private edgeSeq = 0;
 
   constructor(private readonly tokens: Token[]) {}
 
@@ -61,7 +63,11 @@ class Parser {
     if (this.checkKeyword("primitive")) return this.parsePrimitive();
     if (this.checkKeyword("enum")) return this.parseEnum();
     if (this.checkKeyword("concept")) return this.parseConcept();
-    if (this.check(TokenKind.Identifier)) return this.parseInstance();
+    if (this.checkKeyword("application-connectors")) return this.parseApplicationConnectors();
+    if (this.check(TokenKind.Identifier)) {
+      if (this.peekKind(1) === TokenKind.Amp) return this.parseEdgeRecord(this.expectIdentifier());
+      return this.parseInstance();
+    }
     throw this.error(`expected a declaration (primitive / enum / concept / instance)`);
   }
 
@@ -82,17 +88,78 @@ class Parser {
     const children: InstanceDecl[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
+      if (this.checkKeyword("application-connectors")) {
+        children.push(this.parseApplicationConnectors());
+        continue;
+      }
       const first = this.expectIdentifier();
       if (this.match(TokenKind.Equals)) {
         const value = this.parseValue();
         this.expect(TokenKind.Semicolon);
         assignments.push({ name: first, value });
+      } else if (this.check(TokenKind.Amp)) {
+        children.push(this.parseEdgeRecord(first));
       } else {
         children.push(this.parseInstanceFrom(first));
       }
     }
     this.expect(TokenKind.RBrace);
     return { kind: DeclKind.Instance, concept, id, binds, assignments, children };
+  }
+
+  /**
+   * Parse an edge-shorthand record whose leading concept identifier is already
+   * consumed: `<concept> &from (-> | -->) &to [ { … } | ; ]`. Materialized as an
+   * instance carrying `from` / `to` reference assignments plus an `operator`
+   * attr, so it flows through the normal instance machinery.
+   */
+  private parseEdgeRecord(concept: string): InstanceDecl {
+    const from = this.parseRef();
+    const operator = this.consumeEdgeOperator();
+    const to = this.parseRef();
+    const assignments: AssignmentNode[] = [
+      { name: "from", value: { kind: ValueKind.Ref, ref: from } },
+      { name: "to", value: { kind: ValueKind.Ref, ref: to } },
+      { name: "operator", value: { kind: ValueKind.String, text: operator } },
+    ];
+    if (this.match(TokenKind.LBrace)) {
+      while (!this.check(TokenKind.RBrace)) {
+        const name = this.expectIdentifier();
+        this.expect(TokenKind.Equals);
+        const value = this.parseValue();
+        this.expect(TokenKind.Semicolon);
+        assignments.push({ name, value });
+      }
+      this.expect(TokenKind.RBrace);
+    } else {
+      this.match(TokenKind.Semicolon); // optional terminator (bare in an application-connectors block)
+    }
+    const id = `${concept}#${(this.edgeSeq += 1)}`;
+    return { kind: DeclKind.Instance, concept, id, binds: null, assignments, children: [] };
+  }
+
+  /** Parse an `application-connectors { &a --> &b … }` block into a container of connectors. */
+  private parseApplicationConnectors(): InstanceDecl {
+    this.expectKeyword("application-connectors");
+    this.expect(TokenKind.LBrace);
+    const children: InstanceDecl[] = [];
+    while (!this.check(TokenKind.RBrace)) {
+      children.push(this.parseEdgeRecord("connector"));
+    }
+    this.expect(TokenKind.RBrace);
+    const id = `application-connectors#${(this.edgeSeq += 1)}`;
+    return { kind: DeclKind.Instance, concept: "application-connectors", id, binds: null, assignments: [], children };
+  }
+
+  private parseRef(): string {
+    this.expect(TokenKind.Amp);
+    return this.parseDottedPath();
+  }
+
+  private consumeEdgeOperator(): string {
+    if (this.match(TokenKind.Arrow)) return "->";
+    if (this.match(TokenKind.DoubleArrow)) return "-->";
+    throw this.error(`expected "->" or "-->"`);
   }
 
   private parseValue(): ValueNode {
@@ -304,6 +371,10 @@ class Parser {
 
   private check(kind: TokenKind): boolean {
     return this.current().kind === kind;
+  }
+
+  private peekKind(offset: number): TokenKind {
+    return (this.tokens[this.pos + offset] ?? EOF_TOKEN).kind;
   }
 
   private checkKeyword(word: string): boolean {

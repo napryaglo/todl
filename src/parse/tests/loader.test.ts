@@ -56,6 +56,20 @@ test("undefined references become unresolved placeholder nodes", () => {
 
 const UNRESOLVED_TYPEOF = "unresolved";
 
+test("edge-shorthand connector loads from/to as relationship edges", () => {
+  const model = load([
+    `namespace d {
+      component business-agent { label = "x"; }
+      component agent-orchestrator { label = "y"; }
+      connector &business-agent -> &agent-orchestrator { type = enabled-by; }
+    }`,
+  ]);
+  const conn = model.allNodes().find((n) => n.typeOf === "connector");
+  assert.ok(conn);
+  assert.deepEqual(model.related(conn!.id, EdgeKind.Relationship, Direction.Out, "from"), ["business-agent"]);
+  assert.deepEqual(model.related(conn!.id, EdgeKind.Relationship, Direction.Out, "to"), ["agent-orchestrator"]);
+});
+
 test("nested instances load with contains edges and a meta-model binding", () => {
   const model = load([
     `namespace d {

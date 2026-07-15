@@ -25,6 +25,7 @@ export enum TokenKind {
   Colon = ":",
   Equals = "=",
   Arrow = "->",
+  DoubleArrow = "-->",
   Pipe = "|",
   Amp = "&",
   Question = "?",
@@ -107,6 +108,9 @@ class Lexer {
   private readOperator(line: number, column: number): void {
     const char = this.peek();
     const next = this.peek(1);
+
+    const three = char + next + this.peek(2);
+    if (three === "-->") return this.push(TokenKind.DoubleArrow, "-->", line, column, 3);
 
     const two = char + next;
     if (two === "->") return this.push(TokenKind.Arrow, "->", line, column, 2);
