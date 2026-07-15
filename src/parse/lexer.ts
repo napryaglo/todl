@@ -166,14 +166,20 @@ class Lexer {
 
   private readString(line: number, column: number): string {
     this.advance(); // opening quote
-    const start = this.pos;
+    let value = "";
     while (this.peek() !== '"') {
       if (this.pos >= this.source.length || this.peek() === "\n") {
         throw new Error(`unterminated string at ${line}:${column}`);
       }
-      this.advance();
+      if (this.peek() === "\\") {
+        this.advance();
+        value += unescape(this.peek());
+        this.advance();
+      } else {
+        value += this.peek();
+        this.advance();
+      }
     }
-    const value = this.source.slice(start, this.pos);
     this.advance(); // closing quote
     return value;
   }
@@ -232,6 +238,20 @@ class Lexer {
       this.column += 1;
     }
     this.pos += 1;
+  }
+}
+
+/** Decode a backslash-escaped character in a double-quoted string. */
+function unescape(char: string): string {
+  switch (char) {
+    case "n":
+      return "\n";
+    case "t":
+      return "\t";
+    case "r":
+      return "\r";
+    default:
+      return char; // `\"`, `\\`, and anything else pass through literally
   }
 }
 

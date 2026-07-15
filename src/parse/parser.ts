@@ -176,7 +176,10 @@ class Parser {
       const items: ValueNode[] = [];
       if (!this.check(TokenKind.RBracket)) {
         items.push(this.parseValue());
-        while (this.match(TokenKind.Comma)) items.push(this.parseValue());
+        while (this.match(TokenKind.Comma)) {
+          if (this.check(TokenKind.RBracket)) break; // trailing comma
+          items.push(this.parseValue());
+        }
       }
       this.expect(TokenKind.RBracket);
       return { kind: ValueKind.List, items };
@@ -202,11 +205,8 @@ class Parser {
     let regex: string | null = null;
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
-      const key = this.expectIdentifier();
-      this.expect(TokenKind.Equals);
-      const value = this.parseStringValue();
-      this.expect(TokenKind.Semicolon);
-      if (key === "description") description = value;
+      const [key, value] = this.readStringMember();
+      if (key === "description") description = value ?? "";
       else if (key === "regex") regex = value;
     }
     this.expect(TokenKind.RBrace);
@@ -224,11 +224,8 @@ class Parser {
       if (this.checkKeyword("values")) {
         this.parseEnumValues(cases);
       } else {
-        const key = this.expectIdentifier();
-        this.expect(TokenKind.Equals);
-        const value = this.parseStringValue();
-        this.expect(TokenKind.Semicolon);
-        if (key === "description") description = value;
+        const [key, value] = this.readStringMember();
+        if (key === "description" && value !== null) description = value;
       }
     }
     this.expect(TokenKind.RBrace);
@@ -245,12 +242,9 @@ class Parser {
       let description = "";
       this.expect(TokenKind.LBrace);
       while (!this.check(TokenKind.RBrace)) {
-        const key = this.expectIdentifier();
-        this.expect(TokenKind.Equals);
-        const value = this.parseStringValue();
-        this.expect(TokenKind.Semicolon);
-        if (key === "label") label = value;
-        else if (key === "description") description = value;
+        const [key, value] = this.readStringMember();
+        if (key === "label" && value !== null) label = value;
+        else if (key === "description" && value !== null) description = value;
       }
       this.expect(TokenKind.RBrace);
       cases.push({ id, label, description });
@@ -393,6 +387,24 @@ class Parser {
       return this.advance().value;
     }
     throw this.error(`expected a string value`);
+  }
+
+  /**
+   * Read a `key = <value>;` member. String/number values are returned; any
+   * other value (a doc-only `references = [ … ]` list) is skipped and returned
+   * as `null`, so callers ignore members they don't recognise.
+   */
+  private readStringMember(): [string, string | null] {
+    const key = this.expectIdentifier();
+    this.expect(TokenKind.Equals);
+    let value: string | null = null;
+    if (this.check(TokenKind.String) || this.check(TokenKind.RawString) || this.check(TokenKind.Number)) {
+      value = this.advance().value;
+    } else {
+      this.skipToSemicolon();
+    }
+    this.expect(TokenKind.Semicolon);
+    return [key, value];
   }
 
   /** Skip a balanced `{ … }` block (raw strings are single tokens, so brace-safe). */
