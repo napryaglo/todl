@@ -13,7 +13,7 @@
 import { parse } from "./parser.js";
 import { parsePredicate } from "./predicate-parser.js";
 import { Model } from "../model/model.js";
-import type { Builder } from "../model/builder.js";
+import type { Builder, EnumCaseInput } from "../model/builder.js";
 import type { Expr } from "../predicate/ast.js";
 import { DeclKind, ValueKind, type Declaration, type ValueNode } from "./ast.js";
 
@@ -41,7 +41,15 @@ export function load(sources: string[]): Model {
         first.definePrimitive(declaration.name);
         break;
       case DeclKind.Enum:
-        first.defineEnum(declaration.name, declaration.cases.map((enumCase) => enumCase.id));
+        first.defineEnum(
+          declaration.name,
+          declaration.cases.map((enumCase) => {
+            const input: EnumCaseInput = { id: enumCase.id };
+            if (enumCase.label) input.label = enumCase.label;
+            if (enumCase.description) input.description = enumCase.description;
+            return input;
+          }),
+        );
         break;
       case DeclKind.Concept:
         first.defineConcept(declaration.name, declaration.extends);

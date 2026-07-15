@@ -13,13 +13,14 @@
  */
 
 import { Graph, EdgeKind, Tier, Cardinality, type Node, type NodeId, type Scalar } from "./graph.js";
+import { MetaKind } from "./kinds.js";
 
-/** Meta-kind ids a node's `typeOf` points at when it is an ontology declaration. */
-const CONCEPT_KIND = "concept";
-const PRIMITIVE_KIND = "primitive";
-const ENUM_KIND = "enum";
-const FIELD_KIND = "field";
-const RELATIONSHIP_KIND = "relationship";
+/** A single enum case, optionally carrying display metadata (spec §7.3). */
+export interface EnumCaseInput {
+  id: NodeId;
+  label?: string;
+  description?: string;
+}
 
 interface StagedAttr {
   id: NodeId;
@@ -65,13 +66,13 @@ export class Builder {
 
   /** Stage a primitive declaration node. */
   definePrimitive(id: NodeId): this {
-    this.stageNode(id, Tier.Ontology, PRIMITIVE_KIND);
+    this.stageNode(id, Tier.Ontology, MetaKind.Primitive);
     return this;
   }
 
   /** Stage a concept declaration, optionally extending `extendsId`. */
   defineConcept(id: NodeId, extendsId: NodeId | null = null): this {
-    this.stageNode(id, Tier.Ontology, CONCEPT_KIND);
+    this.stageNode(id, Tier.Ontology, MetaKind.Concept);
     if (extendsId !== null) {
       this.stagedEdges.push({ kind: EdgeKind.Extends, via: null, from: id, to: extendsId });
     }
@@ -86,7 +87,7 @@ export class Builder {
       ["cardinality", cardinality],
       ["type", type],
     ]);
-    this.stagedNodes.push({ id: memberId, tier: Tier.Ontology, typeOf: FIELD_KIND, attrs });
+    this.stagedNodes.push({ id: memberId, tier: Tier.Ontology, typeOf: MetaKind.Field, attrs });
     this.stagedEdges.push({ kind: EdgeKind.HasField, via: null, from: concept, to: memberId });
     return this;
   }
@@ -108,16 +109,24 @@ export class Builder {
     if (inverse !== null) {
       attrs.set("inverse", inverse);
     }
-    this.stagedNodes.push({ id: memberId, tier: Tier.Ontology, typeOf: RELATIONSHIP_KIND, attrs });
+    this.stagedNodes.push({ id: memberId, tier: Tier.Ontology, typeOf: MetaKind.Relationship, attrs });
     this.stagedEdges.push({ kind: EdgeKind.HasRelationship, via: null, from: concept, to: memberId });
     return this;
   }
 
-  /** Stage an enum declaration: the enum node plus a node per case (typed by the enum). */
-  defineEnum(name: NodeId, cases: readonly string[]): this {
-    this.stageNode(name, Tier.Ontology, ENUM_KIND);
-    for (const caseId of cases) {
-      this.stageNode(caseId, Tier.Ontology, name);
+  /**
+   * Stage an enum declaration: the enum node plus a node per case (typed by
+   * the enum). Cases may be bare ids or `{ id, label?, description? }`; any
+   * display metadata is stored as attrs on the case node for the emitter.
+   */
+  defineEnum(name: NodeId, cases: readonly (string | EnumCaseInput)[]): this {
+    this.stageNode(name, Tier.Ontology, MetaKind.Enum);
+    for (const entry of cases) {
+      const input: EnumCaseInput = typeof entry === "string" ? { id: entry } : entry;
+      const attrs = new Map<string, Scalar>();
+      if (input.label !== undefined) attrs.set("label", input.label);
+      if (input.description !== undefined) attrs.set("description", input.description);
+      this.stagedNodes.push({ id: input.id, tier: Tier.Ontology, typeOf: name, attrs });
     }
     return this;
   }

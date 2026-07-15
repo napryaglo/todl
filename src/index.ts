@@ -26,7 +26,8 @@ export {
   type INotifyCollectionChanged,
 } from "./model/reactive.js";
 
-export { Builder } from "./model/builder.js";
+export { Builder, type EnumCaseInput } from "./model/builder.js";
+export { MetaKind } from "./model/kinds.js";
 
 export {
   Model,
@@ -68,6 +69,8 @@ export {
   type JsonNode,
   type JsonEdge,
 } from "./emit/json.js";
+
+export { toMetaModule, type MetaModuleOptions } from "./emit/js-module.js";
 
 export { load } from "./parse/loader.js";
 export { parse } from "./parse/parser.js";
