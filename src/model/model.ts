@@ -20,6 +20,7 @@ import {
 import { Builder } from "./builder.js";
 import { ReactiveNode } from "./reactive.js";
 import { Derivations } from "../predicate/derivations.js";
+import { Invariants, type InvariantDef } from "../predicate/invariants.js";
 import type { Expr } from "../predicate/ast.js";
 import { validate as runValidation, type Diagnostic } from "../validate/validate.js";
 
@@ -46,10 +47,12 @@ export interface ConceptSchema {
 export class Model {
   private readonly graph: Graph;
   private readonly derivations: Derivations;
+  private readonly invariants: Invariants;
 
   constructor(graph: Graph = new Graph()) {
     this.graph = graph;
     this.derivations = new Derivations(this);
+    this.invariants = new Invariants();
   }
 
   /** Register a derived member (spec §4.4): a comprehension queried per instance. */
@@ -60,6 +63,16 @@ export class Model {
   /** Query a derived member for an instance; lazily evaluated and memoized. */
   derived(instance: NodeId, name: string): NodeId[] {
     return this.derivations.get(instance, name);
+  }
+
+  /** Register a concept invariant (spec §4.3): a predicate checked per instance. */
+  defineInvariant(concept: NodeId, expr: Expr, description = ""): void {
+    this.invariants.define(concept, expr, description);
+  }
+
+  /** Invariants declared directly on `concept`. */
+  invariantsFor(concept: NodeId): InvariantDef[] {
+    return this.invariants.for(concept);
   }
 
   /** The mutation change stream (spec §R2). */

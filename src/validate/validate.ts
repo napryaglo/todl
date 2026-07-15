@@ -8,6 +8,7 @@
 
 import { Tier, EdgeKind, Direction, Cardinality, type NodeId, type Node } from "../model/graph.js";
 import type { Model, FieldSchema } from "../model/model.js";
+import { satisfies } from "../predicate/evaluate.js";
 
 export enum Severity {
   Error = "error",
@@ -18,6 +19,7 @@ export enum DiagnosticCode {
   RequiredMissing = "cardinality.required-missing",
   TooMany = "cardinality.too-many",
   EmptyNotAllowed = "cardinality.empty-not-allowed",
+  InvariantFailed = "invariant.failed",
 }
 
 export interface Diagnostic {
@@ -42,8 +44,25 @@ export function validate(model: Model): Diagnostic[] {
       const count = model.related(node.id, EdgeKind.Relationship, Direction.Out, relationship.name).length;
       checkCardinality(diagnostics, node, relationship.name, relationship.cardinality, count);
     }
+    checkInvariants(diagnostics, model, node);
   }
   return diagnostics;
+}
+
+function checkInvariants(out: Diagnostic[], model: Model, node: Node): void {
+  for (const concept of [node.typeOf, ...model.supertypesOf(node.typeOf)]) {
+    for (const invariant of model.invariantsFor(concept)) {
+      if (!satisfies(model, invariant.expr, node.id)) {
+        out.push({
+          code: DiagnosticCode.InvariantFailed,
+          severity: Severity.Error,
+          node: node.id,
+          path: concept,
+          message: `invariant failed on "${node.id}": ${invariant.description}`,
+        });
+      }
+    }
+  }
 }
 
 function countField(model: Model, node: Node, field: FieldSchema): number {
