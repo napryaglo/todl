@@ -66,6 +66,8 @@ export function load(sources: string[]): Model {
   // Pass 2: concept members + instances.
   const second = model.builder();
   const invariants: PendingInvariant[] = [];
+  const counter: HoistCounter = { n: 0 };
+  const asserted = new Set<string>();
   for (const declaration of declarations) {
     if (declaration.kind === DeclKind.Concept) {
       for (const field of declaration.fields) {
@@ -84,7 +86,7 @@ export function load(sources: string[]): Model {
         }
       }
     } else if (declaration.kind === DeclKind.Instance) {
-      applyInstance(second, declaration, null);
+      applyInstance(second, declaration, null, counter, asserted);
     }
   }
   second.commit();
@@ -102,7 +104,10 @@ function collectNames(declaration: Declaration, defined: Set<string>, referenced
       break;
     case DeclKind.Enum:
       defined.add(declaration.name);
-      for (const enumCase of declaration.cases) defined.add(enumCase.id);
+      // Enum-case nodes are enum-qualified (see Builder.defineEnum); record the
+      // qualified id so a bare enum value used in an instance resolves to a
+      // placeholder rather than falsely appearing already-defined.
+      for (const enumCase of declaration.cases) defined.add(`${declaration.name}.${enumCase.id}`);
       break;
     case DeclKind.Concept:
       defined.add(declaration.name);
@@ -131,25 +136,48 @@ function collectValueRefs(value: ValueNode, referenced: Set<string>): void {
     case ValueKind.List:
       for (const item of value.items) collectValueRefs(item, referenced);
       break;
+    case ValueKind.Object:
+      for (const field of value.fields) collectValueRefs(field.value, referenced);
+      break;
     case ValueKind.String:
     case ValueKind.Composite:
       break;
   }
 }
 
-function applyInstance(builder: Builder, decl: InstanceDecl, parent: string | null): void {
-  builder.assertInstance(decl.concept, decl.id);
-  if (decl.binds !== null) builder.setField(decl.id, "meta-model", decl.binds);
-  if (parent !== null) builder.addContains(parent, decl.id);
+/** A mutable counter used to synthesize ids for hoisted inline-object records. */
+interface HoistCounter {
+  n: number;
+}
+
+function applyInstance(
+  builder: Builder,
+  decl: InstanceDecl,
+  parent: string | null,
+  counter: HoistCounter,
+  asserted: Set<string>,
+): void {
+  // Legacy authoring may declare the same record id in more than one place
+  // (e.g. a component under two location blocks); merge later fields onto the
+  // first assertion rather than erroring on the duplicate node.
+  const first = !asserted.has(decl.id);
+  if (first) {
+    asserted.add(decl.id);
+    builder.assertInstance(decl.concept, decl.id);
+    // The record name is its `id`; surface it as the field the schema declares.
+    builder.setField(decl.id, "id", decl.id);
+    if (decl.binds !== null) builder.setField(decl.id, "meta-model", decl.binds);
+    if (parent !== null) builder.addContains(parent, decl.id);
+  }
   for (const assignment of decl.assignments) {
-    applyValue(builder, decl.id, assignment.name, assignment.value);
+    applyValue(builder, decl.id, assignment.name, assignment.value, counter);
   }
   for (const child of decl.children) {
-    applyInstance(builder, child, decl.id);
+    applyInstance(builder, child, decl.id, counter, asserted);
   }
 }
 
-function applyValue(builder: Builder, id: string, name: string, value: ValueNode): void {
+function applyValue(builder: Builder, id: string, name: string, value: ValueNode, counter: HoistCounter): void {
   switch (value.kind) {
     case ValueKind.String:
       builder.setField(id, name, value.text);
@@ -161,12 +189,28 @@ function applyValue(builder: Builder, id: string, name: string, value: ValueNode
       builder.addRelationship(id, name, value.ref);
       break;
     case ValueKind.List:
-      for (const item of value.items) applyValue(builder, id, name, item);
+      for (const item of value.items) applyValue(builder, id, name, item, counter);
       break;
     case ValueKind.Composite:
       // `|`-composed enum flags are stored as the legacy scalar string
       // (`"cloud | paas"`); the runtime enum table's has() splits on `|`.
       builder.setField(id, name, value.parts.join(" | "));
       break;
+    case ValueKind.Object: {
+      // Inline objects become standalone records typed by the (singularized)
+      // field name, linked to the parent by a field-named relationship.
+      const childId = `${id}.${name}#${(counter.n += 1)}`;
+      builder.assertInstance(singularize(name), childId);
+      builder.addRelationship(id, name, childId);
+      for (const field of value.fields) {
+        applyValue(builder, childId, field.name, field.value, counter);
+      }
+      break;
+    }
   }
+}
+
+/** Naive singularizer for hoisted-object concept names (`peers` → `peer`). */
+function singularize(name: string): string {
+  return name.endsWith("s") ? name.slice(0, -1) : name;
 }

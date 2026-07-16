@@ -130,14 +130,16 @@ function emitEnum(model: Model, enumId: string): string {
   const lines: string[] = [`export const ${name} = {`];
   lines.push(`${i}slug: ${jsStr(enumId)},`);
   lines.push(`${i}values: {`);
-  for (const caseId of model.instancesOf(enumId)) {
-    const node = model.resolve(caseId);
-    const parts = [`id: ${jsStr(caseId)}`];
+  for (const caseNodeId of model.instancesOf(enumId)) {
+    const node = model.resolve(caseNodeId);
+    // Enum-case node ids are enum-qualified; the bare member id is an attr.
+    const bare = typeof node?.attrs.get("id") === "string" ? (node.attrs.get("id") as string) : caseNodeId;
+    const parts = [`id: ${jsStr(bare)}`];
     const label = node?.attrs.get("label");
     if (typeof label === "string") parts.push(`label: ${jsStr(label)}`);
     const description = node?.attrs.get("description");
     if (typeof description === "string") parts.push(`description: ${jsStr(description)}`);
-    lines.push(`${i}${i}${jsKey(caseId)}: { ${parts.join(", ")} },`);
+    lines.push(`${i}${i}${jsKey(bare)}: { ${parts.join(", ")} },`);
   }
   lines.push(`${i}},`);
   // has() — true if `value` (an id, an array, or a `|`/`+`/`,`-joined combo)

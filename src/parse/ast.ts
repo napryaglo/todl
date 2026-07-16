@@ -21,6 +21,7 @@ export enum ValueKind {
   Ref,
   List,
   Composite,
+  Object,
 }
 
 export interface StringValue {
@@ -51,7 +52,19 @@ export interface CompositeValue {
   parts: string[];
 }
 
-export type ValueNode = StringValue | NameValue | RefValue | ListValue | CompositeValue;
+/** An inline `{ key = value; … }` object literal — hoisted to a standalone record on load. */
+export interface ObjectValue {
+  kind: ValueKind.Object;
+  fields: AssignmentNode[];
+}
+
+export type ValueNode =
+  | StringValue
+  | NameValue
+  | RefValue
+  | ListValue
+  | CompositeValue
+  | ObjectValue;
 
 export interface AssignmentNode {
   name: string;

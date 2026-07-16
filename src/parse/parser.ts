@@ -117,9 +117,11 @@ class Parser {
     const from = this.parseRef();
     const operator = this.consumeEdgeOperator();
     const to = this.parseRef();
+    // `step` names its endpoints src/dst; connectors use from/to.
+    const [fromField, toField] = concept === "step" ? ["src", "dst"] : ["from", "to"];
     const assignments: AssignmentNode[] = [
-      { name: "from", value: { kind: ValueKind.Ref, ref: from } },
-      { name: "to", value: { kind: ValueKind.Ref, ref: to } },
+      { name: fromField, value: { kind: ValueKind.Ref, ref: from } },
+      { name: toField, value: { kind: ValueKind.Ref, ref: to } },
       { name: "operator", value: { kind: ValueKind.String, text: operator } },
     ];
     if (this.match(TokenKind.LBrace)) {
@@ -183,6 +185,18 @@ class Parser {
       }
       this.expect(TokenKind.RBracket);
       return { kind: ValueKind.List, items };
+    }
+    if (this.match(TokenKind.LBrace)) {
+      const fields: AssignmentNode[] = [];
+      while (!this.check(TokenKind.RBrace)) {
+        const name = this.expectIdentifier();
+        this.expect(TokenKind.Equals);
+        const value = this.parseValue();
+        this.expect(TokenKind.Semicolon);
+        fields.push({ name, value });
+      }
+      this.expect(TokenKind.RBrace);
+      return { kind: ValueKind.Object, fields };
     }
     if (this.check(TokenKind.Identifier)) {
       const first = this.advance().value;

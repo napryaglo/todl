@@ -129,10 +129,13 @@ export class Builder {
     this.stageNode(name, Tier.Ontology, MetaKind.Enum);
     for (const entry of cases) {
       const input: EnumCaseInput = typeof entry === "string" ? { id: entry } : entry;
-      const attrs = new Map<string, Scalar>();
+      // Qualify the node id (`location-type.on-premises`) so enum members never
+      // collide with instance-record ids that share a name; keep the bare id as
+      // an attr for the emitter's value table.
+      const attrs = new Map<string, Scalar>([["id", input.id]]);
       if (input.label !== undefined) attrs.set("label", input.label);
       if (input.description !== undefined) attrs.set("description", input.description);
-      this.stagedNodes.push({ id: input.id, tier: Tier.Ontology, typeOf: name, attrs });
+      this.stagedNodes.push({ id: `${name}.${input.id}`, tier: Tier.Ontology, typeOf: name, attrs });
     }
     return this;
   }

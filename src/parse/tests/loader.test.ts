@@ -31,8 +31,8 @@ test("loads concept schemas from the corpus", () => {
 
 test("loads enum case nodes", () => {
   const model = corpus();
-  assert.ok(model.instancesOf("task-type").includes("service"));
-  assert.ok(model.instancesOf("event-type").includes("start"));
+  assert.ok(model.instancesOf("task-type").includes("task-type.service"));
+  assert.ok(model.instancesOf("event-type").includes("event-type.start"));
 });
 
 test("loads instances with scalar attrs and relationship edges", () => {
