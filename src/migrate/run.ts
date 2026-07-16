@@ -17,7 +17,8 @@ export function listTodlSources(dir: string): string[] {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
       out.push(...listTodlSources(full));
-    } else if (full.endsWith(".todl") || full.endsWith(".architecture.model")) {
+    } else if (full.endsWith(".todl") || full.endsWith(".model")) {
+      // `.todl`, plus legacy `.architecture.model` / `.technology-library.model`.
       out.push(full);
     }
   }
@@ -36,7 +37,9 @@ export function migrateFiles(files: string[]): string[] {
 export function migrateTree(srcDir: string, destDir: string): string[] {
   const written: string[] = [];
   for (const src of listTodlSources(srcDir)) {
-    const outRel = relative(srcDir, src).replace(/\.architecture\.model$/, ".todl");
+    const outRel = relative(srcDir, src)
+      .replace(/\.(architecture|technology-library)\.model$/, ".todl")
+      .replace(/\.model$/, ".todl");
     const outPath = join(destDir, outRel);
     mkdirSync(dirname(outPath), { recursive: true });
     writeFileSync(outPath, rewrite(readFileSync(src, "utf8")), "utf8");

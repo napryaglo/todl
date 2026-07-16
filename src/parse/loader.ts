@@ -150,6 +150,9 @@ interface HoistCounter {
   n: number;
 }
 
+/** File-level grouping keywords that wrap records but are not themselves records. */
+const WRAPPER_CONCEPTS = new Set(["technology-library"]);
+
 function applyInstance(
   builder: Builder,
   decl: InstanceDecl,
@@ -157,6 +160,15 @@ function applyInstance(
   counter: HoistCounter,
   asserted: Set<string>,
 ): void {
+  // A `technology-library` is a transparent file wrapper (not an EA concept);
+  // its members are top-level records. Skipping the container node also avoids
+  // a legacy id collision (the aws library names both its container and its
+  // root location `aws`).
+  if (WRAPPER_CONCEPTS.has(decl.concept)) {
+    for (const child of decl.children) applyInstance(builder, child, null, counter, asserted);
+    return;
+  }
+
   // Legacy authoring may declare the same record id in more than one place
   // (e.g. a component under two location blocks); merge later fields onto the
   // first assertion rather than erroring on the duplicate node.
