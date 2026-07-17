@@ -143,9 +143,112 @@ task: load into a `Model`, bind the panels via reflection.
 4. **Meta-model / library DataTemplates (`.mural`)** — the visual read surface.
 5. **TODL text editor + live validation** in Plexus — author surface + guardrail
    window.
+6. **Meta-model version in the model binding** (`: enterprise-architecture@5`) +
+   a **resolver** (`(id, version)` → vendored content).
+7. **Plexus built-in package manager** — registry + resolver + vendor-into-project
+   + `todl.lock`; publish-time `validate()`.
 
 The compiled-`.js`-module emitter drops to genuinely optional — only for a
 viewer that won't embed the TODL runtime.
+
+## Distribution & packaging
+
+A meta-model is a **versioned shared dependency**, not a file you copy — because
+models, libraries, and views all *validate against it*, and a change can
+invalidate existing models. So distribution is dependency management for
+ontologies. Same for the technology libraries (they bind the meta-model too).
+
+### Identity + version is the linchpin
+
+The meta-model descriptor already carries identity + version
+(`meta-model enterprise-architecture { version = 5 }`). The missing half: a
+model's binding must reference it by **id + version** — today `: enterprise-architecture`,
+it should resolve `: enterprise-architecture@5`. Once both sides carry a version,
+distribution is safe: a model pins the ontology it was authored against, and the
+validator can deterministically tell you whether it still conforms when the
+meta-model moves. Re-validating a model against a newer meta-model version
+surfaces exactly what broke (removed enum value, new required field) — the same
+guardrail, pointed at ontology evolution.
+
+### What ships in a package: raw `.todl`, not compiled JS
+
+The package payload is the **raw `.todl` tree + a manifest (`id`, `version`) + an
+authored conventions doc** (see below). Not compiled JS. Reasons:
+
+- The compiled `.meta.js` registry is **lossy** for what a meta-model is *for* —
+  it's a schema-shape vehicle and drops/degrades the **invariants** (the
+  executable predicates that make the validator a guardrail). Raw `.todl` is
+  complete.
+- Every consumer of a meta-model (validator, agent reflection, Plexus schema
+  browser) **already runs the TODL runtime**, so "precompile to skip the parser"
+  saves nothing real — there is no runtime-less consumer of an *ontology* (there
+  is for *model display*, which is a different, compiled artifact).
+- Raw `.todl` keeps **source == distribution**: no drift, clean semantic diffs
+  between versions, and it matches `toTodl` round-trip output.
+- Meta-models are small; parse-on-load is negligible.
+
+Get the "sealed / known-good" guarantee at **publish time** (`validate()` refuses
+to ship a broken meta-model), not via a compiled artifact. Optionally include a
+`toJSON` snapshot as a load-accelerator / integrity seal — an optimization,
+clearly derived, not the source of truth. (Compiled JS is only for a *model*
+targeting a runtime-less browser viewer — the legacy path, a different package.)
+
+### Plexus provides a built-in package manager
+
+Plexus embeds the registry + resolver + installer itself (no external Verdaccio
+to run) — `npm` semantics for ontologies, in-app. On **project creation**, the
+user picks a meta-model (+ libraries) + versions; Plexus resolves and **vendors
+them into the project directory** as read-only dependencies, writes a lockfile,
+and the project is self-contained (offline, reproducible).
+
+```
+my-project/
+  .todl-deps/                              ← vendored, read-only, resolved from the registry
+    meta-models/enterprise-architecture/   (raw .todl, v5)
+    libraries/{default,microsoft,aws}/
+  models/                                  ← authored by agent + user (project content)
+  todl.lock                                ← pins resolved (meta-model + library) versions
+  CLAUDE.md / AGENTS.md                    ← agent orientation (see below)
+```
+
+The `node_modules`-vs-`src` split matters: the agent must distinguish "the fixed
+rules I author *against*" (vendored deps) from "what I'm authoring" (models).
+`todl.lock` makes every user who opens the project resolve identical versions.
+
+A **shared storage backend** (the IStorage cloud/REST seam) remains the secondary
+channel for teams co-authoring an evolving meta-model live (no publish cycle);
+`toJSON` is the portable wire form for either channel.
+
+### How the agent learns the meta-model — formal vs. fuzzy
+
+The split *is* the answer, and it mirrors the formal/fuzzy boundary:
+
+- **Schema (formal) → the agent reads/queries the meta-model itself, never a
+  markdown paraphrase.** Concepts, fields, valid enum values, cardinality,
+  relationships, invariants come from the vendored `.todl` directly (file access)
+  or a reflection surface (`schemaOf` / `instancesOf` / enum cases — a
+  `todl describe component` CLI or MCP tool). This is the *same truth the
+  validator enforces*. Paraphrasing the schema into CLAUDE.md would reintroduce
+  exactly the drift + hallucination the deterministic validator exists to
+  eliminate — the agent would author against a stale prose picture. Don't.
+- **Conventions & orientation (fuzzy) → CLAUDE.md / AGENTS.md.** The
+  non-enforceable judgment: naming philosophy (purpose-first), "only these three
+  relationship types," "don't reference TOGAF/ArchiMate," house style — plus
+  practical orientation ("uses `enterprise-architecture@5` in `.todl-deps/`,
+  author into `models/`, run `todl validate`"). The conventions doc **ships
+  inside the meta-model package** (authored by the meta-model designer, versioned
+  with the `.todl`, so it can't drift); project creation composes it with a small
+  generated header into the project's CLAUDE.md.
+
+### The agent authoring loop
+
+1. **Orient** — read CLAUDE.md (conventions + where things are).
+2. **Query schema** — reflect the meta-model for what's valid.
+3. **Query libraries** — `narrow` the catalog for real data.
+4. **Author** the model `.todl`.
+5. **Validate** — `todl validate` → structured diagnostics → repair.
+
+The validator is ground truth; steps 1–2 reduce how often it fires.
 
 ## Open decisions
 
@@ -160,3 +263,8 @@ viewer that won't embed the TODL runtime.
   concept → detail card) is a few templates on existing panels. Graph view
   (concepts + relationship edges, ER/UML-style) reuses the diagram/layout engine
   but is more work.
+- **Agent schema-access mechanism.** Start simplest (agent reads vendored raw
+  `.todl`) → graduate to a `todl describe` CLI → an MCP reflection tool, for
+  token-efficiency and precision. Principle holds regardless.
+- **Registry scope.** Per-machine Plexus registry vs. a shared team registry vs.
+  both (local cache in front of a remote). Ties into the shared-storage channel.
