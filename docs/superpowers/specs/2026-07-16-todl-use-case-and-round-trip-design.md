@@ -250,6 +250,51 @@ The split *is* the answer, and it mirrors the formal/fuzzy boundary:
 
 The validator is ground truth; steps 1–2 reduce how often it fires.
 
+### Effort estimate — built-in package manager
+
+**Medium**, and cheaper than "package manager" sounds: most substrate exists, and
+the hard parts of a general PM (deep transitive trees, conflict resolution, a
+network protocol, a per-package build toolchain) don't apply. The real cost is
+Plexus UI, not the resolver.
+
+**Already exists (why it's not a big build):** Plexus IStorage seam + project
+factories + ProjectExplorerService + project dialogs; TODL `load()` / `validate()`
+/ `toJSON`; `version` in the meta-model descriptor; the `: <meta-model>` binding
+parse; the `test_project/` vendored layout.
+
+**Decomposition** (most pieces are small glue):
+
+| Piece | Size | Notes |
+|---|---|---|
+| Package format + manifest (`id`, `version`, `kind`, deps) | S | schema + reader/writer |
+| Local registry store (`<id>/<version>/` over IStorage) | S–M | local-first; no network |
+| Resolver + `todl.lock` (semver) | M | shallow graph (project → 1 meta-model + N libs; lib → 1 meta-model); no diamond conflicts |
+| Install / vendor into `.todl-deps/` (read-only) | S | file copy over IStorage |
+| Publish (`validate()` → write to store) | S | validate exists; near-free |
+| `@version` in the binding + loader resolution | S–M | small parser tweak; project-load already loads meta+libs+model together |
+| Plexus UI (create-project dropdown, package browser) | M | biggest / most open-ended chunk |
+
+**Clean split to contain risk:** put the PM *logic* — manifest, resolver,
+lockfile, version binding — in `@pragmatic-lab/todl` as a `pkg`/`resolve` module
+(pure, TDD-testable, no UI); Plexus wires its IStorage + dialogs to it.
+
+**Cheap vs. could-balloon:** cheap because local-first (no server/auth/CDN/
+protocol — v1 registry = a directory + index). Defer: compatibility semantics
+(keep dumb — "library declares a meta-model range"); upgrade/migration UX (pin
+and defer — the validator already reports what broke); remote/shared registry (a
+separate server-side effort, out of v1).
+
+**Scoping:**
+- **v1 (local, minimal)** — manifest + local store + simple resolver + lockfile +
+  vendor + publish-with-validate + `@version` binding + one create-project
+  dropdown. The bulk of the value; ~10-task plan, a handful of focused sessions,
+  mostly glue; biggest task is the create-project UI.
+- **v2 (incremental)** — package-browser panel, upgrade/migrate flow,
+  remote/shared registry (the big one).
+
+Do **not** build a remote registry or an auto-migrator in v1 — that's where PMs
+get expensive, and neither is needed to prove the loop.
+
 ## Open decisions
 
 - **Does the viz tool embed `@pragmatic-lab/todl` (live `Model`) or stay a thin
