@@ -7,6 +7,8 @@
  * fail loud with line:column.
  */
 
+import { type Diagnostic, DiagnosticCode, Severity } from "../diagnostics/diagnostic.js";
+
 export enum TokenKind {
   Identifier = "identifier",
   String = "string",
@@ -50,7 +52,13 @@ export interface Token {
 }
 
 export function tokenize(source: string): Token[] {
-  return new Lexer(source).scan();
+  return new Lexer(source, "<anonymous>").scan();
+}
+
+export function lex(source: string, uri: string): { tokens: Token[]; diagnostics: Diagnostic[] } {
+  const lexer = new Lexer(source, uri);
+  const tokens = lexer.scan();
+  return { tokens, diagnostics: lexer.diagnostics };
 }
 
 const SINGLE_CHAR: ReadonlyMap<string, TokenKind> = new Map([
@@ -76,8 +84,20 @@ class Lexer {
   private line = 1;
   private column = 1;
   private readonly tokens: Token[] = [];
+  readonly diagnostics: Diagnostic[] = [];
 
-  constructor(private readonly source: string) {}
+  constructor(private readonly source: string, private readonly uri: string) {}
+
+  private report(code: DiagnosticCode, message: string, line: number, column: number, endColumn: number): void {
+    this.diagnostics.push({
+      code,
+      severity: Severity.Error,
+      message,
+      span: { uri: this.uri, start: { line, column }, end: { line, column: endColumn } },
+      node: null,
+      path: null,
+    });
+  }
 
   scan(): Token[] {
     for (;;) {
@@ -130,7 +150,8 @@ class Lexer {
     if (char === "|") return this.push(TokenKind.Pipe, "|", line, column, 1);
     if (char === "!") return this.push(TokenKind.Bang, "!", line, column, 1);
 
-    throw new Error(`unexpected character "${char}" at ${line}:${column}`);
+    this.report(DiagnosticCode.UnexpectedCharacter, `unexpected character "${char}"`, line, column, column + 1);
+    this.advance(); // skip the offending character and continue
   }
 
   private readStringLike(line: number, column: number): void {
@@ -173,7 +194,8 @@ class Lexer {
     let value = "";
     while (this.peek() !== '"') {
       if (this.pos >= this.source.length || this.peek() === "\n") {
-        throw new Error(`unterminated string at ${line}:${column}`);
+        this.report(DiagnosticCode.UnterminatedString, "unterminated string", line, column, this.column);
+        return value; // recover: emit the partial string, do not consume the newline/EOF
       }
       if (this.peek() === "\\") {
         this.advance();
@@ -195,7 +217,8 @@ class Lexer {
     const start = this.pos;
     while (!(this.peek() === '"' && this.peek(1) === '"' && this.peek(2) === '"')) {
       if (this.pos >= this.source.length) {
-        throw new Error("unterminated raw string");
+        this.report(DiagnosticCode.UnterminatedString, "unterminated raw string", this.line, this.column, this.column);
+        return stripCommonIndent(this.source.slice(start, this.pos));
       }
       this.advance();
     }
