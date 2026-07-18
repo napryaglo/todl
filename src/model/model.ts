@@ -24,6 +24,7 @@ import { Derivations } from "../predicate/derivations.js";
 import { Invariants, type InvariantDef } from "../predicate/invariants.js";
 import type { Expr } from "../predicate/ast.js";
 import { validate as runValidation, type Diagnostic } from "../validate/validate.js";
+import type { SourceSpan } from "../diagnostics/span.js";
 
 export interface FieldSchema {
   name: string;
@@ -49,6 +50,7 @@ export class Model {
   private readonly graph: Graph;
   private readonly derivations: Derivations;
   private readonly invariants: Invariants;
+  private readonly spans = new Map<string, SourceSpan>();
 
   constructor(graph: Graph = new Graph()) {
     this.graph = graph;
@@ -192,6 +194,21 @@ export class Model {
   /** Validate the model, returning structured diagnostics (spec §6). */
   validate(): Diagnostic[] {
     return runValidation(this);
+  }
+
+  /** Record the defining source span for a node id or a member key. */
+  recordSpan(key: string, span: SourceSpan): void {
+    this.spans.set(key, span);
+  }
+
+  /** The span recorded for a node id or member key, or null. */
+  spanOf(key: string): SourceSpan | null {
+    return this.spans.get(key) ?? null;
+  }
+
+  /** Composite key for a per-instance member span. */
+  static memberKey(node: NodeId, member: string): string {
+    return `${node}#${member}`;
   }
 }
 
