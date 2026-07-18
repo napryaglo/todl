@@ -45,6 +45,8 @@ export interface Token {
   value: string;
   line: number;
   column: number;
+  endLine: number;
+  endColumn: number;
 }
 
 export function tokenize(source: string): Token[] {
@@ -87,11 +89,13 @@ class Lexer {
       const char = this.peek();
 
       if (isIdentifierStart(char)) {
-        this.tokens.push({ kind: TokenKind.Identifier, value: this.readIdentifier(), line, column });
+        const value = this.readIdentifier();
+        this.tokens.push({ kind: TokenKind.Identifier, value, line, column, endLine: this.line, endColumn: this.column });
         continue;
       }
       if (isDigit(char)) {
-        this.tokens.push({ kind: TokenKind.Number, value: this.readNumber(), line, column });
+        const value = this.readNumber();
+        this.tokens.push({ kind: TokenKind.Number, value, line, column, endLine: this.line, endColumn: this.column });
         continue;
       }
       if (char === '"') {
@@ -101,7 +105,7 @@ class Lexer {
       this.readOperator(line, column);
     }
 
-    this.tokens.push({ kind: TokenKind.EOF, value: "", line: this.line, column: this.column });
+    this.tokens.push({ kind: TokenKind.EOF, value: "", line: this.line, column: this.column, endLine: this.line, endColumn: this.column });
     return this.tokens;
   }
 
@@ -223,7 +227,7 @@ class Lexer {
 
   private push(kind: TokenKind, value: string, line: number, column: number, consume: number): void {
     for (let i = 0; i < consume; i++) this.advance();
-    this.tokens.push({ kind, value, line, column });
+    this.tokens.push({ kind, value, line, column, endLine: this.line, endColumn: this.column });
   }
 
   private peek(offset = 0): string {
