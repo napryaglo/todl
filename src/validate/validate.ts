@@ -9,28 +9,25 @@
 import { Tier, EdgeKind, Direction, Cardinality, type NodeId, type Node } from "../model/graph.js";
 import type { Model, FieldSchema, RelationshipSchema } from "../model/model.js";
 import { satisfies } from "../predicate/evaluate.js";
+import type { SourceSpan } from "../diagnostics/span.js";
+import { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagnostic.js";
 
-export enum Severity {
-  Error = "error",
-  Warning = "warning",
+// Re-export the shared diagnostic types so existing importers of
+// `../validate/validate.js` keep resolving them.
+export { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagnostic.js";
+
+/** Mirrors Model.memberKey — the per-instance member span key. */
+function memberKey(node: NodeId, member: string): string {
+  return `${node}#${member}`;
 }
 
-export enum DiagnosticCode {
-  RequiredMissing = "cardinality.required-missing",
-  TooMany = "cardinality.too-many",
-  EmptyNotAllowed = "cardinality.empty-not-allowed",
-  TargetTypeMismatch = "relationship.target-type",
-  InvariantFailed = "invariant.failed",
-}
-
-export interface Diagnostic {
-  code: DiagnosticCode;
-  severity: Severity;
-  /** The offending node, or `null` for whole-model diagnostics. */
-  node: NodeId | null;
-  /** Concept-qualified member path, e.g. `component.label`. */
-  path: string | null;
-  message: string;
+/** Prefer the instance's per-member span; fall back to the instance node span. */
+function spanFor(model: Model, node: NodeId, member: string | null): SourceSpan | null {
+  if (member !== null) {
+    const memberSpan = model.spanOf(memberKey(node, member));
+    if (memberSpan !== null) return memberSpan;
+  }
+  return model.spanOf(node);
 }
 
 export function validate(model: Model): Diagnostic[] {
@@ -39,11 +36,11 @@ export function validate(model: Model): Diagnostic[] {
     if (node.tier !== Tier.Instance) continue;
     const schema = model.effectiveSchema(node.typeOf);
     for (const field of schema.fields) {
-      checkCardinality(diagnostics, node, field.name, field.cardinality, countField(model, node, field));
+      checkCardinality(diagnostics, model, node, field.name, field.cardinality, countField(model, node, field));
     }
     for (const relationship of schema.relationships) {
       const targets = model.related(node.id, EdgeKind.Relationship, Direction.Out, relationship.name);
-      checkCardinality(diagnostics, node, relationship.name, relationship.cardinality, targets.length);
+      checkCardinality(diagnostics, model, node, relationship.name, relationship.cardinality, targets.length);
       checkTargetTypes(diagnostics, model, node, relationship, targets);
     }
     checkInvariants(diagnostics, model, node);
@@ -70,6 +67,7 @@ function checkTargetTypes(
         node: node.id,
         path,
         message: `"${path}" expects ${relationship.target} but "${target}" is a ${targetNode.typeOf}`,
+        span: spanFor(model, node.id, relationship.name),
       });
     }
   }
@@ -85,6 +83,7 @@ function checkInvariants(out: Diagnostic[], model: Model, node: Node): void {
           node: node.id,
           path: concept,
           message: `invariant failed on "${node.id}": ${invariant.description}`,
+          span: spanFor(model, node.id, null),
         });
       }
     }
@@ -107,28 +106,30 @@ function countField(model: Model, node: Node, field: FieldSchema): number {
 
 function checkCardinality(
   out: Diagnostic[],
+  model: Model,
   node: Node,
   member: string,
   cardinality: Cardinality,
   count: number,
 ): void {
   const path = `${node.typeOf}.${member}`;
+  const span = spanFor(model, node.id, member);
   switch (cardinality) {
     case Cardinality.One:
       if (count === 0) {
-        out.push(error(DiagnosticCode.RequiredMissing, node.id, path, `required "${path}" is missing on "${node.id}"`));
+        out.push(error(DiagnosticCode.RequiredMissing, node.id, path, `required "${path}" is missing on "${node.id}"`, span));
       } else if (count > 1) {
-        out.push(error(DiagnosticCode.TooMany, node.id, path, `"${path}" allows one value but "${node.id}" has ${count}`));
+        out.push(error(DiagnosticCode.TooMany, node.id, path, `"${path}" allows one value but "${node.id}" has ${count}`, span));
       }
       break;
     case Cardinality.Optional:
       if (count > 1) {
-        out.push(error(DiagnosticCode.TooMany, node.id, path, `"${path}" allows at most one value but "${node.id}" has ${count}`));
+        out.push(error(DiagnosticCode.TooMany, node.id, path, `"${path}" allows at most one value but "${node.id}" has ${count}`, span));
       }
       break;
     case Cardinality.NonEmpty:
       if (count === 0) {
-        out.push(error(DiagnosticCode.EmptyNotAllowed, node.id, path, `"${path}" requires at least one value on "${node.id}"`));
+        out.push(error(DiagnosticCode.EmptyNotAllowed, node.id, path, `"${path}" requires at least one value on "${node.id}"`, span));
       }
       break;
     case Cardinality.Many:
@@ -136,6 +137,6 @@ function checkCardinality(
   }
 }
 
-function error(code: DiagnosticCode, node: NodeId, path: string, message: string): Diagnostic {
-  return { code, severity: Severity.Error, node, path, message };
+function error(code: DiagnosticCode, node: NodeId, path: string, message: string, span: SourceSpan | null): Diagnostic {
+  return { code, severity: Severity.Error, node, path, message, span };
 }
