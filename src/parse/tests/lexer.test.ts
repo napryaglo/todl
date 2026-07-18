@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { tokenize, TokenKind } from "../lexer.js";
+import { tokenize, lex, TokenKind } from "../lexer.js";
 
 function kinds(source: string): TokenKind[] {
   return tokenize(source).map((token) => token.kind);
@@ -103,6 +103,10 @@ test("tracks line and column at token start", () => {
   assert.equal(tokens[1]?.column, 3);
 });
 
-test("reports an unexpected character with position", () => {
-  assert.throws(() => tokenize("a $ b"), /unexpected character.*1:3/i);
+test("reports an unexpected character with position (recovers, no throw)", () => {
+  const { diagnostics } = lex("a $ b", "x.todl");
+  assert.equal(diagnostics.length, 1);
+  assert.match(diagnostics[0]?.message ?? "", /unexpected character/i);
+  assert.equal(diagnostics[0]?.span?.start.line, 1);
+  assert.equal(diagnostics[0]?.span?.start.column, 3);
 });

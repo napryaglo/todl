@@ -9,6 +9,7 @@
 
 import { tokenize, TokenKind, type Token } from "./lexer.js";
 import { Cardinality } from "../model/graph.js";
+import type { SourceSpan } from "../diagnostics/span.js";
 import {
   DeclKind,
   ValueKind,
@@ -26,8 +27,8 @@ import {
   type ValueNode,
 } from "./ast.js";
 
-export function parse(source: string): NamespaceNode {
-  return new Parser(tokenize(source)).parseNamespace();
+export function parse(source: string, uri = "<anonymous>"): NamespaceNode {
+  return new Parser(tokenize(source), uri).parseNamespace();
 }
 
 class Parser {
@@ -35,9 +36,25 @@ class Parser {
   /** Monotonic counter for synthesizing ids of id-less edge records. */
   private edgeSeq = 0;
 
-  constructor(private readonly tokens: Token[]) {}
+  constructor(private readonly tokens: Token[], private readonly uri: string) {}
+
+  /** The next unconsumed token — the start of whatever we're about to parse. */
+  private startToken(): Token {
+    return this.current();
+  }
+
+  /** Span from `start` through the last consumed token (the one before the cursor). */
+  private spanFrom(start: Token): SourceSpan {
+    const last = this.tokens[this.pos > 0 ? this.pos - 1 : 0] ?? start;
+    return {
+      uri: this.uri,
+      start: { line: start.line, column: start.column },
+      end: { line: last.endLine, column: last.endColumn },
+    };
+  }
 
   parseNamespace(): NamespaceNode {
+    const start = this.startToken();
     this.expectKeyword("namespace");
     const path = this.parseDottedPath();
     this.expect(TokenKind.LBrace);
@@ -54,25 +71,22 @@ class Parser {
       declarations.push(this.parseDeclaration());
     }
     this.expect(TokenKind.RBrace);
-    return { path, imports, declarations };
+    return { path, imports, declarations, span: this.spanFrom(start) };
   }
 
   private parseDeclaration(): Declaration {
     while (this.checkKeyword("internal") || this.checkKeyword("sealed")) this.advance();
 
-    if (this.checkKeyword("primitive")) return this.parsePrimitive();
-    if (this.checkKeyword("enum")) return this.parseEnum();
-    if (this.checkKeyword("concept")) return this.parseConcept();
-    if (this.checkKeyword("application-connectors")) return this.parseApplicationConnectors();
+    const start = this.startToken();
+    if (this.checkKeyword("primitive")) return this.parsePrimitive(start);
+    if (this.checkKeyword("enum")) return this.parseEnum(start);
+    if (this.checkKeyword("concept")) return this.parseConcept(start);
+    if (this.checkKeyword("application-connectors")) return this.parseApplicationConnectors(start);
     if (this.check(TokenKind.Identifier)) {
-      if (this.peekKind(1) === TokenKind.Amp) return this.parseEdgeRecord(this.expectIdentifier());
-      return this.parseInstance();
+      if (this.peekKind(1) === TokenKind.Amp) return this.parseEdgeRecord(this.expectIdentifier(), start);
+      return this.parseInstanceFrom(this.expectIdentifier(), start);
     }
     throw this.error(`expected a declaration (primitive / enum / concept / instance)`);
-  }
-
-  private parseInstance(): InstanceDecl {
-    return this.parseInstanceFrom(this.expectIdentifier());
   }
 
   /**
@@ -81,30 +95,31 @@ class Parser {
    * `<concept> <id> { … }` records (containment). An optional `: <meta-model>`
    * binding may follow the id on a container record.
    */
-  private parseInstanceFrom(concept: string): InstanceDecl {
+  private parseInstanceFrom(concept: string, start: Token): InstanceDecl {
     const id = this.expectRecordId();
     const binds = this.match(TokenKind.Colon) ? this.expectIdentifier() : null;
     const assignments: AssignmentNode[] = [];
     const children: InstanceDecl[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
+      const memberStart = this.startToken();
       if (this.checkKeyword("application-connectors")) {
-        children.push(this.parseApplicationConnectors());
+        children.push(this.parseApplicationConnectors(memberStart));
         continue;
       }
       const first = this.expectIdentifier();
       if (this.match(TokenKind.Equals)) {
         const value = this.parseValue();
         this.expect(TokenKind.Semicolon);
-        assignments.push({ name: first, value });
+        assignments.push({ name: first, value, span: this.spanFrom(memberStart) });
       } else if (this.check(TokenKind.Amp)) {
-        children.push(this.parseEdgeRecord(first));
+        children.push(this.parseEdgeRecord(first, memberStart));
       } else {
-        children.push(this.parseInstanceFrom(first));
+        children.push(this.parseInstanceFrom(first, memberStart));
       }
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Instance, concept, id, binds, assignments, children };
+    return { kind: DeclKind.Instance, concept, id, binds, assignments, children, span: this.spanFrom(start) };
   }
 
   /**
@@ -113,7 +128,7 @@ class Parser {
    * instance carrying `from` / `to` reference assignments plus an `operator`
    * attr, so it flows through the normal instance machinery.
    */
-  private parseEdgeRecord(concept: string): InstanceDecl {
+  private parseEdgeRecord(concept: string, start: Token): InstanceDecl {
     const from = this.parseRef();
     const operator = this.consumeEdgeOperator();
     const to = this.parseRef();
@@ -137,20 +152,21 @@ class Parser {
       this.match(TokenKind.Semicolon); // optional terminator (bare in an application-connectors block)
     }
     const id = `${concept}#${(this.edgeSeq += 1)}`;
-    return { kind: DeclKind.Instance, concept, id, binds: null, assignments, children: [] };
+    return { kind: DeclKind.Instance, concept, id, binds: null, assignments, children: [], span: this.spanFrom(start) };
   }
 
   /** Parse an `application-connectors { &a --> &b … }` block into a container of connectors. */
-  private parseApplicationConnectors(): InstanceDecl {
+  private parseApplicationConnectors(start: Token): InstanceDecl {
     this.expectKeyword("application-connectors");
     this.expect(TokenKind.LBrace);
     const children: InstanceDecl[] = [];
     while (!this.check(TokenKind.RBrace)) {
-      children.push(this.parseEdgeRecord("connector"));
+      const edgeStart = this.startToken();
+      children.push(this.parseEdgeRecord("connector", edgeStart));
     }
     this.expect(TokenKind.RBrace);
     const id = `application-connectors#${(this.edgeSeq += 1)}`;
-    return { kind: DeclKind.Instance, concept: "application-connectors", id, binds: null, assignments: [], children };
+    return { kind: DeclKind.Instance, concept: "application-connectors", id, binds: null, assignments: [], children, span: this.spanFrom(start) };
   }
 
   private parseRef(): string {
@@ -189,11 +205,12 @@ class Parser {
     if (this.match(TokenKind.LBrace)) {
       const fields: AssignmentNode[] = [];
       while (!this.check(TokenKind.RBrace)) {
+        const fieldStart = this.startToken();
         const name = this.expectIdentifier();
         this.expect(TokenKind.Equals);
         const value = this.parseValue();
         this.expect(TokenKind.Semicolon);
-        fields.push({ name, value });
+        fields.push({ name, value, span: this.spanFrom(fieldStart) });
       }
       this.expect(TokenKind.RBrace);
       return { kind: ValueKind.Object, fields };
@@ -210,7 +227,7 @@ class Parser {
     throw this.error(`expected a value`);
   }
 
-  private parsePrimitive(): PrimitiveDecl {
+  private parsePrimitive(start: Token): PrimitiveDecl {
     this.expectKeyword("primitive");
     const name = this.expectIdentifier();
     const base = this.match(TokenKind.Colon) ? this.expectIdentifier() : null;
@@ -224,10 +241,10 @@ class Parser {
       else if (key === "regex") regex = value;
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Primitive, name, base, description, regex };
+    return { kind: DeclKind.Primitive, name, base, description, regex, span: this.spanFrom(start) };
   }
 
-  private parseEnum(): EnumDecl {
+  private parseEnum(start: Token): EnumDecl {
     this.expectKeyword("enum");
     const name = this.expectIdentifier();
 
@@ -243,7 +260,7 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Enum, name, description, cases };
+    return { kind: DeclKind.Enum, name, description, cases, span: this.spanFrom(start) };
   }
 
   private parseEnumValues(cases: EnumCase[]): void {
@@ -266,7 +283,7 @@ class Parser {
     this.expect(TokenKind.RBrace);
   }
 
-  private parseConcept(): ConceptDecl {
+  private parseConcept(start: Token): ConceptDecl {
     this.expectKeyword("concept");
     const name = this.expectIdentifier();
     const extendsName = this.match(TokenKind.Colon) ? this.expectIdentifier() : null;
@@ -310,7 +327,7 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Concept, name, extends: extendsName, description, fields, relationships, invariants };
+    return { kind: DeclKind.Concept, name, extends: extendsName, description, fields, relationships, invariants, span: this.spanFrom(start) };
   }
 
   private parseRelationship(): RelationshipDecl {
@@ -505,7 +522,7 @@ class Parser {
   }
 }
 
-const EOF_TOKEN: Token = { kind: TokenKind.EOF, value: "", line: 0, column: 0 };
+const EOF_TOKEN: Token = { kind: TokenKind.EOF, value: "", line: 0, column: 0, endLine: 0, endColumn: 0 };
 
 /** Cardinality → surface suffix, for rendering inline object-field types. */
 function cardinalitySuffix(cardinality: Cardinality): string {

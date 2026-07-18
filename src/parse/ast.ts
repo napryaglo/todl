@@ -7,6 +7,7 @@
 
 import type { Token } from "./lexer.js";
 import type { Cardinality } from "../model/graph.js";
+import type { SourceSpan } from "../diagnostics/span.js";
 
 export enum DeclKind {
   Primitive,
@@ -69,6 +70,8 @@ export type ValueNode =
 export interface AssignmentNode {
   name: string;
   value: ValueNode;
+  /** Source span of `name = value` — set for authored assignments; absent for synthesized ones (edge-record from/to/operator). */
+  span?: SourceSpan;
 }
 
 export interface InstanceDecl {
@@ -80,6 +83,7 @@ export interface InstanceDecl {
   assignments: AssignmentNode[];
   /** Nested records declared inside this instance's body (containment). */
   children: InstanceDecl[];
+  span: SourceSpan;
 }
 
 export interface FieldDecl {
@@ -108,6 +112,7 @@ export interface ConceptDecl {
   fields: FieldDecl[];
   relationships: RelationshipDecl[];
   invariants: InvariantDecl[];
+  span: SourceSpan;
 }
 
 export interface EnumCase {
@@ -121,6 +126,7 @@ export interface EnumDecl {
   name: string;
   description: string;
   cases: EnumCase[];
+  span: SourceSpan;
 }
 
 export interface PrimitiveDecl {
@@ -129,6 +135,7 @@ export interface PrimitiveDecl {
   base: string | null;
   description: string;
   regex: string | null;
+  span: SourceSpan;
 }
 
 export type Declaration = ConceptDecl | EnumDecl | PrimitiveDecl | InstanceDecl;
@@ -137,4 +144,5 @@ export interface NamespaceNode {
   path: string;
   imports: string[];
   declarations: Declaration[];
+  span: SourceSpan;
 }
