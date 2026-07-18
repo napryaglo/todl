@@ -26,7 +26,7 @@ interface PendingInvariant {
 }
 
 export function load(sources: string[]): Model {
-  const declarations = sources.flatMap((source) => parse(source).declarations);
+  const declarations = sources.flatMap((source) => parse(source, "<anonymous>").namespace.declarations);
   const model = new Model();
 
   const defined = new Set<string>();

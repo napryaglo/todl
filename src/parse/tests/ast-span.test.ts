@@ -11,7 +11,7 @@ function fixture(name: string): string {
 }
 
 test("a concept declaration carries a source span", () => {
-  const ns = parse(fixture("concepts.todl"), "concepts.todl");
+  const { namespace: ns } = parse(fixture("concepts.todl"), "concepts.todl");
   const concept = ns.declarations.find((d) => d.kind === DeclKind.Concept);
   assert.ok(concept);
   assert.equal(concept!.span.uri, "concepts.todl");
@@ -20,7 +20,7 @@ test("a concept declaration carries a source span", () => {
 });
 
 test("an instance assignment carries its own span", () => {
-  const ns = parse(fixture("order-fulfillment.todl"), "order-fulfillment.todl");
+  const { namespace: ns } = parse(fixture("order-fulfillment.todl"), "order-fulfillment.todl");
   const instance = ns.declarations.find((d) => d.kind === DeclKind.Instance);
   assert.ok(instance && instance.kind === DeclKind.Instance);
   const assignment = instance.assignments[0];

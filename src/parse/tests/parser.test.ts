@@ -12,7 +12,7 @@ function fixture(name: string): string {
 }
 
 test("parses a primitive declaration with base and regex", () => {
-  const namespace = parse(fixture("primitives.todl"));
+  const { namespace } = parse(fixture("primitives.todl"));
   assert.equal(namespace.path, "adl.meta-models.bpmn.primitives");
 
   const primitive = namespace.declarations[0];
@@ -25,7 +25,7 @@ test("parses a primitive declaration with base and regex", () => {
 });
 
 test("parses enum declarations with their cases", () => {
-  const namespace = parse(fixture("enums.todl"));
+  const { namespace } = parse(fixture("enums.todl"));
   const taskType = namespace.declarations.find(
     (declaration) => declaration.kind === DeclKind.Enum && declaration.name === "task-type",
   );
@@ -38,7 +38,7 @@ test("parses enum declarations with their cases", () => {
 });
 
 test("parses concept imports, fields with cardinality, relationships, and invariants", () => {
-  const namespace = parse(fixture("concepts.todl"));
+  const { namespace } = parse(fixture("concepts.todl"));
   assert.deepEqual(namespace.imports, [
     "adl.meta-models.bpmn.primitives.identifier",
     "adl.meta-models.bpmn.enums.task-type",
@@ -60,12 +60,15 @@ test("parses concept imports, fields with cardinality, relationships, and invari
   }
 });
 
-test("reports a malformed declaration with position", () => {
-  assert.throws(() => parse("namespace x { concept }"), /expected .* at 1:23/i);
+test("reports a malformed declaration with position (recovers, no throw)", () => {
+  const { diagnostics } = parse("namespace x { concept }", "x.todl");
+  assert.ok(diagnostics.length >= 1);
+  assert.match(diagnostics[0]?.message ?? "", /expected/i);
+  assert.equal(diagnostics[0]?.span?.uri, "x.todl");
 });
 
 test("tolerates doc-only concept members (authoring blocks, references, formal invariants)", () => {
-  const ns = parse(`namespace d {
+  const { namespace: ns } = parse(`namespace d {
     concept component {
       description = "A thing.";
       label : string;
@@ -85,7 +88,7 @@ test("tolerates doc-only concept members (authoring blocks, references, formal i
 });
 
 test("parses an object-typed field (post-rewrite surface)", () => {
-  const ns = parse(`namespace d {
+  const { namespace: ns } = parse(`namespace d {
     concept component {
       slots : object {
         id : identifier;
@@ -108,7 +111,7 @@ test("parses an object-typed field (post-rewrite surface)", () => {
 });
 
 test("parses concept-prefixed edge-shorthand with a body", () => {
-  const ns = parse(`namespace d { connector &business-agent -> &agent-orchestrator { type = enabled-by; } }`);
+  const { namespace: ns } = parse(`namespace d { connector &business-agent -> &agent-orchestrator { type = enabled-by; } }`);
   const edge = ns.declarations[0];
   assert.ok(edge && edge.kind === DeclKind.Instance);
   if (edge.kind === DeclKind.Instance) {
@@ -123,7 +126,7 @@ test("parses concept-prefixed edge-shorthand with a body", () => {
 });
 
 test("parses an application-connectors block of --> edges", () => {
-  const ns = parse(`namespace d {
+  const { namespace: ns } = parse(`namespace d {
     model m : ea {
       application-connectors { &external-agent-bridge --> &agent-service }
     }
@@ -136,7 +139,7 @@ test("parses an application-connectors block of --> edges", () => {
 });
 
 test("parses nested container instances with a meta-model binding", () => {
-  const ns = parse(`namespace d {
+  const { namespace: ns } = parse(`namespace d {
     model m : enterprise-architecture {
       title = "T";
       location saas-3p { label = "3rd-Party SaaS"; type = logical-grouping; }
@@ -155,7 +158,7 @@ test("parses nested container instances with a meta-model binding", () => {
 });
 
 test("parses a string-keyed record id", () => {
-  const ns = parse(`namespace d { sequence "Conversation via M365 Copilot" { } }`);
+  const { namespace: ns } = parse(`namespace d { sequence "Conversation via M365 Copilot" { } }`);
   const inst = ns.declarations[0];
   assert.ok(inst && inst.kind === DeclKind.Instance);
   if (inst.kind === DeclKind.Instance) {
@@ -165,7 +168,7 @@ test("parses a string-keyed record id", () => {
 });
 
 test("parses a |-composed enum-flag value", () => {
-  const ns = parse(`namespace d { location on-prem { type = physical | on-premises | logical-grouping; } }`);
+  const { namespace: ns } = parse(`namespace d { location on-prem { type = physical | on-premises | logical-grouping; } }`);
   const inst = ns.declarations[0];
   assert.ok(inst && inst.kind === DeclKind.Instance);
   if (inst.kind === DeclKind.Instance) {

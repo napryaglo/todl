@@ -64,7 +64,7 @@ test("start-event invariant fails when a start event has an incoming flow", () =
 });
 
 test("parses the predicate captured from the concept fixture and evaluates it", () => {
-  const namespace = parse(
+  const { namespace } = parse(
     readFileSync(fileURLToPath(new URL("./fixtures/concepts.todl", import.meta.url)), "utf8"),
   );
   const task = namespace.declarations.find(

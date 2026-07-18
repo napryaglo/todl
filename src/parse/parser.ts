@@ -7,9 +7,10 @@
  * line:column.
  */
 
-import { tokenize, TokenKind, type Token } from "./lexer.js";
+import { lex, TokenKind, type Token } from "./lexer.js";
 import { Cardinality } from "../model/graph.js";
-import type { SourceSpan } from "../diagnostics/span.js";
+import { type SourceSpan, tokenSpan } from "../diagnostics/span.js";
+import { type Diagnostic, DiagnosticCode, Severity } from "../diagnostics/diagnostic.js";
 import {
   DeclKind,
   ValueKind,
@@ -27,8 +28,21 @@ import {
   type ValueNode,
 } from "./ast.js";
 
-export function parse(source: string, uri = "<anonymous>"): NamespaceNode {
-  return new Parser(tokenize(source), uri).parseNamespace();
+export interface ParseResult {
+  namespace: NamespaceNode;
+  diagnostics: Diagnostic[];
+}
+
+export function parse(source: string, uri = "<anonymous>"): ParseResult {
+  const { tokens, diagnostics } = lex(source, uri);
+  return new Parser(tokens, uri, diagnostics).parse();
+}
+
+/** Thrown internally on a syntax error; carries the offending token for spanning. */
+class ParseError extends Error {
+  constructor(message: string, readonly token: Token) {
+    super(message);
+  }
 }
 
 class Parser {
@@ -36,7 +50,67 @@ class Parser {
   /** Monotonic counter for synthesizing ids of id-less edge records. */
   private edgeSeq = 0;
 
-  constructor(private readonly tokens: Token[], private readonly uri: string) {}
+  constructor(
+    private readonly tokens: Token[],
+    private readonly uri: string,
+    private readonly diagnostics: Diagnostic[],
+  ) {}
+
+  parse(): ParseResult {
+    try {
+      const namespace = this.parseNamespace();
+      return { namespace, diagnostics: this.diagnostics };
+    } catch (err) {
+      if (!(err instanceof ParseError)) throw err;
+      this.diagnostics.push(this.toDiagnostic(err));
+      const span = tokenSpan(err.token, this.uri);
+      return { namespace: { path: "", imports: [], declarations: [], span }, diagnostics: this.diagnostics };
+    }
+  }
+
+  private toDiagnostic(err: ParseError): Diagnostic {
+    return {
+      code: DiagnosticCode.UnexpectedToken,
+      severity: Severity.Error,
+      message: err.message,
+      span: tokenSpan(err.token, this.uri),
+      node: null,
+      path: null,
+    };
+  }
+
+  /** Skip tokens after a syntax error to the next declaration boundary. Brace-aware
+   * so an inner `}` isn't mistaken for the namespace's closing brace. */
+  private synchronize(): void {
+    let depth = 0;
+    while (!this.check(TokenKind.EOF)) {
+      const kind = this.current().kind;
+      if (kind === TokenKind.LBrace) {
+        depth += 1;
+        this.advance();
+        continue;
+      }
+      if (kind === TokenKind.RBrace) {
+        if (depth === 0) return; // closes the enclosing namespace — stop here
+        depth -= 1;
+        this.advance();
+        continue;
+      }
+      if (
+        depth === 0 &&
+        (this.checkKeyword("primitive") ||
+          this.checkKeyword("enum") ||
+          this.checkKeyword("concept") ||
+          this.checkKeyword("internal") ||
+          this.checkKeyword("sealed") ||
+          this.checkKeyword("application-connectors") ||
+          kind === TokenKind.Identifier)
+      ) {
+        return;
+      }
+      this.advance();
+    }
+  }
 
   /** The next unconsumed token — the start of whatever we're about to parse. */
   private startToken(): Token {
@@ -67,8 +141,16 @@ class Parser {
     }
 
     const declarations: Declaration[] = [];
-    while (!this.check(TokenKind.RBrace)) {
-      declarations.push(this.parseDeclaration());
+    while (!this.check(TokenKind.RBrace) && !this.check(TokenKind.EOF)) {
+      const before = this.pos;
+      try {
+        declarations.push(this.parseDeclaration());
+      } catch (err) {
+        if (!(err instanceof ParseError)) throw err;
+        this.diagnostics.push(this.toDiagnostic(err));
+        this.synchronize();
+        if (this.pos === before) this.advance(); // guarantee forward progress
+      }
     }
     this.expect(TokenKind.RBrace);
     return { path, imports, declarations, span: this.spanFrom(start) };
@@ -515,10 +597,10 @@ class Parser {
     return this.expectIdentifier();
   }
 
-  private error(message: string): Error {
+  private error(message: string): ParseError {
     const token = this.current();
     const got = token.value.length > 0 ? token.value : token.kind;
-    return new Error(`${message} at ${token.line}:${token.column} (got "${got}")`);
+    return new ParseError(`${message} at ${token.line}:${token.column} (got "${got}")`, token);
   }
 }
 
