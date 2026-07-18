@@ -3,8 +3,13 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 
 import { listTodlSources, migrateFiles } from "../run.js";
-import { load } from "../../parse/loader.js";
+import { load as loadFiles } from "../../parse/loader.js";
 import { MetaKind } from "../../model/kinds.js";
+
+/** Test shim: wrap raw source strings as SourceFiles and return the model. */
+function load(texts: string[]) {
+  return loadFiles(texts.map((text, i) => ({ uri: `s${i}.todl`, text }))).model;
+}
 
 /** The legacy EA meta-model snapshot at the repo root (Phase 0). */
 const EA_META_DIR = fileURLToPath(

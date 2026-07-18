@@ -16,6 +16,13 @@ import { Model } from "../model/model.js";
 import type { Builder, EnumCaseInput } from "../model/builder.js";
 import type { Expr } from "../predicate/ast.js";
 import { DeclKind, ValueKind, type Declaration, type InstanceDecl, type ValueNode } from "./ast.js";
+import type { SourceFile } from "../diagnostics/span.js";
+import type { Diagnostic } from "../diagnostics/diagnostic.js";
+
+export interface LoadResult {
+  model: Model;
+  diagnostics: Diagnostic[];
+}
 
 const UNRESOLVED = "unresolved";
 
@@ -25,8 +32,13 @@ interface PendingInvariant {
   description: string;
 }
 
-export function load(sources: string[]): Model {
-  const declarations = sources.flatMap((source) => parse(source, "<anonymous>").namespace.declarations);
+export function load(sources: SourceFile[]): LoadResult {
+  const diagnostics: Diagnostic[] = [];
+  const declarations = sources.flatMap((source) => {
+    const result = parse(source.text, source.uri);
+    diagnostics.push(...result.diagnostics);
+    return result.namespace.declarations;
+  });
   const model = new Model();
 
   const defined = new Set<string>();
@@ -94,7 +106,35 @@ export function load(sources: string[]): Model {
   for (const invariant of invariants) {
     model.defineInvariant(invariant.concept, invariant.expr, invariant.description);
   }
-  return model;
+
+  recordSpans(model, declarations);
+  return { model, diagnostics };
+}
+
+/** Record each declaration's, instance's, and assignment's source span on the model. */
+function recordSpans(model: Model, declarations: Declaration[]): void {
+  for (const declaration of declarations) {
+    switch (declaration.kind) {
+      case DeclKind.Primitive:
+      case DeclKind.Enum:
+      case DeclKind.Concept:
+        model.recordSpan(declaration.name, declaration.span);
+        break;
+      case DeclKind.Instance:
+        recordInstanceSpans(model, declaration);
+        break;
+    }
+  }
+}
+
+function recordInstanceSpans(model: Model, decl: InstanceDecl): void {
+  model.recordSpan(decl.id, decl.span);
+  for (const assignment of decl.assignments) {
+    if (assignment.span !== undefined) {
+      model.recordSpan(Model.memberKey(decl.id, assignment.name), assignment.span);
+    }
+  }
+  for (const child of decl.children) recordInstanceSpans(model, child);
 }
 
 function collectNames(declaration: Declaration, defined: Set<string>, referenced: Set<string>): void {

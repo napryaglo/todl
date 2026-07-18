@@ -3,8 +3,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { load } from "../../parse/loader.js";
+import { load as loadFiles } from "../../parse/loader.js";
 import { toMetaModule } from "../js-module.js";
+
+/** Test shim: wrap raw source strings as SourceFiles and return the model. */
+function load(texts: string[]) {
+  return loadFiles(texts.map((text, i) => ({ uri: `s${i}.todl`, text }))).model;
+}
 
 function fixture(name: string): string {
   return readFileSync(

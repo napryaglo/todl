@@ -5,8 +5,13 @@ import { fileURLToPath } from "node:url";
 
 import { listTodlSources, migrateFiles } from "../run.js";
 import { rewrite } from "../rewriter.js";
-import { load } from "../../parse/loader.js";
+import { load as loadFiles } from "../../parse/loader.js";
 import { DiagnosticCode } from "../../validate/validate.js";
+
+/** Test shim: wrap raw source strings as SourceFiles and return the model. */
+function load(texts: string[]) {
+  return loadFiles(texts.map((text, i) => ({ uri: `s${i}.todl`, text }))).model;
+}
 
 const ROOT = new URL("../../../../test_migration/", import.meta.url);
 const META_DIR = fileURLToPath(new URL("legacy-source/meta-models/enterprise-architecture", ROOT));

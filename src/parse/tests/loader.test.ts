@@ -3,9 +3,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { load } from "../loader.js";
+import { load as loadFiles } from "../loader.js";
 import { Cardinality, EdgeKind, Direction } from "../../model/graph.js";
 import { DiagnosticCode } from "../../validate/validate.js";
+
+/** Test shim: wrap raw source strings as SourceFiles and return the model. */
+function load(texts: string[]) {
+  return loadFiles(texts.map((text, i) => ({ uri: `s${i}.todl`, text }))).model;
+}
 
 function fixture(name: string): string {
   return readFileSync(fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url)), "utf8");
