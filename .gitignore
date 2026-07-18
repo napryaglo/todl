@@ -1,3 +1,6 @@
 node_modules/
 dist/
 *.tsbuildinfo
+
+# Verdaccio auth (contains local registry token) — never commit
+.npmrc
