@@ -60,7 +60,10 @@ export {
 
 export { evaluate, satisfies, type EvalValue } from "./predicate/evaluate.js";
 
-export { validate, Severity, DiagnosticCode, type Diagnostic } from "./validate/validate.js";
+export { validate } from "./validate/validate.js";
+export { Severity, DiagnosticCode, type Diagnostic } from "./diagnostics/diagnostic.js";
+export type { Position, SourceSpan, SourceFile } from "./diagnostics/span.js";
+export { check } from "./api.js";
 
 export {
   toJSON,
@@ -74,7 +77,7 @@ export { toMetaModule, type MetaModuleOptions } from "./emit/js-module.js";
 
 export { rewrite } from "./migrate/rewriter.js";
 
-export { load } from "./parse/loader.js";
-export { parse } from "./parse/parser.js";
+export { load, type LoadResult } from "./parse/loader.js";
+export { parse, type ParseResult } from "./parse/parser.js";
 export { parsePredicate } from "./parse/predicate-parser.js";
 export { tokenize, TokenKind, type Token } from "./parse/lexer.js";
