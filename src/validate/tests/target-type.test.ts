@@ -1,13 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { Model } from "../../model/model.js";
+import { Repository } from "../../model/model.js";
 import { Cardinality } from "../../model/graph.js";
 import { DiagnosticCode } from "../validate.js";
 
 /** component { in -> location [one] }. */
-function baseModel(): Model {
-  const model = new Model();
+function baseModel(): Repository {
+  const model = new Repository();
   model
     .builder()
     .defineConcept("location")
@@ -18,7 +18,7 @@ function baseModel(): Model {
   return model;
 }
 
-function targetTypeDiagnostics(model: Model) {
+function targetTypeDiagnostics(model: Repository) {
   return model.validate().filter((diagnostic) => diagnostic.code === DiagnosticCode.TargetTypeMismatch);
 }
 
@@ -50,7 +50,7 @@ test("a correctly-typed relationship produces no diagnostic", () => {
 });
 
 test("a relationship pointing at a subtype of the declared target is allowed", () => {
-  const model = new Model();
+  const model = new Repository();
   model
     .builder()
     .defineConcept("location")

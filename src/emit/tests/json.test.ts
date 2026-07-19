@@ -1,12 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { Model } from "../../model/model.js";
+import { Repository } from "../../model/model.js";
 import { EdgeKind, Direction } from "../../model/graph.js";
 import { toJSON, fromJSON } from "../json.js";
 
-function sample(): Model {
-  const model = new Model();
+function sample(): Repository {
+  const model = new Repository();
   model
     .builder()
     .definePrimitive("string")

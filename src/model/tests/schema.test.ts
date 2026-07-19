@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { Model } from "../model.js";
+import { Repository } from "../model.js";
 import { Cardinality } from "../graph.js";
 
 test("defineConcept builds the extends lattice, queryable and reflected", () => {
-  const model = new Model();
+  const model = new Repository();
   model
     .builder()
     .defineConcept("component")
@@ -18,7 +18,7 @@ test("defineConcept builds the extends lattice, queryable and reflected", () => 
 });
 
 test("addField and addConceptRelationship populate the concept schema", () => {
-  const model = new Model();
+  const model = new Repository();
   model
     .builder()
     .definePrimitive("string")
@@ -36,7 +36,7 @@ test("addField and addConceptRelationship populate the concept schema", () => {
 });
 
 test("addConceptRelationship records an inverse name when given", () => {
-  const model = new Model();
+  const model = new Repository();
   model
     .builder()
     .defineConcept("location")
@@ -48,7 +48,7 @@ test("addConceptRelationship records an inverse name when given", () => {
 });
 
 test("a multi-valued field defaults and records its cardinality", () => {
-  const model = new Model();
+  const model = new Repository();
   model
     .builder()
     .definePrimitive("location")
@@ -60,7 +60,7 @@ test("a multi-valued field defaults and records its cardinality", () => {
 });
 
 test("schemaOf returns empty members for a bare concept", () => {
-  const model = new Model();
+  const model = new Repository();
   model.builder().defineConcept("thing").commit();
 
   const schema = model.schemaOf("thing");

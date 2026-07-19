@@ -7,7 +7,7 @@
  */
 
 import { Tier, EdgeKind, Direction, Cardinality, type NodeId, type Node } from "../model/graph.js";
-import type { Model, FieldSchema, RelationshipSchema } from "../model/model.js";
+import type { Repository, FieldSchema, RelationshipSchema } from "../model/model.js";
 import { satisfies } from "../predicate/evaluate.js";
 import type { SourceSpan } from "../diagnostics/span.js";
 import { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagnostic.js";
@@ -16,13 +16,13 @@ import { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagno
 // `../validate/validate.js` keep resolving them.
 export { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagnostic.js";
 
-/** Mirrors Model.memberKey — the per-instance member span key. */
+/** Mirrors Repository.memberKey — the per-instance member span key. */
 function memberKey(node: NodeId, member: string): string {
   return `${node}#${member}`;
 }
 
 /** Prefer the instance's per-member span; fall back to the instance node span. */
-function spanFor(model: Model, node: NodeId, member: string | null): SourceSpan | null {
+function spanFor(model: Repository, node: NodeId, member: string | null): SourceSpan | null {
   if (member !== null) {
     const memberSpan = model.spanOf(memberKey(node, member));
     if (memberSpan !== null) return memberSpan;
@@ -30,7 +30,7 @@ function spanFor(model: Model, node: NodeId, member: string | null): SourceSpan 
   return model.spanOf(node);
 }
 
-export function validate(model: Model): Diagnostic[] {
+export function validate(model: Repository): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   for (const node of model.allNodes()) {
     if (node.tier !== Tier.Instance) continue;
@@ -50,7 +50,7 @@ export function validate(model: Model): Diagnostic[] {
 
 function checkTargetTypes(
   out: Diagnostic[],
-  model: Model,
+  model: Repository,
   node: Node,
   relationship: RelationshipSchema,
   targets: NodeId[],
@@ -73,7 +73,7 @@ function checkTargetTypes(
   }
 }
 
-function checkInvariants(out: Diagnostic[], model: Model, node: Node): void {
+function checkInvariants(out: Diagnostic[], model: Repository, node: Node): void {
   for (const concept of [node.typeOf, ...model.supertypesOf(node.typeOf)]) {
     for (const invariant of model.invariantsFor(concept)) {
       if (!satisfies(model, invariant.expr, node.id)) {
@@ -98,7 +98,7 @@ function checkInvariants(out: Diagnostic[], model: Model, node: Node): void {
  * avoids a fragile primitive-name heuristic (EA's `identifier` / `label` /
  * `slug` are not builtins).
  */
-function countField(model: Model, node: Node, field: FieldSchema): number {
+function countField(model: Repository, node: Node, field: FieldSchema): number {
   const attrCount = node.attrs.has(field.name) ? 1 : 0;
   const edgeCount = model.related(node.id, EdgeKind.Relationship, Direction.Out, field.name).length;
   return attrCount + edgeCount;
@@ -106,7 +106,7 @@ function countField(model: Model, node: Node, field: FieldSchema): number {
 
 function checkCardinality(
   out: Diagnostic[],
-  model: Model,
+  model: Repository,
   node: Node,
   member: string,
   cardinality: Cardinality,

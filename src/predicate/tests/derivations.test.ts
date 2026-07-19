@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { Model } from "../../model/model.js";
+import { Repository } from "../../model/model.js";
 import { THIS, variable, member, comprehension, isIn } from "../ast.js";
 
-function techModel(): Model {
-  const model = new Model();
+function techModel(): Repository {
+  const model = new Repository();
   const builder = model.builder();
   builder.assertInstance("capability", "ui-framework");
   builder.assertInstance("capability", "http-api");

@@ -1,13 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { Model } from "../../model/model.js";
+import { Repository } from "../../model/model.js";
 import { Cardinality } from "../../model/graph.js";
 import { DiagnosticCode } from "../validate.js";
 
 /** technology { label: string [one]; available-in -> location [non-empty] }. */
-function schemaModel(): Model {
-  const model = new Model();
+function schemaModel(): Repository {
+  const model = new Repository();
   model
     .builder()
     .definePrimitive("string")
@@ -59,7 +59,7 @@ test("an empty non-empty relationship is reported", () => {
 });
 
 test("inherited fields are validated on subtype instances", () => {
-  const model = new Model();
+  const model = new Repository();
   model
     .builder()
     .definePrimitive("string")

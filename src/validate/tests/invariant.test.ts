@@ -1,14 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { Model } from "../../model/model.js";
+import { Repository } from "../../model/model.js";
 import { Cardinality } from "../../model/graph.js";
 import { DiagnosticCode } from "../validate.js";
 import { THIS, NONE, member, implies, neq, isIn } from "../../predicate/ast.js";
 
 /** component with the "location covered by implementing tech" invariant. */
-function coveredModel(): Model {
-  const model = new Model();
+function coveredModel(): Repository {
+  const model = new Repository();
   model
     .builder()
     .defineConcept("location")
@@ -30,7 +30,7 @@ function coveredModel(): Model {
   return model;
 }
 
-function invariantDiagnostics(model: Model) {
+function invariantDiagnostics(model: Repository) {
   return model.validate().filter((diagnostic) => diagnostic.code === DiagnosticCode.InvariantFailed);
 }
 

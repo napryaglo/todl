@@ -7,7 +7,7 @@ import { tokenize, TokenKind } from "../lexer.js";
 import { parsePredicate } from "../predicate-parser.js";
 import { parse } from "../parser.js";
 import { DeclKind } from "../ast.js";
-import { Model } from "../../model/model.js";
+import { Repository } from "../../model/model.js";
 import { satisfies } from "../../predicate/evaluate.js";
 
 function predicate(source: string) {
@@ -15,8 +15,8 @@ function predicate(source: string) {
   return parsePredicate(tokens);
 }
 
-function serviceTask(assignee: string | null): Model {
-  const model = new Model();
+function serviceTask(assignee: string | null): Repository {
+  const model = new Repository();
   const builder = model.builder();
   builder.assertInstance("task-type", "service");
   builder.assertInstance("task", "t1").addRelationship("t1", "type", "service");
@@ -37,7 +37,7 @@ test("assignee invariant fails for a service task that has an assignee", () => {
 
 test("start-event invariant desugars .empty and holds with no incoming flows", () => {
   const expr = predicate("this.event-type == start implies this.incoming.empty");
-  const model = new Model();
+  const model = new Repository();
   model
     .builder()
     .assertInstance("event-type", "start")
@@ -50,7 +50,7 @@ test("start-event invariant desugars .empty and holds with no incoming flows", (
 
 test("start-event invariant fails when a start event has an incoming flow", () => {
   const expr = predicate("this.event-type == start implies this.incoming.empty");
-  const model = new Model();
+  const model = new Repository();
   model
     .builder()
     .assertInstance("event-type", "start")

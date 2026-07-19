@@ -1,11 +1,11 @@
 /**
  * Evaluator for the predicate / derivation AST (design spec §4) over a
- * {@link Model}. Node-ish values are `Set<NodeId>` (a bare node is a singleton
+ * {@link Repository}. Node-ish values are `Set<NodeId>` (a bare node is a singleton
  * set), scalars are themselves, and `none` is `null`. `evaluate` returns the
  * raw value (a set for comprehensions); `satisfies` coerces to boolean.
  */
 
-import type { Model } from "../model/model.js";
+import type { Repository } from "../model/model.js";
 import { EdgeKind, Direction, type NodeId } from "../model/graph.js";
 import { ExprKind, BinaryOp, QuantifierKind, type Expr } from "./ast.js";
 
@@ -16,15 +16,15 @@ interface Env {
   vars: Map<string, NodeId>;
 }
 
-export function evaluate(model: Model, expr: Expr, self: NodeId): EvalValue {
+export function evaluate(model: Repository, expr: Expr, self: NodeId): EvalValue {
   return evalExpr(model, expr, { self, vars: new Map() });
 }
 
-export function satisfies(model: Model, expr: Expr, self: NodeId): boolean {
+export function satisfies(model: Repository, expr: Expr, self: NodeId): boolean {
   return toBool(evaluate(model, expr, self));
 }
 
-function evalExpr(model: Model, expr: Expr, env: Env): EvalValue {
+function evalExpr(model: Repository, expr: Expr, env: Env): EvalValue {
   switch (expr.kind) {
     case ExprKind.This:
       return new Set([env.self]);
@@ -71,7 +71,7 @@ function evalExpr(model: Model, expr: Expr, env: Env): EvalValue {
   }
 }
 
-function evalBinary(model: Model, op: BinaryOp, leftExpr: Expr, rightExpr: Expr, env: Env): EvalValue {
+function evalBinary(model: Repository, op: BinaryOp, leftExpr: Expr, rightExpr: Expr, env: Env): EvalValue {
   // Short-circuit the logical connectives.
   if (op === BinaryOp.And) {
     return toBool(evalExpr(model, leftExpr, env)) && toBool(evalExpr(model, rightExpr, env));
@@ -98,7 +98,7 @@ function evalBinary(model: Model, op: BinaryOp, leftExpr: Expr, rightExpr: Expr,
 }
 
 /** Field access: a scalar attr on a single node, else the union of relationship targets. */
-function evalMember(model: Model, target: EvalValue, name: string): EvalValue {
+function evalMember(model: Repository, target: EvalValue, name: string): EvalValue {
   const nodes = asNodeSet(target);
   if (nodes.size === 1) {
     const only = firstOf(nodes);

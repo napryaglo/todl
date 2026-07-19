@@ -20,7 +20,7 @@ import {
   type Scalar,
   type GraphChangeArgs,
 } from "./graph.js";
-import type { Model } from "./model.js";
+import type { Repository } from "./model.js";
 
 export enum PropertyChangeKind {
   Set,
@@ -57,7 +57,7 @@ export class ReactiveNode implements INotifyPropertyChanged, INotifyCollectionCh
   private readonly subscription: Disposable;
 
   constructor(
-    private readonly model: Model,
+    private readonly model: Repository,
     readonly id: NodeId,
   ) {
     if (model.resolve(id) === undefined) {

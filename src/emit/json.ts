@@ -6,7 +6,7 @@
  */
 
 import { Graph, Tier, EdgeKind, type NodeId, type Scalar } from "../model/graph.js";
-import { Model } from "../model/model.js";
+import { Repository } from "../model/model.js";
 
 export interface JsonNode {
   id: NodeId;
@@ -27,7 +27,7 @@ export interface TodlDocument {
   edges: JsonEdge[];
 }
 
-export function toJSON(model: Model): TodlDocument {
+export function toJSON(model: Repository): TodlDocument {
   const nodes: JsonNode[] = [];
   const edges: JsonEdge[] = [];
 
@@ -46,7 +46,7 @@ export function toJSON(model: Model): TodlDocument {
   return { nodes, edges };
 }
 
-export function fromJSON(doc: TodlDocument): Model {
+export function fromJSON(doc: TodlDocument): Repository {
   const graph = new Graph();
 
   for (const node of doc.nodes) {
@@ -66,5 +66,5 @@ export function fromJSON(doc: TodlDocument): Model {
     });
   }
 
-  return new Model(graph);
+  return new Repository(graph);
 }

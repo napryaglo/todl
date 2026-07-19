@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { Model } from "../../model/model.js";
+import { Repository } from "../../model/model.js";
 import { evaluate, satisfies } from "../evaluate.js";
 import {
   THIS,
@@ -17,8 +17,8 @@ import {
 } from "../ast.js";
 
 /** react/vue provide ui-framework; express provides http-api; shop-web needs ui-framework. */
-function techModel(reactAvailableIn: string[] = ["m365", "browser"]): Model {
-  const model = new Model();
+function techModel(reactAvailableIn: string[] = ["m365", "browser"]): Repository {
+  const model = new Repository();
   const builder = model.builder();
   builder.assertInstance("capability", "ui-framework");
   builder.assertInstance("capability", "http-api");

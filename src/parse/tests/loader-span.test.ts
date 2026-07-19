@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { load } from "../loader.js";
-import { Model } from "../../model/model.js";
+import { Repository } from "../../model/model.js";
 
 const CONCEPTS = `namespace ea {
   concept component { label : string; }
@@ -19,7 +19,7 @@ test("load takes SourceFiles, builds a model, and records instance spans", () =>
   assert.equal(diagnostics.length, 0);
   assert.ok(model.has("teams-chat"));
   assert.equal(model.spanOf("teams-chat")?.uri, "app.todl");
-  assert.equal(model.spanOf(Model.memberKey("teams-chat", "label"))?.uri, "app.todl");
+  assert.equal(model.spanOf(Repository.memberKey("teams-chat", "label"))?.uri, "app.todl");
 });
 
 test("load surfaces syntax diagnostics from a malformed file", () => {
