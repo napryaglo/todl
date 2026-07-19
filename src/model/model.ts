@@ -46,7 +46,7 @@ export interface ConceptSchema {
   relationships: RelationshipSchema[];
 }
 
-export class Model {
+export class Repository {
   private readonly graph: Graph;
   private readonly derivations: Derivations;
   private readonly invariants: Invariants;
@@ -137,6 +137,26 @@ export class Model {
   /** All concepts `concept` transitively extends. */
   supertypesOf(concept: NodeId): NodeId[] {
     return this.graph.closure(concept, EdgeKind.Extends, Direction.Out, false);
+  }
+
+  /** Direct child terms of a taxonomy term (one level narrower). */
+  narrowerOf(term: NodeId): NodeId[] {
+    return this.graph.related(term, EdgeKind.Narrower, Direction.Out);
+  }
+
+  /** Direct parent term(s) of a taxonomy term (one level broader). */
+  broaderOf(term: NodeId): NodeId[] {
+    return this.graph.related(term, EdgeKind.Narrower, Direction.In);
+  }
+
+  /** Every term transitively narrower than `term` (its whole branch). */
+  descendantsOf(term: NodeId): NodeId[] {
+    return this.graph.closure(term, EdgeKind.Narrower, Direction.Out, false);
+  }
+
+  /** Every term transitively broader than `term` (its path to the root). */
+  ancestorsOf(term: NodeId): NodeId[] {
+    return this.graph.closure(term, EdgeKind.Narrower, Direction.In, false);
   }
 
   /** Reflect a concept's declared schema (spec §5): direct parent, fields, relationships. */

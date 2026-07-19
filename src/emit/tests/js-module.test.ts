@@ -35,6 +35,17 @@ test("emits ModelElement subclasses for each concept", () => {
   assert.match(js, /kind: "task",/);
 });
 
+test("emits a taxonomy table (terms with parent) and a taxonomies registry key", () => {
+  const model = load([
+    `namespace n { taxonomy cc { terms { | surface { label = "Surface"; | api-service { label = "API"; } } } } }`,
+  ]);
+  const js = toMetaModule(model, { slug: "n" });
+  assert.match(js, /export const Cc = \{/);
+  assert.match(js, /terms: \{/);
+  assert.match(js, /"api-service": \{[^}]*parent: "surface"/);
+  assert.match(js, /taxonomies: \{/);
+});
+
 test("emits field schema with cardinality text, omitting required-single", () => {
   const js = toMetaModule(corpus(), { slug: "bpmn" });
   // `label : string;` is required-single — no cardinality key.
@@ -49,11 +60,11 @@ test("emits relationship schema with target and cardinality", () => {
   assert.match(js, /incoming: \{ target: "sequence-flow", cardinality: "\*" \},/);
 });
 
-test("emits enum tables with labels and a has() helper", () => {
+test("emits taxonomy tables with labels and a has() helper", () => {
   const js = toMetaModule(corpus(), { slug: "bpmn" });
   assert.match(js, /export const TaskType = \{/);
   assert.match(js, /slug: "task-type",/);
-  assert.match(js, /service: \{ id: "service", label: "Service Task" \},/);
+  assert.match(js, /service: \{ id: "service", label: "Service Task", parent: null, children: \[\] \},/);
   assert.match(js, /has\(value, member\) \{/);
 });
 

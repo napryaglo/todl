@@ -26,11 +26,11 @@ export {
   type INotifyCollectionChanged,
 } from "./model/reactive.js";
 
-export { Builder, type EnumCaseInput } from "./model/builder.js";
+export { Builder, type TermInput } from "./model/builder.js";
 export { MetaKind } from "./model/kinds.js";
 
 export {
-  Model,
+  Repository,
   type FieldSchema,
   type RelationshipSchema,
   type ConceptSchema,

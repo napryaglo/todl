@@ -24,16 +24,16 @@ test("parses a primitive declaration with base and regex", () => {
   }
 });
 
-test("parses enum declarations with their cases", () => {
+test("parses taxonomy declarations with their terms", () => {
   const { namespace } = parse(fixture("enums.todl"));
   const taskType = namespace.declarations.find(
-    (declaration) => declaration.kind === DeclKind.Enum && declaration.name === "task-type",
+    (declaration) => declaration.kind === DeclKind.Taxonomy && declaration.name === "task-type",
   );
-  assert.ok(taskType && taskType.kind === DeclKind.Enum);
-  if (taskType.kind === DeclKind.Enum) {
-    assert.equal(taskType.cases.length, 7);
-    assert.equal(taskType.cases[1]?.id, "user");
-    assert.equal(taskType.cases[1]?.label, "User Task");
+  assert.ok(taskType && taskType.kind === DeclKind.Taxonomy);
+  if (taskType.kind === DeclKind.Taxonomy) {
+    assert.equal(taskType.terms.length, 7);
+    assert.equal(taskType.terms[1]?.id, "user");
+    assert.equal(taskType.terms[1]?.label, "User Task");
   }
 });
 

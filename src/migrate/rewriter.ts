@@ -20,7 +20,13 @@ export function rewrite(legacySource: string): string {
   out = rewriteReferences(out);
   out = rewriteListTypes(out);
   out = rewriteCardinality(out);
+  out = rewriteEnumToTaxonomy(out);
   return out;
+}
+
+/** `enum X { values { … } }` → `taxonomy X { terms { … } }` (keyword swaps). */
+function rewriteEnumToTaxonomy(source: string): string {
+  return source.replace(/\benum\b/g, "taxonomy").replace(/\bvalues\b/g, "terms");
 }
 
 /** `@m365` → `&m365`. Only before a lowercase identifier start. */

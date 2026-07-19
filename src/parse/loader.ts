@@ -1,5 +1,5 @@
 /**
- * Loader (design spec §5) — parse TODL sources and build a {@link Model}.
+ * Loader (design spec §5) — parse TODL sources and build a {@link Repository}.
  *
  * Two passes over the combined declarations: pass one defines the bare type
  * declarations (primitives, enums + case nodes, concepts + extends) and creates
@@ -12,15 +12,15 @@
 
 import { parse } from "./parser.js";
 import { parsePredicate } from "./predicate-parser.js";
-import { Model } from "../model/model.js";
-import type { Builder, EnumCaseInput } from "../model/builder.js";
+import { Repository } from "../model/model.js";
+import type { Builder, TermInput } from "../model/builder.js";
 import type { Expr } from "../predicate/ast.js";
-import { DeclKind, ValueKind, type Declaration, type InstanceDecl, type ValueNode } from "./ast.js";
+import { DeclKind, ValueKind, type Declaration, type InstanceDecl, type Term, type ValueNode } from "./ast.js";
 import type { SourceFile } from "../diagnostics/span.js";
 import type { Diagnostic } from "../diagnostics/diagnostic.js";
 
 export interface LoadResult {
-  model: Model;
+  model: Repository;
   diagnostics: Diagnostic[];
 }
 
@@ -39,7 +39,7 @@ export function load(sources: SourceFile[]): LoadResult {
     diagnostics.push(...result.diagnostics);
     return result.namespace.declarations;
   });
-  const model = new Model();
+  const model = new Repository();
 
   const defined = new Set<string>();
   const referenced = new Set<string>();
@@ -52,17 +52,16 @@ export function load(sources: SourceFile[]): LoadResult {
       case DeclKind.Primitive:
         first.definePrimitive(declaration.name);
         break;
-      case DeclKind.Enum:
-        first.defineEnum(
-          declaration.name,
-          declaration.cases.map((enumCase) => {
-            const input: EnumCaseInput = { id: enumCase.id };
-            if (enumCase.label) input.label = enumCase.label;
-            if (enumCase.description) input.description = enumCase.description;
-            return input;
-          }),
-        );
+      case DeclKind.Taxonomy: {
+        const toTerm = (t: Term): TermInput => ({
+          id: t.id,
+          ...(t.label ? { label: t.label } : {}),
+          ...(t.description ? { description: t.description } : {}),
+          children: t.children.map(toTerm),
+        });
+        first.defineTaxonomy(declaration.name, declaration.terms.map(toTerm));
         break;
+      }
       case DeclKind.Concept:
         first.defineConcept(declaration.name, declaration.extends);
         break;
@@ -112,14 +111,22 @@ export function load(sources: SourceFile[]): LoadResult {
 }
 
 /** Record each declaration's, instance's, and assignment's source span on the model. */
-function recordSpans(model: Model, declarations: Declaration[]): void {
+function recordSpans(model: Repository, declarations: Declaration[]): void {
   for (const declaration of declarations) {
     switch (declaration.kind) {
       case DeclKind.Primitive:
-      case DeclKind.Enum:
       case DeclKind.Concept:
         model.recordSpan(declaration.name, declaration.span);
         break;
+      case DeclKind.Taxonomy: {
+        model.recordSpan(declaration.name, declaration.span);
+        const record = (t: Term): void => {
+          model.recordSpan(`${declaration.name}.${t.id}`, t.span);
+          t.children.forEach(record);
+        };
+        declaration.terms.forEach(record);
+        break;
+      }
       case DeclKind.Instance:
         recordInstanceSpans(model, declaration);
         break;
@@ -127,11 +134,11 @@ function recordSpans(model: Model, declarations: Declaration[]): void {
   }
 }
 
-function recordInstanceSpans(model: Model, decl: InstanceDecl): void {
+function recordInstanceSpans(model: Repository, decl: InstanceDecl): void {
   model.recordSpan(decl.id, decl.span);
   for (const assignment of decl.assignments) {
     if (assignment.span !== undefined) {
-      model.recordSpan(Model.memberKey(decl.id, assignment.name), assignment.span);
+      model.recordSpan(Repository.memberKey(decl.id, assignment.name), assignment.span);
     }
   }
   for (const child of decl.children) recordInstanceSpans(model, child);
@@ -142,13 +149,17 @@ function collectNames(declaration: Declaration, defined: Set<string>, referenced
     case DeclKind.Primitive:
       defined.add(declaration.name);
       break;
-    case DeclKind.Enum:
+    case DeclKind.Taxonomy: {
       defined.add(declaration.name);
-      // Enum-case nodes are enum-qualified (see Builder.defineEnum); record the
-      // qualified id so a bare enum value used in an instance resolves to a
-      // placeholder rather than falsely appearing already-defined.
-      for (const enumCase of declaration.cases) defined.add(`${declaration.name}.${enumCase.id}`);
+      // Term nodes are taxonomy-qualified (see Builder.defineTaxonomy); record
+      // every term's qualified id (nested included) so bare term values resolve.
+      const add = (t: Term): void => {
+        defined.add(`${declaration.name}.${t.id}`);
+        t.children.forEach(add);
+      };
+      declaration.terms.forEach(add);
       break;
+    }
     case DeclKind.Concept:
       defined.add(declaration.name);
       if (declaration.extends !== null) referenced.add(declaration.extends);

@@ -32,6 +32,7 @@ export enum EdgeKind {
   HasInvariant,
   Relationship,
   Derived,
+  Narrower, // taxonomy hierarchy: broader term -> narrower term
 }
 
 /** Which way to walk an edge from a node. */

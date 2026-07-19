@@ -17,12 +17,12 @@ import {
   type NamespaceNode,
   type Declaration,
   type ConceptDecl,
-  type EnumDecl,
   type PrimitiveDecl,
   type FieldDecl,
   type RelationshipDecl,
   type InvariantDecl,
-  type EnumCase,
+  type Term,
+  type TaxonomyDecl,
   type InstanceDecl,
   type AssignmentNode,
   type ValueNode,
@@ -99,7 +99,7 @@ class Parser {
       if (
         depth === 0 &&
         (this.checkKeyword("primitive") ||
-          this.checkKeyword("enum") ||
+          this.checkKeyword("taxonomy") ||
           this.checkKeyword("concept") ||
           this.checkKeyword("internal") ||
           this.checkKeyword("sealed") ||
@@ -161,7 +161,7 @@ class Parser {
 
     const start = this.startToken();
     if (this.checkKeyword("primitive")) return this.parsePrimitive(start);
-    if (this.checkKeyword("enum")) return this.parseEnum(start);
+    if (this.checkKeyword("taxonomy")) return this.parseTaxonomy(start);
     if (this.checkKeyword("concept")) return this.parseConcept(start);
     if (this.checkKeyword("application-connectors")) return this.parseApplicationConnectors(start);
     if (this.check(TokenKind.Identifier)) {
@@ -326,43 +326,51 @@ class Parser {
     return { kind: DeclKind.Primitive, name, base, description, regex, span: this.spanFrom(start) };
   }
 
-  private parseEnum(start: Token): EnumDecl {
-    this.expectKeyword("enum");
+  private parseTaxonomy(start: Token): TaxonomyDecl {
+    this.expectKeyword("taxonomy");
     const name = this.expectIdentifier();
-
     let description = "";
-    const cases: EnumCase[] = [];
+    const terms: Term[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
-      if (this.checkKeyword("values")) {
-        this.parseEnumValues(cases);
+      if (this.checkKeyword("terms")) {
+        this.expectKeyword("terms");
+        this.expect(TokenKind.LBrace);
+        this.parseTerms(terms);
+        this.expect(TokenKind.RBrace);
       } else {
         const [key, value] = this.readStringMember();
         if (key === "description" && value !== null) description = value;
       }
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Enum, name, description, cases, span: this.spanFrom(start) };
+    return { kind: DeclKind.Taxonomy, name, description, terms, span: this.spanFrom(start) };
   }
 
-  private parseEnumValues(cases: EnumCase[]): void {
-    this.expectKeyword("values");
-    this.expect(TokenKind.LBrace);
+  // Parse a run of `| id { … }` term rows into `out`. A term body mixes
+  // `key = value;` attributes and nested `| child { … }` rows; the leading
+  // `|` distinguishes a child term from an attribute, at every depth.
+  private parseTerms(out: Term[]): void {
     while (this.check(TokenKind.Pipe)) {
+      const start = this.startToken();
       this.advance();
       const id = this.expectIdentifier();
       let label = "";
       let description = "";
+      const children: Term[] = [];
       this.expect(TokenKind.LBrace);
       while (!this.check(TokenKind.RBrace)) {
-        const [key, value] = this.readStringMember();
-        if (key === "label" && value !== null) label = value;
-        else if (key === "description" && value !== null) description = value;
+        if (this.check(TokenKind.Pipe)) {
+          this.parseTerms(children);
+        } else {
+          const [key, value] = this.readStringMember();
+          if (key === "label" && value !== null) label = value;
+          else if (key === "description" && value !== null) description = value;
+        }
       }
       this.expect(TokenKind.RBrace);
-      cases.push({ id, label, description });
+      out.push({ id, label, description, children, span: this.spanFrom(start) });
     }
-    this.expect(TokenKind.RBrace);
   }
 
   private parseConcept(start: Token): ConceptDecl {

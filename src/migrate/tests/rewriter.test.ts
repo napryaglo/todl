@@ -11,6 +11,14 @@ test("rewrites [0..1] cardinality to ?", () => {
   assert.equal(rewrite("implemented-by : identifier [0..1];"), "implemented-by : identifier?;");
 });
 
+test("rewrites legacy enum/values to taxonomy/terms", () => {
+  const out = rewrite(`enum color {\n  values {\n    | red { label = "Red"; }\n  }\n}`);
+  assert.match(out, /taxonomy color \{/);
+  assert.match(out, /terms \{/);
+  assert.doesNotMatch(out, /\benum\b/);
+  assert.doesNotMatch(out, /\bvalues\b/);
+});
+
 test("rewrites [1..*] cardinality to [+]", () => {
   assert.equal(rewrite("lanes : pool [1..*];"), "lanes : pool[+];");
 });

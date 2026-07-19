@@ -27,7 +27,7 @@ test("rewritten EA meta-model loads complete and validates clean", () => {
   const model = load(migrateFiles(listTodlSources(EA_META_DIR)));
 
   assert.equal(model.instancesOf(MetaKind.Concept).length, 23, "23 concepts");
-  assert.equal(model.instancesOf(MetaKind.Enum).length, 17, "17 enums");
+  assert.equal(model.instancesOf(MetaKind.Taxonomy).length, 17, "17 taxonomies");
 
   for (const concept of ["component", "connector", "technology", "scenario", "location", "model"]) {
     assert.equal(model.resolve(concept)?.typeOf, MetaKind.Concept, `${concept} resolves as a concept`);

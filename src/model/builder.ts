@@ -15,11 +15,12 @@
 import { Graph, EdgeKind, Tier, Cardinality, type Node, type NodeId, type Scalar } from "./graph.js";
 import { MetaKind } from "./kinds.js";
 
-/** A single enum case, optionally carrying display metadata (spec §7.3). */
-export interface EnumCaseInput {
+/** A taxonomy term: display metadata + zero-or-more nested child terms. */
+export interface TermInput {
   id: NodeId;
   label?: string;
   description?: string;
+  children?: readonly TermInput[];
 }
 
 interface StagedAttr {
@@ -121,22 +122,25 @@ export class Builder {
   }
 
   /**
-   * Stage an enum declaration: the enum node plus a node per case (typed by
-   * the enum). Cases may be bare ids or `{ id, label?, description? }`; any
-   * display metadata is stored as attrs on the case node for the emitter.
+   * Stage a taxonomy: the taxonomy node plus one Ontology node per term (typed
+   * by the taxonomy, id `taxonomy.term`), plus a `Narrower` edge from each
+   * parent term to each child term. Terms nest arbitrarily; top-level terms are
+   * roots (no incoming Narrower edge).
    */
-  defineEnum(name: NodeId, cases: readonly (string | EnumCaseInput)[]): this {
-    this.stageNode(name, Tier.Ontology, MetaKind.Enum);
-    for (const entry of cases) {
-      const input: EnumCaseInput = typeof entry === "string" ? { id: entry } : entry;
-      // Qualify the node id (`location-type.on-premises`) so enum members never
-      // collide with instance-record ids that share a name; keep the bare id as
-      // an attr for the emitter's value table.
-      const attrs = new Map<string, Scalar>([["id", input.id]]);
-      if (input.label !== undefined) attrs.set("label", input.label);
-      if (input.description !== undefined) attrs.set("description", input.description);
-      this.stagedNodes.push({ id: `${name}.${input.id}`, tier: Tier.Ontology, typeOf: name, attrs });
-    }
+  defineTaxonomy(name: NodeId, terms: readonly TermInput[]): this {
+    this.stageNode(name, Tier.Ontology, MetaKind.Taxonomy);
+    const stageTerm = (term: TermInput, parentId: NodeId | null): void => {
+      const id = `${name}.${term.id}`;
+      const attrs = new Map<string, Scalar>([["id", term.id]]);
+      if (term.label !== undefined) attrs.set("label", term.label);
+      if (term.description !== undefined) attrs.set("description", term.description);
+      this.stagedNodes.push({ id, tier: Tier.Ontology, typeOf: name, attrs });
+      if (parentId !== null) {
+        this.stagedEdges.push({ kind: EdgeKind.Narrower, via: null, from: parentId, to: id });
+      }
+      for (const child of term.children ?? []) stageTerm(child, id);
+    };
+    for (const term of terms) stageTerm(term, null);
     return this;
   }
 

@@ -1,6 +1,6 @@
 /**
  * Parse AST for the TODL surface (design spec §3). Distinct from the runtime
- * graph model — the loader (a later step) walks this tree to build a Model.
+ * graph model — the loader (a later step) walks this tree to build a Repository.
  * Cardinality reuses the model enum. Invariant predicates are captured as raw
  * token slices here; the predicate parser turns them into expression ASTs.
  */
@@ -11,7 +11,7 @@ import type { SourceSpan } from "../diagnostics/span.js";
 
 export enum DeclKind {
   Primitive,
-  Enum,
+  Taxonomy,
   Concept,
   Instance,
 }
@@ -115,17 +115,19 @@ export interface ConceptDecl {
   span: SourceSpan;
 }
 
-export interface EnumCase {
+export interface Term {
   id: string;
   label: string;
   description: string;
+  children: Term[];
+  span: SourceSpan;
 }
 
-export interface EnumDecl {
-  kind: DeclKind.Enum;
+export interface TaxonomyDecl {
+  kind: DeclKind.Taxonomy;
   name: string;
   description: string;
-  cases: EnumCase[];
+  terms: Term[];
   span: SourceSpan;
 }
 
@@ -138,7 +140,7 @@ export interface PrimitiveDecl {
   span: SourceSpan;
 }
 
-export type Declaration = ConceptDecl | EnumDecl | PrimitiveDecl | InstanceDecl;
+export type Declaration = ConceptDecl | TaxonomyDecl | PrimitiveDecl | InstanceDecl;
 
 export interface NamespaceNode {
   path: string;

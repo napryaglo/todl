@@ -1,9 +1,9 @@
 namespace adl.meta-models.bpmn.enums
 {
-    enum task-type
+    taxonomy task-type
     {
         description = "Classifies a BPMN task by what kind of work performs it.";
-        values
+        terms
         {
             | none    { label = "Unspecialised"; }
             | user    { label = "User Task"; }
@@ -15,10 +15,10 @@ namespace adl.meta-models.bpmn.enums
         }
     }
 
-    enum event-type
+    taxonomy event-type
     {
         description = "Position of an event in the flow.";
-        values
+        terms
         {
             | start        { label = "Start"; }
             | intermediate { label = "Intermediate"; }
