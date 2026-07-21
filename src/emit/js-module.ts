@@ -134,8 +134,9 @@ function emitTaxonomy(model: Repository, taxonomyId: string): string {
   };
   const lines: string[] = [`export const ${name} = {`];
   lines.push(`${i}slug: ${jsStr(taxonomyId)},`);
+  lines.push(`${i}represents: [${model.represents(taxonomyId).map(jsStr).join(", ")}],`);
   lines.push(`${i}terms: {`);
-  for (const termId of model.instancesOf(taxonomyId)) {
+  for (const termId of model.termsOf(taxonomyId)) {
     const node = model.resolve(termId);
     // Term node ids are taxonomy-qualified; the bare member id is an attr.
     const id = typeof node?.attrs.get("id") === "string" ? (node.attrs.get("id") as string) : termId;

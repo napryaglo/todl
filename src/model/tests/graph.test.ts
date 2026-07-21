@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { Graph, Tier, EdgeKind, type Node, type Edge } from "../graph.js";
+import { Graph, Tier, EdgeKind, Direction, type Node, type Edge } from "../graph.js";
 
 function instance(id: string, typeOf: string): Node {
   return { id, tier: Tier.Instance, typeOf, attrs: new Map() };
@@ -82,4 +82,18 @@ test("addEdge requires both endpoints to exist", () => {
       }),
     /does not exist/i,
   );
+});
+
+test("related traverses InstanceOf and Represents edges", () => {
+  const graph = new Graph();
+  graph.addNode(instance("teams-chat", "component"));
+  graph.addNode(instance("chat-hq", "component"));
+  graph.addNode({ id: "component-category", tier: Tier.Ontology, typeOf: "taxonomy", attrs: new Map() });
+  graph.addNode({ id: "category", tier: Tier.Ontology, typeOf: "concept", attrs: new Map() });
+  graph.addEdge({ kind: EdgeKind.InstanceOf, via: null, from: "chat-hq", to: "teams-chat" });
+  graph.addEdge({ kind: EdgeKind.Represents, via: null, from: "component-category", to: "category" });
+
+  assert.deepEqual(graph.related("chat-hq", EdgeKind.InstanceOf, Direction.Out), ["teams-chat"]);
+  assert.deepEqual(graph.related("teams-chat", EdgeKind.InstanceOf, Direction.In), ["chat-hq"]);
+  assert.deepEqual(graph.related("category", EdgeKind.Represents, Direction.In), ["component-category"]);
 });

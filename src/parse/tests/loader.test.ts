@@ -34,10 +34,11 @@ test("loads concept schemas from the corpus", () => {
   assert.equal(task.relationships.find((r) => r.name === "lives-in")?.cardinality, Cardinality.One);
 });
 
-test("loads enum case nodes", () => {
+test("loads taxonomy terms as class members of the represented concept", () => {
   const model = corpus();
-  assert.ok(model.instancesOf("task-type").includes("task-type.service"));
-  assert.ok(model.instancesOf("event-type").includes("event-type.start"));
+  assert.ok(model.termsOf("task-type").includes("task-type.service"));
+  assert.equal(model.resolve("task-type.service")?.typeOf, "task");
+  assert.ok(model.termsOf("event-type").includes("event-type.start"));
 });
 
 test("loads instances with scalar attrs and relationship edges", () => {
@@ -105,6 +106,50 @@ test("nested instances load with contains edges and a meta-model binding", () =>
   assert.equal(model.resolve("saas-3p")?.typeOf, "location");
   assert.deepEqual(model.related("m", EdgeKind.Contains, Direction.Out), ["saas-3p"]);
   assert.equal(model.resolve("m")?.attrs.get("meta-model"), "enterprise-architecture");
+});
+
+test("a nested record binds to the parent field typed by its concept", () => {
+  const model = load([
+    `namespace d {
+      concept host { id : identifier; slots : slot[]; }
+      concept slot { id : identifier; label : string; }
+      host h1 {
+        slot s1 { label = "S1"; }
+      }
+    }`,
+  ]);
+  // Structural containment is still present.
+  assert.deepEqual(model.related("h1", EdgeKind.Contains, Direction.Out), ["s1"]);
+  // …and the record populates the `slots` field via a field-named relationship.
+  assert.deepEqual(model.related("h1", EdgeKind.Relationship, Direction.Out, "slots"), ["s1"]);
+});
+
+test("a nested record with no matching parent field is contains-only", () => {
+  const model = load([
+    `namespace d {
+      concept host { id : identifier; }
+      concept slot { id : identifier; }
+      host h1 { slot s1 { } }
+    }`,
+  ]);
+  assert.deepEqual(model.related("h1", EdgeKind.Contains, Direction.Out), ["s1"]);
+  assert.deepEqual(model.related("h1", EdgeKind.Relationship, Direction.Out), []);
+});
+
+test("ambiguous field binding (two fields of the same type) diagnoses and falls back to contains", () => {
+  const { model, diagnostics } = loadFiles([
+    {
+      uri: "s.todl",
+      text: `namespace d {
+        concept host { id : identifier; a : slot[]; b : slot[]; }
+        concept slot { id : identifier; }
+        host h1 { slot s1 { } }
+      }`,
+    },
+  ]);
+  assert.ok(diagnostics.some((d) => d.code === DiagnosticCode.AmbiguousFieldBinding));
+  assert.deepEqual(model.related("h1", EdgeKind.Contains, Direction.Out), ["s1"]);
+  assert.deepEqual(model.related("h1", EdgeKind.Relationship, Direction.Out), []);
 });
 
 test("a |-composed enum-flag value loads as the legacy scalar string", () => {

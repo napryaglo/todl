@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { parse } from "../parser.js";
 import { DeclKind, ValueKind, type InstanceDecl, type RefValue } from "../ast.js";
 import { Cardinality } from "../../model/graph.js";
+import { DiagnosticCode } from "../../diagnostics/diagnostic.js";
 
 function fixture(name: string): string {
   return readFileSync(fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url)), "utf8");
@@ -31,9 +32,12 @@ test("parses taxonomy declarations with their terms", () => {
   );
   assert.ok(taskType && taskType.kind === DeclKind.Taxonomy);
   if (taskType.kind === DeclKind.Taxonomy) {
+    assert.deepEqual(taskType.represents, ["task"]);
     assert.equal(taskType.terms.length, 7);
     assert.equal(taskType.terms[1]?.id, "user");
-    assert.equal(taskType.terms[1]?.label, "User Task");
+    const label = taskType.terms[1]?.assignments.find((a) => a.name === "label");
+    assert.ok(label && label.value.kind === ValueKind.String);
+    assert.equal(label.value.text, "User Task");
   }
 });
 
@@ -87,27 +91,20 @@ test("tolerates doc-only concept members (authoring blocks, references, formal i
   }
 });
 
-test("parses an object-typed field (post-rewrite surface)", () => {
-  const { namespace: ns } = parse(`namespace d {
+test("rejects an `object`-typed field — object is not a TODL type", () => {
+  const { diagnostics } = parse(`namespace d {
     concept component {
-      slots : object {
-        id : identifier;
-        label : string;
-        in-resource-group : identifier?;
-        public-ingress : ingress-kind[];
-      }[];
+      slots : object { id : identifier; }[];
     }
   }`);
-  const concept = ns.declarations[0];
-  assert.ok(concept && concept.kind === DeclKind.Concept);
-  if (concept.kind === DeclKind.Concept) {
-    const slots = concept.fields.find((f) => f.name === "slots");
-    assert.equal(slots?.cardinality, Cardinality.Many);
-    assert.match(slots?.type ?? "", /^object \{/);
-    assert.match(slots?.type ?? "", /id: identifier/);
-    assert.match(slots?.type ?? "", /in-resource-group: identifier\?/);
-    assert.match(slots?.type ?? "", /public-ingress: ingress-kind\[\]/);
-  }
+  assert.ok(diagnostics.some((d) => d.code === DiagnosticCode.UnexpectedToken));
+});
+
+test("rejects a `{ … }` object value literal — no anonymous records", () => {
+  const { diagnostics } = parse(`namespace d {
+    technology t { billing = { hosting = azure-consumption; }; }
+  }`);
+  assert.ok(diagnostics.some((d) => d.code === DiagnosticCode.UnexpectedToken));
 });
 
 test("parses concept-prefixed edge-shorthand with a body", () => {
@@ -164,6 +161,28 @@ test("parses a string-keyed record id", () => {
   if (inst.kind === DeclKind.Instance) {
     assert.equal(inst.concept, "sequence");
     assert.equal(inst.id, "Conversation via M365 Copilot");
+  }
+});
+
+test("parses a class modifier and an instanceof leaf", () => {
+  const { namespace: ns } = parse(`namespace d {
+    class component teams-chat { realised-by = &microsoft-teams; }
+    component chat-hq instanceof teams-chat { in = &hq; }
+  }`);
+  const cls = ns.declarations[0];
+  assert.ok(cls && cls.kind === DeclKind.Instance);
+  if (cls.kind === DeclKind.Instance) {
+    assert.equal(cls.concept, "component");
+    assert.equal(cls.id, "teams-chat");
+    assert.equal(cls.isClass, true);
+    assert.equal(cls.instanceOf, null);
+  }
+  const leaf = ns.declarations[1];
+  assert.ok(leaf && leaf.kind === DeclKind.Instance);
+  if (leaf.kind === DeclKind.Instance) {
+    assert.equal(leaf.id, "chat-hq");
+    assert.equal(leaf.isClass, false);
+    assert.equal(leaf.instanceOf, "teams-chat");
   }
 });
 

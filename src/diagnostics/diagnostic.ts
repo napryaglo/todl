@@ -18,6 +18,15 @@ export enum DiagnosticCode {
   EmptyNotAllowed = "cardinality.empty-not-allowed",
   TargetTypeMismatch = "relationship.target-type",
   InvariantFailed = "invariant.failed",
+  // Class + taxonomy phase.
+  ClassOverride = "class.override",
+  BindingInvalid = "class.binding-invalid",
+  TaxonomyNoRepresentedConcept = "taxonomy.no-represented-concept",
+  TaxonomyValueUnresolved = "taxonomy.value-unresolved",
+  TermConceptNotRepresented = "taxonomy.term-concept-not-represented",
+  TaxonomyTermConceptAmbiguous = "taxonomy.term-concept-ambiguous",
+  // Instance-loading phase.
+  AmbiguousFieldBinding = "instance.ambiguous-field-binding",
 }
 
 export interface Diagnostic {

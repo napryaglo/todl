@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { Graph, EdgeKind, Direction } from "../graph.js";
+import { Graph, EdgeKind, Direction, Tier } from "../graph.js";
 import { Builder } from "../builder.js";
 
 test("assertInstance + commit creates a typed node", () => {
@@ -74,4 +74,51 @@ test("committed mutations flow through the change bus in order", () => {
     .commit();
 
   assert.deepEqual(events, ["react", "label"]);
+});
+
+test("assertInstance asClass marks the node with class = true", () => {
+  const graph = new Graph();
+  new Builder(graph).assertInstance("component", "teams-chat", true).commit();
+  assert.equal(graph.getNode("teams-chat")?.attrs.get("class"), true);
+});
+
+test("addInstanceOf links a leaf to its class", () => {
+  const graph = new Graph();
+  const b = new Builder(graph);
+  b.assertInstance("component", "teams-chat", true);
+  b.assertInstance("component", "chat-hq");
+  b.addInstanceOf("chat-hq", "teams-chat");
+  b.commit();
+  assert.deepEqual(graph.related("chat-hq", EdgeKind.InstanceOf, Direction.Out), ["teams-chat"]);
+});
+
+test("defineTaxonomy stages the represented concept plus class terms", () => {
+  const graph = new Graph();
+  const b = new Builder(graph);
+  b.defineConcept("category");
+  b.defineTaxonomy("component-category", ["category"], [
+    { id: "conversational-interface", attrs: new Map([["icon", "chat.svg"]]) },
+    { id: "surface", children: [{ id: "web-portal" }] },
+  ]);
+  b.commit();
+
+  const term = graph.getNode("component-category.conversational-interface");
+  assert.equal(term?.tier, Tier.Instance);
+  assert.equal(term?.typeOf, "category");
+  assert.equal(term?.attrs.get("class"), true);
+  assert.equal(term?.attrs.get("icon"), "chat.svg");
+
+  assert.deepEqual(graph.related("component-category", EdgeKind.Represents, Direction.Out), ["category"]);
+  assert.deepEqual(
+    graph.related("component-category", EdgeKind.Contains, Direction.Out).sort(),
+    [
+      "component-category.conversational-interface",
+      "component-category.surface",
+      "component-category.web-portal",
+    ],
+  );
+  assert.deepEqual(
+    graph.related("component-category.surface", EdgeKind.Narrower, Direction.Out),
+    ["component-category.web-portal"],
+  );
 });

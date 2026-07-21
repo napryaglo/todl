@@ -37,13 +37,25 @@ test("emits ModelElement subclasses for each concept", () => {
 
 test("emits a taxonomy table (terms with parent) and a taxonomies registry key", () => {
   const model = load([
-    `namespace n { taxonomy cc { terms { | surface { label = "Surface"; | api-service { label = "API"; } } } } }`,
+    `namespace n { concept thing {} taxonomy cc : represents thing { term surface { label = "Surface"; term api-service { label = "API"; } } } }`,
   ]);
   const js = toMetaModule(model, { slug: "n" });
   assert.match(js, /export const Cc = \{/);
+  assert.match(js, /represents: \["thing"\],/);
   assert.match(js, /terms: \{/);
   assert.match(js, /"api-service": \{[^}]*parent: "surface"/);
   assert.match(js, /taxonomies: \{/);
+});
+
+test("emits a multi-representation taxonomy's represents as a list", () => {
+  const model = load([
+    `namespace n { concept location {} concept technology {}
+      taxonomy microsoft : represents location, technology {
+        location azure {} technology azure-openai {}
+      } }`,
+  ]);
+  const js = toMetaModule(model, { slug: "n" });
+  assert.match(js, /represents: \["location", "technology"\],/);
 });
 
 test("emits field schema with cardinality text, omitting required-single", () => {

@@ -1,19 +1,23 @@
 /**
  * Semantic validation (design spec §6) — machine-legible diagnostics an agent
- * can act on. This first phase checks cardinality against each instance's
- * effective (own + inherited) concept schema. Reference resolution is enforced
- * by the store (no dangling edges); relationship target-type and invariant
- * phases layer on in later steps.
+ * can act on. Checks cardinality against each instance's *effective* (own +
+ * inherited-from-class) concept schema, relationship target types, invariants,
+ * class instantiation rules, and taxonomy integrity.
+ *
+ * A **class** (partial, fixed-value definition) is exempt from completeness
+ * (required/non-empty) — its instances complete it — but still checked for
+ * over-cardinality and target types. A **leaf** (an `instanceof` target's
+ * instance) is counted over the merged class+leaf view.
  */
 
 import { Tier, EdgeKind, Direction, Cardinality, type NodeId, type Node } from "../model/graph.js";
+import { MetaKind } from "../model/kinds.js";
 import type { Repository, FieldSchema, RelationshipSchema } from "../model/model.js";
 import { satisfies } from "../predicate/evaluate.js";
 import type { SourceSpan } from "../diagnostics/span.js";
 import { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagnostic.js";
 
-// Re-export the shared diagnostic types so existing importers of
-// `../validate/validate.js` keep resolving them.
+// Re-export the shared diagnostic types so existing importers keep resolving them.
 export { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagnostic.js";
 
 /** Mirrors Repository.memberKey — the per-instance member span key. */
@@ -33,19 +37,152 @@ function spanFor(model: Repository, node: NodeId, member: string | null): Source
 export function validate(model: Repository): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   for (const node of model.allNodes()) {
+    if (node.tier === Tier.Ontology && node.typeOf === MetaKind.Taxonomy) {
+      checkRepresents(diagnostics, model, node);
+      checkTermConcepts(diagnostics, model, node);
+      continue;
+    }
     if (node.tier !== Tier.Instance) continue;
-    const schema = model.effectiveSchema(node.typeOf);
-    for (const field of schema.fields) {
-      checkCardinality(diagnostics, model, node, field.name, field.cardinality, countField(model, node, field));
-    }
-    for (const relationship of schema.relationships) {
-      const targets = model.related(node.id, EdgeKind.Relationship, Direction.Out, relationship.name);
-      checkCardinality(diagnostics, model, node, relationship.name, relationship.cardinality, targets.length);
-      checkTargetTypes(diagnostics, model, node, relationship, targets);
-    }
-    checkInvariants(diagnostics, model, node);
+    validateInstance(diagnostics, model, node);
   }
   return diagnostics;
+}
+
+function validateInstance(out: Diagnostic[], model: Repository, node: Node): void {
+  const partial = model.isClass(node.id);
+  const cls = model.classOf(node.id);
+  const effAttrs = cls !== null ? model.effectiveFields(node.id) : node.attrs;
+  const effRels = cls !== null ? model.effectiveRelationships(node.id) : null;
+
+  const targetsFor = (name: string): NodeId[] =>
+    effRels !== null
+      ? effRels.get(name) ?? []
+      : model.related(node.id, EdgeKind.Relationship, Direction.Out, name);
+
+  const schema = model.effectiveSchema(node.typeOf);
+  for (const field of schema.fields) {
+    const targets = targetsFor(field.name);
+    const count = (effAttrs.has(field.name) ? 1 : 0) + targets.length;
+    checkCardinality(out, model, node, field.name, field.cardinality, count, partial);
+    checkTaxonomyValue(out, model, node, field, targets);
+  }
+  for (const relationship of schema.relationships) {
+    const targets = targetsFor(relationship.name);
+    checkCardinality(out, model, node, relationship.name, relationship.cardinality, targets.length, partial);
+    checkTargetTypes(out, model, node, relationship, targets);
+  }
+  if (!partial) checkInvariants(out, model, node);
+  if (cls !== null) {
+    checkBinding(out, model, node, cls);
+    checkOverride(out, model, node, cls);
+  }
+}
+
+/** A taxonomy must name at least one concept it represents (else the ontology is incomplete). */
+function checkRepresents(out: Diagnostic[], model: Repository, node: Node): void {
+  if (model.represents(node.id).length === 0) {
+    out.push(
+      error(
+        DiagnosticCode.TaxonomyNoRepresentedConcept,
+        node.id,
+        node.id,
+        `taxonomy "${node.id}" represents no concept`,
+        spanFor(model, node.id, null),
+      ),
+    );
+  }
+}
+
+/** Every term of a taxonomy must be a class of one of the concepts it represents. */
+function checkTermConcepts(out: Diagnostic[], model: Repository, node: Node): void {
+  const represented = new Set(model.represents(node.id));
+  if (represented.size === 0) return; // already reported by checkRepresents
+  for (const termId of model.termsOf(node.id)) {
+    const term = model.resolve(termId);
+    if (term !== undefined && !represented.has(term.typeOf)) {
+      out.push(
+        error(
+          DiagnosticCode.TermConceptNotRepresented,
+          termId,
+          node.id,
+          `term "${termId}" is a ${term.typeOf} but taxonomy "${node.id}" represents ${[...represented].join(", ")}`,
+          spanFor(model, termId, null),
+        ),
+      );
+    }
+  }
+}
+
+/** A value on a taxonomy-typed field must resolve to a term of that taxonomy. */
+function checkTaxonomyValue(
+  out: Diagnostic[],
+  model: Repository,
+  node: Node,
+  field: FieldSchema,
+  targets: NodeId[],
+): void {
+  const typeNode = model.resolve(field.type);
+  if (typeNode === undefined || typeNode.typeOf !== MetaKind.Taxonomy) return;
+  const terms = new Set(model.termsOf(field.type));
+  const path = `${node.typeOf}.${field.name}`;
+  for (const target of targets) {
+    if (!terms.has(target)) {
+      out.push(
+        error(
+          DiagnosticCode.TaxonomyValueUnresolved,
+          node.id,
+          path,
+          `"${path}" expects a term of taxonomy ${field.type} but "${target}" is not one`,
+          spanFor(model, node.id, field.name),
+        ),
+      );
+    }
+  }
+}
+
+/** `instanceof X` requires X to exist, be a class, and share the leaf's concept. */
+function checkBinding(out: Diagnostic[], model: Repository, node: Node, cls: NodeId): void {
+  const clsNode = model.resolve(cls);
+  const path = `${node.typeOf}.instanceof`;
+  const span = spanFor(model, node.id, null);
+  if (clsNode === undefined) {
+    out.push(error(DiagnosticCode.BindingInvalid, node.id, path, `"${node.id}" instantiates unknown class "${cls}"`, span));
+    return;
+  }
+  if (clsNode.attrs.get("class") !== true) {
+    out.push(error(DiagnosticCode.BindingInvalid, node.id, path, `"${node.id}" instantiates "${cls}" which is not a class`, span));
+  } else if (clsNode.typeOf !== node.typeOf) {
+    out.push(
+      error(
+        DiagnosticCode.BindingInvalid,
+        node.id,
+        path,
+        `"${node.id}" (${node.typeOf}) cannot instantiate "${cls}" (${clsNode.typeOf})`,
+        span,
+      ),
+    );
+  }
+}
+
+/** A leaf may not set a class-fixed scalar field to a different value. */
+function checkOverride(out: Diagnostic[], model: Repository, node: Node, cls: NodeId): void {
+  const clsNode = model.resolve(cls);
+  if (clsNode === undefined) return;
+  for (const [name, value] of node.attrs) {
+    if (name === "id" || name === "class") continue;
+    const fixed = clsNode.attrs.get(name);
+    if (fixed !== undefined && fixed !== value) {
+      out.push(
+        error(
+          DiagnosticCode.ClassOverride,
+          node.id,
+          `${node.typeOf}.${name}`,
+          `"${node.id}" overrides class-fixed "${name}" ("${String(fixed)}") with "${String(value)}"`,
+          spanFor(model, node.id, name),
+        ),
+      );
+    }
+  }
 }
 
 function checkTargetTypes(
@@ -90,20 +227,6 @@ function checkInvariants(out: Diagnostic[], model: Repository, node: Node): void
   }
 }
 
-/**
- * Count a field's values without guessing scalar-vs-reference from the type
- * name. A field is stored exactly one way — a scalar attr (`label = "x"`,
- * `type = physical | …`) or relationship edges (`type = service`,
- * `implemented-by = &tech`) — so summing both is correct for every case and
- * avoids a fragile primitive-name heuristic (EA's `identifier` / `label` /
- * `slug` are not builtins).
- */
-function countField(model: Repository, node: Node, field: FieldSchema): number {
-  const attrCount = node.attrs.has(field.name) ? 1 : 0;
-  const edgeCount = model.related(node.id, EdgeKind.Relationship, Direction.Out, field.name).length;
-  return attrCount + edgeCount;
-}
-
 function checkCardinality(
   out: Diagnostic[],
   model: Repository,
@@ -111,13 +234,14 @@ function checkCardinality(
   member: string,
   cardinality: Cardinality,
   count: number,
+  partial: boolean,
 ): void {
   const path = `${node.typeOf}.${member}`;
   const span = spanFor(model, node.id, member);
   switch (cardinality) {
     case Cardinality.One:
       if (count === 0) {
-        out.push(error(DiagnosticCode.RequiredMissing, node.id, path, `required "${path}" is missing on "${node.id}"`, span));
+        if (!partial) out.push(error(DiagnosticCode.RequiredMissing, node.id, path, `required "${path}" is missing on "${node.id}"`, span));
       } else if (count > 1) {
         out.push(error(DiagnosticCode.TooMany, node.id, path, `"${path}" allows one value but "${node.id}" has ${count}`, span));
       }
@@ -128,7 +252,7 @@ function checkCardinality(
       }
       break;
     case Cardinality.NonEmpty:
-      if (count === 0) {
+      if (count === 0 && !partial) {
         out.push(error(DiagnosticCode.EmptyNotAllowed, node.id, path, `"${path}" requires at least one value on "${node.id}"`, span));
       }
       break;

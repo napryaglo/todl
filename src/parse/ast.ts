@@ -22,7 +22,6 @@ export enum ValueKind {
   Ref,
   List,
   Composite,
-  Object,
 }
 
 export interface StringValue {
@@ -53,19 +52,12 @@ export interface CompositeValue {
   parts: string[];
 }
 
-/** An inline `{ key = value; … }` object literal — hoisted to a standalone record on load. */
-export interface ObjectValue {
-  kind: ValueKind.Object;
-  fields: AssignmentNode[];
-}
-
 export type ValueNode =
   | StringValue
   | NameValue
   | RefValue
   | ListValue
-  | CompositeValue
-  | ObjectValue;
+  | CompositeValue;
 
 export interface AssignmentNode {
   name: string;
@@ -80,6 +72,10 @@ export interface InstanceDecl {
   id: string;
   /** Optional `: <meta-model>` binding on a container record (`model m : ea`). */
   binds: string | null;
+  /** `true` when declared with the `class` modifier — a partial, fixed-value definition. */
+  isClass: boolean;
+  /** The class this leaf instantiates (`instanceof <class>`), or null. */
+  instanceOf: string | null;
   assignments: AssignmentNode[];
   /** Nested records declared inside this instance's body (containment). */
   children: InstanceDecl[];
@@ -117,8 +113,12 @@ export interface ConceptDecl {
 
 export interface Term {
   id: string;
-  label: string;
-  description: string;
+  /** The concept this term is a class of, from the leading keyword
+   * (`location azure { }`). `null` for the bare `term` alias, valid only when
+   * the taxonomy represents exactly one concept. */
+  concept: string | null;
+  /** The term's fixed field values — it is a class of its concept. */
+  assignments: AssignmentNode[];
   children: Term[];
   span: SourceSpan;
 }
@@ -126,6 +126,8 @@ export interface Term {
 export interface TaxonomyDecl {
   kind: DeclKind.Taxonomy;
   name: string;
+  /** The concepts this taxonomy represents (`taxonomy X : represents C1, C2`). */
+  represents: string[];
   description: string;
   terms: Term[];
   span: SourceSpan;

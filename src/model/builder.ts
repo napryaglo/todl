@@ -15,11 +15,17 @@
 import { Graph, EdgeKind, Tier, Cardinality, type Node, type NodeId, type Scalar } from "./graph.js";
 import { MetaKind } from "./kinds.js";
 
-/** A taxonomy term: display metadata + zero-or-more nested child terms. */
+/** A taxonomy term = a class of its concept: its fixed field values (an attr
+ * map) plus zero-or-more nested child terms. `concept` names which of the
+ * taxonomy's represented concepts the term is a class of; omit it for the
+ * single-concept `term` alias (falls back to the sole represented concept). */
 export interface TermInput {
   id: NodeId;
-  label?: string;
-  description?: string;
+  concept?: NodeId;
+  attrs?: ReadonlyMap<string, Scalar>;
+  /** Domain relationship edges from the term (name -> target ids), e.g. a
+   * location term's `parent` or a technology term's `available-in`. */
+  relationships?: readonly { name: string; target: NodeId }[];
   children?: readonly TermInput[];
 }
 
@@ -45,9 +51,10 @@ export class Builder {
 
   // ── Instance tier ───────────────────────────────────────────────────────
 
-  /** Stage a new instance node typed by `typeOf`. */
-  assertInstance(typeOf: NodeId, id: NodeId): this {
+  /** Stage a new instance node typed by `typeOf`; `asClass` marks it a class. */
+  assertInstance(typeOf: NodeId, id: NodeId, asClass = false): this {
     this.stageNode(id, Tier.Instance, typeOf);
+    if (asClass) this.stagedAttrs.push({ id, name: "class", value: true });
     return this;
   }
 
@@ -66,6 +73,12 @@ export class Builder {
   /** Stage a containment edge `parent -contains-> child`. */
   addContains(parent: NodeId, child: NodeId): this {
     this.stagedEdges.push({ kind: EdgeKind.Contains, via: null, from: parent, to: child });
+    return this;
+  }
+
+  /** Stage a class-instantiation edge `leaf -instanceOf-> class`. */
+  addInstanceOf(leaf: NodeId, cls: NodeId): this {
+    this.stagedEdges.push({ kind: EdgeKind.InstanceOf, via: null, from: leaf, to: cls });
     return this;
   }
 
@@ -122,19 +135,29 @@ export class Builder {
   }
 
   /**
-   * Stage a taxonomy: the taxonomy node plus one Ontology node per term (typed
-   * by the taxonomy, id `taxonomy.term`), plus a `Narrower` edge from each
-   * parent term to each child term. Terms nest arbitrarily; top-level terms are
-   * roots (no incoming Narrower edge).
+   * Stage a taxonomy: the taxonomy node (`typeOf = Taxonomy`) plus one
+   * `Represents` edge per represented concept, plus one **Instance-tier class
+   * node** per term (typed by the term's own concept — `term.concept`, or the
+   * sole represented concept for the single-concept alias — marked `class`, id
+   * `taxonomy.term`), a `Contains` membership edge taxonomy -> term, and a
+   * `Narrower` edge from each parent term to each child term. Terms nest
+   * arbitrarily.
    */
-  defineTaxonomy(name: NodeId, terms: readonly TermInput[]): this {
+  defineTaxonomy(name: NodeId, represents: readonly NodeId[], terms: readonly TermInput[]): this {
     this.stageNode(name, Tier.Ontology, MetaKind.Taxonomy);
+    for (const concept of represents) {
+      this.stagedEdges.push({ kind: EdgeKind.Represents, via: null, from: name, to: concept });
+    }
+    const fallback = represents[0] ?? "";
     const stageTerm = (term: TermInput, parentId: NodeId | null): void => {
       const id = `${name}.${term.id}`;
-      const attrs = new Map<string, Scalar>([["id", term.id]]);
-      if (term.label !== undefined) attrs.set("label", term.label);
-      if (term.description !== undefined) attrs.set("description", term.description);
-      this.stagedNodes.push({ id, tier: Tier.Ontology, typeOf: name, attrs });
+      const attrs = new Map<string, Scalar>([["class", true], ["id", term.id]]);
+      if (term.attrs !== undefined) for (const [key, value] of term.attrs) attrs.set(key, value);
+      this.stagedNodes.push({ id, tier: Tier.Instance, typeOf: term.concept ?? fallback, attrs });
+      this.stagedEdges.push({ kind: EdgeKind.Contains, via: null, from: name, to: id });
+      for (const rel of term.relationships ?? []) {
+        this.stagedEdges.push({ kind: EdgeKind.Relationship, via: rel.name, from: id, to: rel.target });
+      }
       if (parentId !== null) {
         this.stagedEdges.push({ kind: EdgeKind.Narrower, via: null, from: parentId, to: id });
       }

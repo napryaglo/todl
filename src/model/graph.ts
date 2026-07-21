@@ -33,6 +33,8 @@ export enum EdgeKind {
   Relationship,
   Derived,
   Narrower, // taxonomy hierarchy: broader term -> narrower term
+  InstanceOf, // leaf -> class (identity instantiation)
+  Represents, // taxonomy -> the concept it represents
 }
 
 /** Which way to walk an edge from a node. */

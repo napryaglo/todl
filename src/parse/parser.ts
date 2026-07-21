@@ -163,6 +163,10 @@ class Parser {
     if (this.checkKeyword("primitive")) return this.parsePrimitive(start);
     if (this.checkKeyword("taxonomy")) return this.parseTaxonomy(start);
     if (this.checkKeyword("concept")) return this.parseConcept(start);
+    if (this.checkKeyword("class")) {
+      this.advance(); // class modifier
+      return this.parseInstanceFrom(this.expectIdentifier(), start, true);
+    }
     if (this.checkKeyword("application-connectors")) return this.parseApplicationConnectors(start);
     if (this.check(TokenKind.Identifier)) {
       if (this.peekKind(1) === TokenKind.Amp) return this.parseEdgeRecord(this.expectIdentifier(), start);
@@ -177,8 +181,9 @@ class Parser {
    * `<concept> <id> { … }` records (containment). An optional `: <meta-model>`
    * binding may follow the id on a container record.
    */
-  private parseInstanceFrom(concept: string, start: Token): InstanceDecl {
+  private parseInstanceFrom(concept: string, start: Token, isClass = false): InstanceDecl {
     const id = this.expectRecordId();
+    const instanceOf = this.checkKeyword("instanceof") ? (this.advance(), this.expectIdentifier()) : null;
     const binds = this.match(TokenKind.Colon) ? this.expectIdentifier() : null;
     const assignments: AssignmentNode[] = [];
     const children: InstanceDecl[] = [];
@@ -201,7 +206,7 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Instance, concept, id, binds, assignments, children, span: this.spanFrom(start) };
+    return { kind: DeclKind.Instance, concept, id, binds, isClass, instanceOf, assignments, children, span: this.spanFrom(start) };
   }
 
   /**
@@ -234,7 +239,7 @@ class Parser {
       this.match(TokenKind.Semicolon); // optional terminator (bare in an application-connectors block)
     }
     const id = `${concept}#${(this.edgeSeq += 1)}`;
-    return { kind: DeclKind.Instance, concept, id, binds: null, assignments, children: [], span: this.spanFrom(start) };
+    return { kind: DeclKind.Instance, concept, id, binds: null, isClass: false, instanceOf: null, assignments, children: [], span: this.spanFrom(start) };
   }
 
   /** Parse an `application-connectors { &a --> &b … }` block into a container of connectors. */
@@ -248,7 +253,7 @@ class Parser {
     }
     this.expect(TokenKind.RBrace);
     const id = `application-connectors#${(this.edgeSeq += 1)}`;
-    return { kind: DeclKind.Instance, concept: "application-connectors", id, binds: null, assignments: [], children, span: this.spanFrom(start) };
+    return { kind: DeclKind.Instance, concept: "application-connectors", id, binds: null, isClass: false, instanceOf: null, assignments: [], children, span: this.spanFrom(start) };
   }
 
   private parseRef(): string {
@@ -284,25 +289,18 @@ class Parser {
       this.expect(TokenKind.RBracket);
       return { kind: ValueKind.List, items };
     }
-    if (this.match(TokenKind.LBrace)) {
-      const fields: AssignmentNode[] = [];
-      while (!this.check(TokenKind.RBrace)) {
-        const fieldStart = this.startToken();
-        const name = this.expectIdentifier();
-        this.expect(TokenKind.Equals);
-        const value = this.parseValue();
-        this.expect(TokenKind.Semicolon);
-        fields.push({ name, value, span: this.spanFrom(fieldStart) });
-      }
-      this.expect(TokenKind.RBrace);
-      return { kind: ValueKind.Object, fields };
-    }
     if (this.check(TokenKind.Identifier)) {
       const first = this.advance().value;
       if (this.check(TokenKind.Pipe)) {
         const parts = [first];
         while (this.match(TokenKind.Pipe)) parts.push(this.expectIdentifier());
         return { kind: ValueKind.Composite, parts };
+      }
+      if (this.check(TokenKind.Dot)) {
+        // A dotted bare name — a taxonomy-qualified term ref (`taxonomy.term`).
+        const parts = [first];
+        while (this.match(TokenKind.Dot)) parts.push(this.expectIdentifier());
+        return { kind: ValueKind.Name, name: parts.join(".") };
       }
       return { kind: ValueKind.Name, name: first };
     }
@@ -329,48 +327,69 @@ class Parser {
   private parseTaxonomy(start: Token): TaxonomyDecl {
     this.expectKeyword("taxonomy");
     const name = this.expectIdentifier();
+    this.expect(TokenKind.Colon);
+    this.expectKeyword("represents");
+    const represents = [this.expectIdentifier()];
+    while (this.match(TokenKind.Comma)) represents.push(this.expectIdentifier());
     let description = "";
     const terms: Term[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
-      if (this.checkKeyword("terms")) {
-        this.expectKeyword("terms");
-        this.expect(TokenKind.LBrace);
-        this.parseTerms(terms);
-        this.expect(TokenKind.RBrace);
+      const term = this.tryParseTerm();
+      if (term !== null) {
+        terms.push(term);
       } else {
         const [key, value] = this.readStringMember();
         if (key === "description" && value !== null) description = value;
       }
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Taxonomy, name, description, terms, span: this.spanFrom(start) };
+    return { kind: DeclKind.Taxonomy, name, represents, description, terms, span: this.spanFrom(start) };
   }
 
-  // Parse a run of `| id { … }` term rows into `out`. A term body mixes
-  // `key = value;` attributes and nested `| child { … }` rows; the leading
-  // `|` distinguishes a child term from an attribute, at every depth.
-  private parseTerms(out: Term[]): void {
-    while (this.check(TokenKind.Pipe)) {
-      const start = this.startToken();
-      this.advance();
-      const id = this.expectIdentifier();
-      let label = "";
-      let description = "";
-      const children: Term[] = [];
-      this.expect(TokenKind.LBrace);
-      while (!this.check(TokenKind.RBrace)) {
-        if (this.check(TokenKind.Pipe)) {
-          this.parseTerms(children);
-        } else {
-          const [key, value] = this.readStringMember();
-          if (key === "label" && value !== null) label = value;
-          else if (key === "description" && value !== null) description = value;
-        }
-      }
-      this.expect(TokenKind.RBrace);
-      out.push({ id, label, description, children, span: this.spanFrom(start) });
+  /**
+   * A term at the head of the cursor, or `null` if the next member is not a term
+   * (e.g. a `description = "…"` assignment). Two forms:
+   *   - `term <id> { … }`            — the single-concept alias (concept = null)
+   *   - `<concept> <id> { … }`       — concept-led (a class of `<concept>`)
+   * The concept-led form is recognised by `<identifier> <identifier> {`.
+   */
+  private tryParseTerm(): Term | null {
+    if (this.checkKeyword("term")) return this.parseTerm(null);
+    if (this.check(TokenKind.Identifier) && this.peekKind(1) === TokenKind.Identifier) {
+      const concept = this.expectIdentifier();
+      return this.parseTerm(concept);
     }
+    return null;
+  }
+
+  // Parse a term row (the leading `term` keyword or `<concept>` is already
+  // consumed; `concept` is null for the `term` alias). A term is a class of its
+  // concept: its body mixes `name = value;` assignments (its fixed field values)
+  // and nested term rows, distinguished from assignments by the same lookahead
+  // at every depth.
+  private parseTerm(concept: string | null): Term {
+    const start = this.startToken();
+    if (concept === null) this.expectKeyword("term");
+    const id = this.expectIdentifier();
+    const assignments: AssignmentNode[] = [];
+    const children: Term[] = [];
+    this.expect(TokenKind.LBrace);
+    while (!this.check(TokenKind.RBrace)) {
+      const child = this.tryParseTerm();
+      if (child !== null) {
+        children.push(child);
+      } else {
+        const memberStart = this.startToken();
+        const name = this.expectIdentifier();
+        this.expect(TokenKind.Equals);
+        const value = this.parseValue();
+        this.expect(TokenKind.Semicolon);
+        assignments.push({ name, value, span: this.spanFrom(memberStart) });
+      }
+    }
+    this.expect(TokenKind.RBrace);
+    return { id, concept, assignments, children, span: this.spanFrom(start) };
   }
 
   private parseConcept(start: Token): ConceptDecl {
@@ -458,27 +477,13 @@ class Parser {
   }
 
   /**
-   * A field type: a bare identifier (`string`, `task-type`) or an inline
-   * `object { name : <type> [card]; … }` composite, rendered to the flat
-   * inline string the emitter stores (`object { id: identifier, ports: p[] }`).
-   * Nests recursively. `list<T>` is not handled here — the rewriter lowers it
-   * to `T[]` before the parser sees it.
+   * A field type: a bare identifier (`string`, `task-type`, a concept name).
+   * TODL has no anonymous struct type — structured fields name a concept and are
+   * authored as nested records. `list<T>` is not handled here — the rewriter
+   * lowers it to `T[]` before the parser sees it.
    */
   private parseFieldType(): string {
-    if (!this.checkKeyword("object")) return this.expectIdentifier();
-    this.advance(); // object
-    this.expect(TokenKind.LBrace);
-    const parts: string[] = [];
-    while (!this.check(TokenKind.RBrace)) {
-      const name = this.expectIdentifier();
-      this.expect(TokenKind.Colon);
-      const type = this.parseFieldType();
-      const suffix = cardinalitySuffix(this.parseCardinality());
-      this.expect(TokenKind.Semicolon);
-      parts.push(`${name}: ${type}${suffix}`);
-    }
-    this.expect(TokenKind.RBrace);
-    return `object { ${parts.join(", ")} }`;
+    return this.expectIdentifier();
   }
 
   private parseCardinality(): Cardinality {
@@ -613,17 +618,3 @@ class Parser {
 }
 
 const EOF_TOKEN: Token = { kind: TokenKind.EOF, value: "", line: 0, column: 0, endLine: 0, endColumn: 0 };
-
-/** Cardinality → surface suffix, for rendering inline object-field types. */
-function cardinalitySuffix(cardinality: Cardinality): string {
-  switch (cardinality) {
-    case Cardinality.Optional:
-      return "?";
-    case Cardinality.Many:
-      return "[]";
-    case Cardinality.NonEmpty:
-      return "[+]";
-    case Cardinality.One:
-      return "";
-  }
-}

@@ -159,6 +159,76 @@ export class Repository {
     return this.graph.closure(term, EdgeKind.Narrower, Direction.In, false);
   }
 
+  // ── Classes + instantiation ─────────────────────────────────────────────
+
+  /** True when a node is a class — a partial, fixed-value definition. */
+  isClass(id: NodeId): boolean {
+    return this.graph.getNode(id)?.attrs.get("class") === true;
+  }
+
+  /** The class a leaf instantiates (`instanceof`), or null. */
+  classOf(leaf: NodeId): NodeId | null {
+    return this.graph.related(leaf, EdgeKind.InstanceOf, Direction.Out)[0] ?? null;
+  }
+
+  /** Every leaf that instantiates `cls`. */
+  instancesOfClass(cls: NodeId): NodeId[] {
+    return this.graph.related(cls, EdgeKind.InstanceOf, Direction.In);
+  }
+
+  /** The concepts a taxonomy represents (one or more; empty if none). */
+  represents(taxonomy: NodeId): NodeId[] {
+    return this.graph.related(taxonomy, EdgeKind.Represents, Direction.Out);
+  }
+
+  /** Every taxonomy that represents `concept`. */
+  representedBy(concept: NodeId): NodeId[] {
+    return this.graph.related(concept, EdgeKind.Represents, Direction.In);
+  }
+
+  /** The term (class) members of a taxonomy. */
+  termsOf(taxonomy: NodeId): NodeId[] {
+    return this.graph.related(taxonomy, EdgeKind.Contains, Direction.Out);
+  }
+
+  /**
+   * A leaf's effective scalar fields: its own attrs overlaid with its class's
+   * fixed values (class wins; the `class` / `id` markers are not inherited).
+   */
+  effectiveFields(leaf: NodeId): Map<string, Scalar> {
+    const result = new Map<string, Scalar>(this.graph.getNode(leaf)?.attrs ?? []);
+    const cls = this.classOf(leaf);
+    if (cls !== null) {
+      const clsAttrs = this.graph.getNode(cls)?.attrs;
+      if (clsAttrs !== undefined) {
+        for (const [key, value] of clsAttrs) {
+          if (key !== "class" && key !== "id") result.set(key, value);
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
+   * A leaf's effective domain relationships (name -> targets): the union of the
+   * leaf's own relationship edges with those inherited from its class.
+   */
+  effectiveRelationships(leaf: NodeId): Map<string, NodeId[]> {
+    const result = new Map<string, NodeId[]>();
+    const collect = (id: NodeId): void => {
+      for (const edge of this.graph.outEdges(id)) {
+        if (edge.kind !== EdgeKind.Relationship || edge.via === null) continue;
+        const list = result.get(edge.via) ?? [];
+        if (!list.includes(edge.to)) list.push(edge.to);
+        result.set(edge.via, list);
+      }
+    };
+    const cls = this.classOf(leaf);
+    if (cls !== null) collect(cls);
+    collect(leaf);
+    return result;
+  }
+
   /** Reflect a concept's declared schema (spec §5): direct parent, fields, relationships. */
   schemaOf(concept: NodeId): ConceptSchema {
     const parents = this.graph.related(concept, EdgeKind.Extends, Direction.Out);
