@@ -63,7 +63,7 @@ export { evaluate, satisfies, type EvalValue } from "./predicate/evaluate.js";
 export { validate } from "./validate/validate.js";
 export { Severity, DiagnosticCode, type Diagnostic } from "./diagnostics/diagnostic.js";
 export type { Position, SourceSpan, SourceFile } from "./diagnostics/span.js";
-export { check } from "./api.js";
+export { check, checkAgainst } from "./api.js";
 
 export {
   toJSON,
