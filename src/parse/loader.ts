@@ -42,13 +42,22 @@ interface PendingInvariant {
 }
 
 export function load(sources: SourceFile[]): LoadResult {
+  const model = new Repository();
+  const diagnostics = loadInto(model, sources);
+  return { model, diagnostics };
+}
+
+// Load `sources` INTO an existing model (which may already carry base nodes from
+// a prior compile — see checkAgainst). Same 3-pass pipeline as a fresh load, and
+// a reference that resolves to a node already in `model` is not stubbed
+// UNRESOLVED. Returns the accumulated diagnostics; the caller owns the model.
+export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   const declarations = sources.flatMap((source) => {
     const result = parse(source.text, source.uri);
     diagnostics.push(...result.diagnostics);
     return result.namespace.declarations;
   });
-  const model = new Repository();
 
   const defined = new Set<string>();
   const referenced = new Set<string>();
@@ -129,7 +138,10 @@ export function load(sources: SourceFile[]): LoadResult {
     }
   }
   for (const id of referenced) {
-    if (!defined.has(id)) first.assertInstance(UNRESOLVED, id);
+    // A reference already present in the model (a base node under checkAgainst)
+    // resolves to it — don't stub it as UNRESOLVED. Empty graph under plain
+    // load(), so this is a no-op there.
+    if (!defined.has(id) && !model.has(id)) first.assertInstance(UNRESOLVED, id);
   }
   first.commit();
 
@@ -178,7 +190,7 @@ export function load(sources: SourceFile[]): LoadResult {
   }
 
   recordSpans(model, declarations);
-  return { model, diagnostics };
+  return diagnostics;
 }
 
 /** Record each declaration's, instance's, and assignment's source span on the model. */
