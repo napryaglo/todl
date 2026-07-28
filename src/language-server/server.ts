@@ -1,9 +1,14 @@
 import {
-  createConnection, TextDocuments, TextDocumentSyncKind,
+  createConnection, TextDocuments, TextDocumentSyncKind, ResponseError, ErrorCodes,
   type Connection, type InitializeParams, type InitializeResult,
 } from "vscode-languageserver/node.js";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { SEMANTIC_LEGEND, analyze } from "@pragmatic-lab/todl/language-service";
+import {
+  SEMANTIC_LEGEND, analyze, type Analysis,
+  completionsAt, hoverAt, definitionAt, referencesAt, prepareRename, renameEdits,
+  documentSymbols, foldingRanges, workspaceSymbols, semanticTokens, codeActions,
+  formatDocument, signatureHelpAt,
+} from "@pragmatic-lab/todl/language-service";
 import { ProjectRegistry, PushedSourceProvider, FsSourceProvider, type SourceProvider } from "./workspace.js";
 
 export { createConnection };
@@ -70,6 +75,67 @@ export function createServer(connection: Connection): void {
   });
   connection.onNotification("todl/refreshBases", (p: { rootUri: string; bases: [] }) => {
     registry.setBases(p.rootUri, p.bases); scheduleRevalidate();
+  });
+
+  const analysisFor = (uri: string): Analysis | null => registry.projectFor(uri)?.analysis ?? null;
+
+  connection.onCompletion((p) => {
+    const a = analysisFor(p.textDocument.uri);
+    return a === null ? [] : completionsAt(a, p.textDocument.uri, p.position);
+  });
+  connection.onHover((p) => {
+    const a = analysisFor(p.textDocument.uri);
+    return a === null ? null : hoverAt(a, p.textDocument.uri, p.position);
+  });
+  connection.onDefinition((p) => {
+    const a = analysisFor(p.textDocument.uri);
+    return a === null ? null : definitionAt(a, p.textDocument.uri, p.position);
+  });
+  connection.onReferences((p) => {
+    const a = analysisFor(p.textDocument.uri);
+    return a === null ? [] : referencesAt(a, p.textDocument.uri, p.position, p.context.includeDeclaration);
+  });
+  connection.onPrepareRename((p) => {
+    const a = analysisFor(p.textDocument.uri);
+    return a === null ? null : prepareRename(a, p.textDocument.uri, p.position);
+  });
+  connection.onRenameRequest((p) => {
+    const a = analysisFor(p.textDocument.uri);
+    if (a === null) return null;
+    const edit = renameEdits(a, p.textDocument.uri, p.position, p.newName);
+    if ("error" in edit) throw new ResponseError(ErrorCodes.InvalidRequest, edit.error);
+    return edit;
+  });
+  connection.onDocumentSymbol((p) => {
+    const a = analysisFor(p.textDocument.uri);
+    return a === null ? [] : documentSymbols(a, p.textDocument.uri);
+  });
+  connection.onFoldingRanges((p) => {
+    const a = analysisFor(p.textDocument.uri);
+    return a === null ? [] : foldingRanges(a, p.textDocument.uri);
+  });
+  connection.onDocumentFormatting((p) => {
+    const a = analysisFor(p.textDocument.uri);
+    return a === null ? [] : formatDocument(a, p.textDocument.uri);
+  });
+  connection.onCodeAction((p) => {
+    const a = analysisFor(p.textDocument.uri);
+    return a === null ? [] : codeActions(a, p.textDocument.uri, p.range, p.context.diagnostics);
+  });
+  connection.onSignatureHelp((p) => {
+    const a = analysisFor(p.textDocument.uri);
+    return a === null ? null : signatureHelpAt(a, p.textDocument.uri, p.position);
+  });
+  connection.onWorkspaceSymbol((p) => {
+    const out = [];
+    for (const project of registry.all()) {
+      if (project.analysis !== null) out.push(...workspaceSymbols(project.analysis, p.query));
+    }
+    return out;
+  });
+  connection.languages.semanticTokens.on((p) => {
+    const a = analysisFor(p.textDocument.uri);
+    return a === null ? { data: [] } : semanticTokens(a, p.textDocument.uri);
   });
 
   documents.listen(connection);
