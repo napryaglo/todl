@@ -32,6 +32,24 @@ test("a ref-value slot offers instances of the field's target concept", () => {
   assert.deepEqual(got, ["alice", "bob"]);
 });
 
+test("a ref-value slot narrows to the target concept's instances (and subtypes), not others", () => {
+  const { analysis, positions, uri } = fixture("d.todl", [
+    "namespace demo {",
+    "  concept animal { }",
+    "  concept dog : animal { }",
+    "  concept person { }",
+    "  concept owns { relationship pet -> animal []; }",
+    "  animal generic { }",
+    "  dog rex { }",
+    "  person alice { }",
+    "  owns o { pet = &‸ }",
+    "}",
+  ].join("\n"));
+  const got = completionsAt(analysis, uri, positions[0]!).map((i) => i.label).sort();
+  // animal + its subtype dog's instances — NOT the unrelated person `alice`.
+  assert.deepEqual(got, ["generic", "rex"]);
+});
+
 test("top-level offers declaration keywords", () => {
   const { analysis, positions, uri } = fixture("d.todl",
     "namespace demo {\n  ‸\n}");

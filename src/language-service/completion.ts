@@ -2,6 +2,7 @@ import { CompletionItemKind, type CompletionItem, type Position } from "vscode-l
 import type { Analysis } from "./analysis.js";
 import { classifyPosition, ContextKind } from "./classifier.js";
 import { SymbolKind, symbolKindOf } from "./symbols.js";
+import { assignmentContextAt } from "./schema-context.js";
 
 const KEYWORDS = ["namespace", "import", "concept", "primitive", "taxonomy", "relationship", "invariant", "instanceof"];
 
@@ -13,7 +14,7 @@ export function completionsAt(a: Analysis, uri: string, pos: Position): Completi
     case ContextKind.RelationshipTarget:
       return conceptCandidates(a);
     case ContextKind.RefValue:
-      return refCandidates(a);
+      return refCandidates(a, uri, pos);
     case ContextKind.None:
       // Top-level (or unclassified) — offer the declaration keywords.
       return KEYWORDS.map((label) => ({ label, kind: CompletionItemKind.Keyword }));
@@ -45,16 +46,23 @@ function nodesOfKinds(a: Analysis, kinds: SymbolKind[]): CompletionItem[] {
   return items;
 }
 
-// A `&ref` value: offer instances. The Foundation cut offers every instance;
-// schema-precise narrowing to the field's exact target concept lands with the
-// classifier's `ownerConcept` in the Advanced plan (see the plan's note).
-function refCandidates(a: Analysis): CompletionItem[] {
-  const items: CompletionItem[] = [];
-  for (const node of a.model.allNodes()) {
-    if (symbolKindOf(a.model, node.id) !== SymbolKind.Instance) continue;
-    items.push(withDoc({ label: node.id, kind: CompletionItemKind.Variable }, describe(a, node.id)));
-  }
-  return items;
+// A `&ref` value: offer instances of the assignment's target concept and its
+// subtypes. Falls back to all instances when the slot's target can't be resolved
+// (e.g. the member isn't in the schema).
+function refCandidates(a: Analysis, uri: string, pos: Position): CompletionItem[] {
+  const ctx = assignmentContextAt(a, uri, pos);
+  const ids = ctx?.targetConcept != null ? instancesForConcept(a, ctx.targetConcept) : allInstanceIds(a);
+  return ids.map((id) => withDoc({ label: id, kind: CompletionItemKind.Variable }, describe(a, id)));
+}
+
+function instancesForConcept(a: Analysis, concept: string): string[] {
+  const ids = new Set<string>(a.model.instancesOf(concept));
+  for (const sub of a.model.subtypesOf(concept)) for (const i of a.model.instancesOf(sub)) ids.add(i);
+  return [...ids];
+}
+
+function allInstanceIds(a: Analysis): string[] {
+  return a.model.allNodes().filter((n) => symbolKindOf(a.model, n.id) === SymbolKind.Instance).map((n) => n.id);
 }
 
 // Attach documentation only when present — `exactOptionalPropertyTypes` forbids
