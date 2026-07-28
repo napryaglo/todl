@@ -15,3 +15,4 @@ export * from "./workspace-symbols.js";
 export * from "./semantic-tokens.js";
 export * from "./schema-context.js";
 export * from "./signature-help.js";
+export * from "./code-actions.js";
