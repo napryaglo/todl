@@ -134,9 +134,12 @@ class Parser {
     this.expect(TokenKind.LBrace);
 
     const imports: string[] = [];
+    const importSpans: SourceSpan[] = [];
     while (this.checkKeyword("import")) {
       this.advance();
+      const startTok = this.current();
       imports.push(this.parseDottedPath());
+      importSpans.push(this.spanFrom(startTok));
       this.expect(TokenKind.Semicolon);
     }
 
@@ -153,7 +156,7 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    return { path, imports, declarations, span: this.spanFrom(start) };
+    return { path, imports, declarations, span: this.spanFrom(start), importSpans };
   }
 
   private parseDeclaration(): Declaration {
@@ -169,8 +172,9 @@ class Parser {
     }
     if (this.checkKeyword("application-connectors")) return this.parseApplicationConnectors(start);
     if (this.check(TokenKind.Identifier)) {
-      if (this.peekKind(1) === TokenKind.Amp) return this.parseEdgeRecord(this.expectIdentifier(), start);
-      return this.parseInstanceFrom(this.expectIdentifier(), start);
+      const conceptTok = this.expect(TokenKind.Identifier);
+      if (this.check(TokenKind.Amp)) return this.parseEdgeRecord(conceptTok.value, start);
+      return this.parseInstanceFrom(conceptTok.value, start, false, tokenSpan(conceptTok, this.uri));
     }
     throw this.error(`expected a declaration (primitive / enum / concept / instance)`);
   }
@@ -181,9 +185,16 @@ class Parser {
    * `<concept> <id> { … }` records (containment). An optional `: <meta-model>`
    * binding may follow the id on a container record.
    */
-  private parseInstanceFrom(concept: string, start: Token, isClass = false): InstanceDecl {
+  private parseInstanceFrom(concept: string, start: Token, isClass = false, conceptSpan?: SourceSpan): InstanceDecl {
     const id = this.expectRecordId();
-    const instanceOf = this.checkKeyword("instanceof") ? (this.advance(), this.expectIdentifier()) : null;
+    let instanceOf: string | null = null;
+    let instanceOfSpan: SourceSpan | undefined;
+    if (this.checkKeyword("instanceof")) {
+      this.advance();
+      const t = this.expect(TokenKind.Identifier);
+      instanceOf = t.value;
+      instanceOfSpan = tokenSpan(t, this.uri);
+    }
     const binds = this.match(TokenKind.Colon) ? this.expectIdentifier() : null;
     const assignments: AssignmentNode[] = [];
     const children: InstanceDecl[] = [];
@@ -206,7 +217,7 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Instance, concept, id, binds, isClass, instanceOf, assignments, children, span: this.spanFrom(start) };
+    return { kind: DeclKind.Instance, concept, id, binds, isClass, instanceOf, assignments, children, span: this.spanFrom(start), conceptSpan, instanceOfSpan };
   }
 
   /**
@@ -274,8 +285,15 @@ class Parser {
     if (this.check(TokenKind.Number)) {
       return { kind: ValueKind.String, text: this.advance().value };
     }
-    if (this.match(TokenKind.Amp)) {
-      return { kind: ValueKind.Ref, ref: this.parseDottedPath() };
+    if (this.check(TokenKind.Amp)) {
+      const ampTok = this.advance();
+      const ref = this.parseDottedPath();
+      const endTok = this.tokens[this.pos > 0 ? this.pos - 1 : 0] ?? ampTok;
+      return { kind: ValueKind.Ref, ref, span: {
+        uri: this.uri,
+        start: { line: ampTok.line, column: ampTok.column },
+        end: { line: endTok.endLine, column: endTok.endColumn },
+      } };
     }
     if (this.match(TokenKind.LBracket)) {
       const items: ValueNode[] = [];
@@ -395,7 +413,13 @@ class Parser {
   private parseConcept(start: Token): ConceptDecl {
     this.expectKeyword("concept");
     const name = this.expectIdentifier();
-    const extendsName = this.match(TokenKind.Colon) ? this.expectIdentifier() : null;
+    let extendsName: string | null = null;
+    let extendsSpan: SourceSpan | undefined;
+    if (this.match(TokenKind.Colon)) {
+      const t = this.expect(TokenKind.Identifier);
+      extendsName = t.value;
+      extendsSpan = tokenSpan(t, this.uri);
+    }
 
     let description = "";
     const fields: FieldDecl[] = [];
@@ -415,12 +439,16 @@ class Parser {
         this.expectIdentifier();
         this.skipBracedBlock();
       } else {
-        const memberName = this.expectIdentifier();
+        const nameTok = this.expect(TokenKind.Identifier);
+        const memberName = nameTok.value;
         if (this.match(TokenKind.Colon)) {
-          const type = this.parseFieldType();
+          const typeTok = this.expect(TokenKind.Identifier);
           const cardinality = this.parseCardinality();
           this.expect(TokenKind.Semicolon);
-          fields.push({ name: memberName, type, cardinality });
+          fields.push({
+            name: memberName, type: typeTok.value, cardinality,
+            nameSpan: tokenSpan(nameTok, this.uri), typeSpan: tokenSpan(typeTok, this.uri),
+          });
         } else if (this.match(TokenKind.Equals)) {
           if (this.check(TokenKind.String) || this.check(TokenKind.RawString)) {
             const value = this.parseStringValue();
@@ -436,17 +464,20 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Concept, name, extends: extendsName, description, fields, relationships, invariants, span: this.spanFrom(start) };
+    return { kind: DeclKind.Concept, name, extends: extendsName, description, fields, relationships, invariants, span: this.spanFrom(start), extendsSpan };
   }
 
   private parseRelationship(): RelationshipDecl {
     this.expectKeyword("relationship");
-    const name = this.expectIdentifier();
+    const nameTok = this.expect(TokenKind.Identifier);
     this.expect(TokenKind.Arrow);
-    const target = this.expectIdentifier();
+    const targetTok = this.expect(TokenKind.Identifier);
     const cardinality = this.parseCardinality();
     this.expect(TokenKind.Semicolon);
-    return { name, target, cardinality };
+    return {
+      name: nameTok.value, target: targetTok.value, cardinality,
+      nameSpan: tokenSpan(nameTok, this.uri), targetSpan: tokenSpan(targetTok, this.uri),
+    };
   }
 
   private parseInvariant(): InvariantDecl {
@@ -474,16 +505,6 @@ class Parser {
     }
     this.expect(TokenKind.RBrace);
     return { description, predicate };
-  }
-
-  /**
-   * A field type: a bare identifier (`string`, `task-type`, a concept name).
-   * TODL has no anonymous struct type — structured fields name a concept and are
-   * authored as nested records. `list<T>` is not handled here — the rewriter
-   * lowers it to `T[]` before the parser sees it.
-   */
-  private parseFieldType(): string {
-    return this.expectIdentifier();
   }
 
   private parseCardinality(): Cardinality {

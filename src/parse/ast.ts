@@ -39,6 +39,8 @@ export interface NameValue {
 export interface RefValue {
   kind: ValueKind.Ref;
   ref: string;
+  /** Span of the `&name` reference occurrence (set by the parser). */
+  span?: SourceSpan;
 }
 
 export interface ListValue {
@@ -80,18 +82,26 @@ export interface InstanceDecl {
   /** Nested records declared inside this instance's body (containment). */
   children: InstanceDecl[];
   span: SourceSpan;
+  /** Span of the leading concept identifier (`<concept> <id>`). */
+  conceptSpan?: SourceSpan;
+  /** Span of the `instanceof <class>` class identifier, when present. */
+  instanceOfSpan?: SourceSpan;
 }
 
 export interface FieldDecl {
   name: string;
   type: string;
   cardinality: Cardinality;
+  nameSpan?: SourceSpan;
+  typeSpan?: SourceSpan;
 }
 
 export interface RelationshipDecl {
   name: string;
   target: string;
   cardinality: Cardinality;
+  nameSpan?: SourceSpan;
+  targetSpan?: SourceSpan;
 }
 
 export interface InvariantDecl {
@@ -109,6 +119,8 @@ export interface ConceptDecl {
   relationships: RelationshipDecl[];
   invariants: InvariantDecl[];
   span: SourceSpan;
+  /** Span of the `extends` parent identifier (`: <parent>`), when present. */
+  extendsSpan?: SourceSpan;
 }
 
 export interface Term {
@@ -149,4 +161,6 @@ export interface NamespaceNode {
   imports: string[];
   declarations: Declaration[];
   span: SourceSpan;
+  /** Span of each `import <path>` path, parallel to `imports`. */
+  importSpans?: SourceSpan[];
 }
