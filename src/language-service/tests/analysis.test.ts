@@ -16,6 +16,19 @@ test("analyze exposes per-file AST + tokens, the model, refs, and diagnostics", 
   assert.equal(a.diagnostics.length, 0);
 });
 
+test("diagnosticsByUri groups diagnostics per file and lists every source", () => {
+  const a = analyze([
+    { uri: "a.todl", text: "namespace demo {\n  primitive string { }\n  concept person { name : string; }\n  person alice { }\n}" },
+    { uri: "b.todl", text: "namespace other {\n  concept clean { }\n}" },
+  ]);
+  // Every source file has an entry (empty for the clean one).
+  assert.ok(a.diagnosticsByUri.has("a.todl"));
+  assert.ok(a.diagnosticsByUri.has("b.todl"));
+  assert.equal(a.diagnosticsByUri.get("b.todl")!.length, 0);
+  // The required-missing diagnostic is attributed to a.todl.
+  assert.ok(a.diagnosticsByUri.get("a.todl")!.length >= 1);
+});
+
 test("analyze surfaces validation diagnostics for a missing required field", () => {
   // An unresolved *reference* is stubbed to a placeholder by the loader (by
   // design), so it is not a diagnostic; a missing required scalar field is.
