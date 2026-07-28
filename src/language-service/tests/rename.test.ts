@@ -21,7 +21,7 @@ test("renameEdits rewrites the definition and every reference", () => {
   const { analysis, positions, uri } = fixture("d.todl", SRC);
   const edit = renameEdits(analysis, uri, positions[0]!, "creature");
   assert.ok(!("error" in edit));
-  const edits = (edit as { changes: Record<string, unknown[]> }).changes["d.todl"];
+  const edits = (edit as { changes: Record<string, unknown[]> }).changes["d.todl"]!;
   assert.equal(edits.length, 3);   // definition + 2 references
 });
 

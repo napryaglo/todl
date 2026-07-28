@@ -35,7 +35,8 @@ function addMissingField(a: Analysis, uri: string, diag: Diagnostic): CodeAction
 // The field name from a required-missing diagnostic, parsed from its message tail
 // `required "<concept>.<field>" is missing on …`.
 function messageField(diag: Diagnostic): string {
-  const m = /required\s+"[^".]+\.([^"]+)"/.exec(diag.message);
+  const text = typeof diag.message === "string" ? diag.message : diag.message.value;
+  const m = /required\s+"[^".]+\.([^"]+)"/.exec(text);
   return m?.[1] ?? "";
 }
 
