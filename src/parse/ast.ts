@@ -86,6 +86,8 @@ export interface InstanceDecl {
   conceptSpan?: SourceSpan;
   /** Span of the `instanceof <class>` class identifier, when present. */
   instanceOfSpan?: SourceSpan;
+  /** Span of the record's id identifier. */
+  idSpan?: SourceSpan;
 }
 
 export interface FieldDecl {
@@ -121,6 +123,8 @@ export interface ConceptDecl {
   span: SourceSpan;
   /** Span of the `extends` parent identifier (`: <parent>`), when present. */
   extendsSpan?: SourceSpan;
+  /** Span of the concept's name identifier. */
+  nameSpan?: SourceSpan;
 }
 
 export interface Term {
@@ -133,6 +137,8 @@ export interface Term {
   assignments: AssignmentNode[];
   children: Term[];
   span: SourceSpan;
+  /** Span of the term's id identifier. */
+  idSpan?: SourceSpan;
 }
 
 export interface TaxonomyDecl {
@@ -143,6 +149,8 @@ export interface TaxonomyDecl {
   description: string;
   terms: Term[];
   span: SourceSpan;
+  /** Span of the taxonomy's name identifier. */
+  nameSpan?: SourceSpan;
 }
 
 export interface PrimitiveDecl {
@@ -152,6 +160,8 @@ export interface PrimitiveDecl {
   description: string;
   regex: string | null;
   span: SourceSpan;
+  /** Span of the primitive's name identifier. */
+  nameSpan?: SourceSpan;
 }
 
 export type Declaration = ConceptDecl | TaxonomyDecl | PrimitiveDecl | InstanceDecl;

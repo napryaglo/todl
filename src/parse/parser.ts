@@ -186,7 +186,8 @@ class Parser {
    * binding may follow the id on a container record.
    */
   private parseInstanceFrom(concept: string, start: Token, isClass = false, conceptSpan?: SourceSpan): InstanceDecl {
-    const id = this.expectRecordId();
+    const idTok = this.expectRecordIdTok();
+    const id = idTok.value;
     let instanceOf: string | null = null;
     let instanceOfSpan: SourceSpan | undefined;
     if (this.checkKeyword("instanceof")) {
@@ -220,6 +221,7 @@ class Parser {
     const decl: InstanceDecl = { kind: DeclKind.Instance, concept, id, binds, isClass, instanceOf, assignments, children, span: this.spanFrom(start) };
     if (conceptSpan !== undefined) decl.conceptSpan = conceptSpan;
     if (instanceOfSpan !== undefined) decl.instanceOfSpan = instanceOfSpan;
+    decl.idSpan = tokenSpan(idTok, this.uri);
     return decl;
   }
 
@@ -330,7 +332,8 @@ class Parser {
 
   private parsePrimitive(start: Token): PrimitiveDecl {
     this.expectKeyword("primitive");
-    const name = this.expectIdentifier();
+    const nameTok = this.expect(TokenKind.Identifier);
+    const name = nameTok.value;
     const base = this.match(TokenKind.Colon) ? this.expectIdentifier() : null;
 
     let description = "";
@@ -342,12 +345,15 @@ class Parser {
       else if (key === "regex") regex = value;
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Primitive, name, base, description, regex, span: this.spanFrom(start) };
+    const decl: PrimitiveDecl = { kind: DeclKind.Primitive, name, base, description, regex, span: this.spanFrom(start) };
+    decl.nameSpan = tokenSpan(nameTok, this.uri);
+    return decl;
   }
 
   private parseTaxonomy(start: Token): TaxonomyDecl {
     this.expectKeyword("taxonomy");
-    const name = this.expectIdentifier();
+    const nameTok = this.expect(TokenKind.Identifier);
+    const name = nameTok.value;
     this.expect(TokenKind.Colon);
     this.expectKeyword("represents");
     const represents = [this.expectIdentifier()];
@@ -365,7 +371,9 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Taxonomy, name, represents, description, terms, span: this.spanFrom(start) };
+    const decl: TaxonomyDecl = { kind: DeclKind.Taxonomy, name, represents, description, terms, span: this.spanFrom(start) };
+    decl.nameSpan = tokenSpan(nameTok, this.uri);
+    return decl;
   }
 
   /**
@@ -392,7 +400,8 @@ class Parser {
   private parseTerm(concept: string | null): Term {
     const start = this.startToken();
     if (concept === null) this.expectKeyword("term");
-    const id = this.expectIdentifier();
+    const idTok = this.expect(TokenKind.Identifier);
+    const id = idTok.value;
     const assignments: AssignmentNode[] = [];
     const children: Term[] = [];
     this.expect(TokenKind.LBrace);
@@ -410,12 +419,15 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    return { id, concept, assignments, children, span: this.spanFrom(start) };
+    const term: Term = { id, concept, assignments, children, span: this.spanFrom(start) };
+    term.idSpan = tokenSpan(idTok, this.uri);
+    return term;
   }
 
   private parseConcept(start: Token): ConceptDecl {
     this.expectKeyword("concept");
-    const name = this.expectIdentifier();
+    const nameTok = this.expect(TokenKind.Identifier);
+    const name = nameTok.value;
     let extendsName: string | null = null;
     let extendsSpan: SourceSpan | undefined;
     if (this.match(TokenKind.Colon)) {
@@ -469,6 +481,7 @@ class Parser {
     this.expect(TokenKind.RBrace);
     const decl: ConceptDecl = { kind: DeclKind.Concept, name, extends: extendsName, description, fields, relationships, invariants, span: this.spanFrom(start) };
     if (extendsSpan !== undefined) decl.extendsSpan = extendsSpan;
+    decl.nameSpan = tokenSpan(nameTok, this.uri);
     return decl;
   }
 
@@ -628,12 +641,12 @@ class Parser {
     return this.expect(TokenKind.Identifier).value;
   }
 
-  /** A record id — a bare identifier or a quoted string (e.g. `sequence "…"`). */
-  private expectRecordId(): string {
+  /** A record id token — a bare identifier or a quoted string (e.g. `sequence "…"`). */
+  private expectRecordIdTok(): Token {
     if (this.check(TokenKind.String) || this.check(TokenKind.RawString)) {
-      return this.advance().value;
+      return this.advance();
     }
-    return this.expectIdentifier();
+    return this.expect(TokenKind.Identifier);
   }
 
   private error(message: string): ParseError {
