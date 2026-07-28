@@ -11,3 +11,4 @@ export * from "./completion.js";
 export * from "./rename.js";
 export * from "./document-symbols.js";
 export * from "./folding.js";
+export * from "./workspace-symbols.js";
