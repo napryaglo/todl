@@ -12,6 +12,13 @@
         "development": "./src/index.ts",
         "default": "./dist/index.js"
       }
+    },
+    "./language-service": {
+      "types": "./dist/language-service/index.d.ts",
+      "import": {
+        "development": "./src/language-service/index.ts",
+        "default": "./dist/language-service/index.js"
+      }
     }
   },
   "files": [
@@ -32,6 +39,9 @@
     "node": ">=20"
   },
   "license": "MIT",
+  "dependencies": {
+    "vscode-languageserver-types": "^3.17.5"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "rimraf": "^6.0.1",
