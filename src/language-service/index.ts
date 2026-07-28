@@ -5,3 +5,4 @@ export * from "./symbols.js";
 export * from "./reference-index.js";
 export * from "./classifier.js";
 export * from "./navigation.js";
+export * from "./hover.js";
