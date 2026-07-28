@@ -12,3 +12,4 @@ export * from "./rename.js";
 export * from "./document-symbols.js";
 export * from "./folding.js";
 export * from "./workspace-symbols.js";
+export * from "./semantic-tokens.js";
