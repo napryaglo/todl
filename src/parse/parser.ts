@@ -217,7 +217,10 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Instance, concept, id, binds, isClass, instanceOf, assignments, children, span: this.spanFrom(start), conceptSpan, instanceOfSpan };
+    const decl: InstanceDecl = { kind: DeclKind.Instance, concept, id, binds, isClass, instanceOf, assignments, children, span: this.spanFrom(start) };
+    if (conceptSpan !== undefined) decl.conceptSpan = conceptSpan;
+    if (instanceOfSpan !== undefined) decl.instanceOfSpan = instanceOfSpan;
+    return decl;
   }
 
   /**
@@ -464,7 +467,9 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    return { kind: DeclKind.Concept, name, extends: extendsName, description, fields, relationships, invariants, span: this.spanFrom(start), extendsSpan };
+    const decl: ConceptDecl = { kind: DeclKind.Concept, name, extends: extendsName, description, fields, relationships, invariants, span: this.spanFrom(start) };
+    if (extendsSpan !== undefined) decl.extendsSpan = extendsSpan;
+    return decl;
   }
 
   private parseRelationship(): RelationshipDecl {

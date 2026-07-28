@@ -52,6 +52,7 @@ export function classifyPosition(a: Analysis, uri: string, pos: Position): Curso
 function tokenIndexAt(tokens: Token[], line: number, column: number): number {
   for (let i = 0; i < tokens.length; i += 1) {
     const t = tokens[i];
+    if (t === undefined) continue;
     const startsAfter = t.line > line || (t.line === line && t.column > column);
     if (startsAfter) return i;
     const endsAfter = t.endLine > line || (t.endLine === line && t.endColumn > column);
@@ -63,7 +64,8 @@ function tokenIndexAt(tokens: Token[], line: number, column: number): number {
 // The nearest significant token before `idx` (skipping EOF); null if none.
 function precedingSignificant(tokens: Token[], idx: number): Token | null {
   for (let i = idx - 1; i >= 0; i -= 1) {
-    if (tokens[i].kind !== TokenKind.EOF) return tokens[i];
+    const t = tokens[i];
+    if (t !== undefined && t.kind !== TokenKind.EOF) return t;
   }
   return null;
 }

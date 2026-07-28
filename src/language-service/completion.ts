@@ -36,12 +36,11 @@ function nodesOfKinds(a: Analysis, kinds: SymbolKind[]): CompletionItem[] {
   for (const node of a.model.allNodes()) {
     const kind = symbolKindOf(a.model, node.id);
     if (!kinds.includes(kind)) continue;
-    items.push({
+    items.push(withDoc({
       label: node.id,
       kind: kind === SymbolKind.Primitive ? CompletionItemKind.Struct : CompletionItemKind.Class,
       detail: labelFor(kind),
-      documentation: describe(a, node.id),
-    });
+    }, describe(a, node.id)));
   }
   return items;
 }
@@ -53,9 +52,15 @@ function refCandidates(a: Analysis): CompletionItem[] {
   const items: CompletionItem[] = [];
   for (const node of a.model.allNodes()) {
     if (symbolKindOf(a.model, node.id) !== SymbolKind.Instance) continue;
-    items.push({ label: node.id, kind: CompletionItemKind.Variable, documentation: describe(a, node.id) });
+    items.push(withDoc({ label: node.id, kind: CompletionItemKind.Variable }, describe(a, node.id)));
   }
   return items;
+}
+
+// Attach documentation only when present — `exactOptionalPropertyTypes` forbids
+// an explicit `documentation: undefined`.
+function withDoc(item: CompletionItem, doc: string | undefined): CompletionItem {
+  return doc === undefined ? item : { ...item, documentation: doc };
 }
 
 function labelFor(kind: SymbolKind): string {

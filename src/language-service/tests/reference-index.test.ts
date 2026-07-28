@@ -19,11 +19,11 @@ test("records extends, field-type, relationship-target and ref occurrences", () 
   ].join("\n"));
   const animalRefs = idx.get("animal");
   assert.equal(animalRefs.length, 1);
-  assert.equal(animalRefs[0].role, Role.Extends);
-  assert.equal(idx.get("number")[0].role, Role.FieldType);
-  assert.equal(idx.get("person")[0].role, Role.RelationshipTarget);
-  assert.equal(idx.get("rex")[0].role, Role.RefValue);
-  assert.equal(idx.get("dog")[0].role, Role.InstanceConcept);
+  assert.equal(animalRefs[0]!.role, Role.Extends);
+  assert.equal(idx.get("number")[0]!.role, Role.FieldType);
+  assert.equal(idx.get("person")[0]!.role, Role.RelationshipTarget);
+  assert.equal(idx.get("rex")[0]!.role, Role.RefValue);
+  assert.equal(idx.get("dog")[0]!.role, Role.InstanceConcept);
 });
 
 test("occurrenceAt finds the occurrence under a position", () => {
