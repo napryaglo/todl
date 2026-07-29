@@ -146,6 +146,9 @@ export interface TaxonomyDecl {
   name: string;
   /** The concepts this taxonomy represents (`taxonomy X : represents C1, C2`). */
   represents: string[];
+  /** Span of each `represents` target identifier, parallel to `represents`.
+   * Absent when the parse predates span capture. */
+  representsSpans?: SourceSpan[];
   description: string;
   terms: Term[];
   span: SourceSpan;

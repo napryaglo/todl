@@ -356,8 +356,15 @@ class Parser {
     const name = nameTok.value;
     this.expect(TokenKind.Colon);
     this.expectKeyword("represents");
-    const represents = [this.expectIdentifier()];
-    while (this.match(TokenKind.Comma)) represents.push(this.expectIdentifier());
+    const represents: string[] = [];
+    const representsSpans: SourceSpan[] = [];
+    const pushTarget = (): void => {
+      const t = this.expect(TokenKind.Identifier);
+      represents.push(t.value);
+      representsSpans.push(tokenSpan(t, this.uri));
+    };
+    pushTarget();
+    while (this.match(TokenKind.Comma)) pushTarget();
     let description = "";
     const terms: Term[] = [];
     this.expect(TokenKind.LBrace);
@@ -371,7 +378,7 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    const decl: TaxonomyDecl = { kind: DeclKind.Taxonomy, name, represents, description, terms, span: this.spanFrom(start) };
+    const decl: TaxonomyDecl = { kind: DeclKind.Taxonomy, name, represents, representsSpans, description, terms, span: this.spanFrom(start) };
     decl.nameSpan = tokenSpan(nameTok, this.uri);
     return decl;
   }

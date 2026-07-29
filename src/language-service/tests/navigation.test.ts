@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fixture } from "./fixtures.js";
+import { analyze } from "../analysis.js";
 import { definitionAt, referencesAt } from "../navigation.js";
 
 const SRC = [
@@ -24,4 +25,16 @@ test("referencesAt lists every occurrence, optionally including the definition",
   assert.equal(refs.length, 2);             // the extends ref + the instance concept ref
   const withDecl = referencesAt(analysis, uri, positions[0]!, true);
   assert.equal(withDecl.length, 3);         // + the definition
+});
+
+test("definitionAt jumps from a taxonomy `represents` target to the concept (cross-file)", () => {
+  const concepts = "namespace demo.concepts {\n  concept actor { }\n}";
+  //                012345678901234567890123456789012345
+  //                          1111111111222222222233333
+  // `taxonomy actors : represents actor` — the reference `actor` starts at col 31.
+  const enums = "namespace demo.enums {\n  taxonomy actors : represents actor { }\n}";
+  const analysis = analyze([{ uri: "concepts.todl", text: concepts }, { uri: "enums.todl", text: enums }]);
+  const loc = definitionAt(analysis, "enums.todl", { line: 1, character: 33 });
+  assert.equal(loc?.uri, "concepts.todl");
+  assert.equal(loc?.range.start.line, 1);   // the `concept actor` line (0-based)
 });

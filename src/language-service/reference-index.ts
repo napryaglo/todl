@@ -2,11 +2,11 @@ import type { Range, Position } from "vscode-languageserver-types";
 import type { SourceSpan } from "../diagnostics/span.js";
 import {
   DeclKind, ValueKind,
-  type NamespaceNode, type Declaration, type InstanceDecl, type ValueNode,
+  type NamespaceNode, type Declaration, type InstanceDecl, type TaxonomyDecl, type ValueNode,
 } from "../parse/ast.js";
 import { spanToRange } from "./position.js";
 
-export enum Role { Extends, FieldType, RelationshipTarget, RefValue, InstanceConcept, InstanceOf, Import }
+export enum Role { Extends, FieldType, RelationshipTarget, RefValue, InstanceConcept, InstanceOf, Import, Represents }
 
 export interface Occurrence { uri: string; range: Range; role: Role; symbol: string }
 
@@ -54,7 +54,14 @@ function walkDecl(uri: string, decl: Declaration, push: Push): void {
     for (const r of decl.relationships) push(uri, r.target, r.targetSpan, Role.RelationshipTarget);
   } else if (decl.kind === DeclKind.Instance) {
     walkInstance(uri, decl, push);
+  } else if (decl.kind === DeclKind.Taxonomy) {
+    walkTaxonomy(uri, decl, push);
   }
+}
+
+function walkTaxonomy(uri: string, decl: TaxonomyDecl, push: Push): void {
+  // `taxonomy X : represents C1, C2` — each target references a concept.
+  decl.represents.forEach((concept, i) => push(uri, concept, decl.representsSpans?.[i], Role.Represents));
 }
 
 function walkInstance(uri: string, inst: InstanceDecl, push: Push): void {

@@ -11,7 +11,7 @@ const TYPE_INDEX: Record<(typeof TYPES)[number], number> = { type: 0, class: 1, 
 // A reference role → token type. Concepts are 'type'; targets are concepts too.
 const ROLE_TYPE: Record<Role, (typeof TYPES)[number]> = {
   [Role.Extends]: "type", [Role.FieldType]: "type", [Role.RelationshipTarget]: "type",
-  [Role.InstanceConcept]: "type", [Role.InstanceOf]: "type",
+  [Role.InstanceConcept]: "type", [Role.InstanceOf]: "type", [Role.Represents]: "type",
   [Role.RefValue]: "variable", [Role.Import]: "class",
 };
 
