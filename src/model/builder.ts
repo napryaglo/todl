@@ -46,8 +46,15 @@ export class Builder {
   private readonly stagedNodes: Node[] = [];
   private readonly stagedAttrs: StagedAttr[] = [];
   private readonly stagedEdges: StagedEdge[] = [];
+  private currentNamespace: string | null = null;
 
   constructor(private readonly graph: Graph) {}
+
+  /** Stamp `ns` as the `namespace` provenance attr on every node staged after this call. */
+  setNamespace(ns: string): this {
+    this.currentNamespace = ns;
+    return this;
+  }
 
   // ── Instance tier ───────────────────────────────────────────────────────
 
@@ -55,6 +62,12 @@ export class Builder {
   assertInstance(typeOf: NodeId, id: NodeId, asClass = false): this {
     this.stageNode(id, Tier.Instance, typeOf);
     if (asClass) this.stagedAttrs.push({ id, name: "class", value: true });
+    return this;
+  }
+
+  /** Stage a model container node (Instance-tier, typed by the Model sentinel). */
+  assertModel(id: NodeId): this {
+    this.stageNode(id, Tier.Instance, MetaKind.Model);
     return this;
   }
 
@@ -107,6 +120,7 @@ export class Builder {
       ["cardinality", cardinality],
       ["type", type],
     ]);
+    if (this.currentNamespace !== null) attrs.set("namespace", this.currentNamespace);
     this.stagedNodes.push({ id: memberId, tier: Tier.Ontology, typeOf: MetaKind.Field, attrs });
     this.stagedEdges.push({ kind: EdgeKind.HasField, via: null, from: concept, to: memberId });
     return this;
@@ -129,6 +143,7 @@ export class Builder {
     if (inverse !== null) {
       attrs.set("inverse", inverse);
     }
+    if (this.currentNamespace !== null) attrs.set("namespace", this.currentNamespace);
     this.stagedNodes.push({ id: memberId, tier: Tier.Ontology, typeOf: MetaKind.Relationship, attrs });
     this.stagedEdges.push({ kind: EdgeKind.HasRelationship, via: null, from: concept, to: memberId });
     return this;
@@ -153,6 +168,7 @@ export class Builder {
       const id = `${name}.${term.id}`;
       const attrs = new Map<string, Scalar>([["class", true], ["id", term.id]]);
       if (term.attrs !== undefined) for (const [key, value] of term.attrs) attrs.set(key, value);
+      if (this.currentNamespace !== null) attrs.set("namespace", this.currentNamespace);
       this.stagedNodes.push({ id, tier: Tier.Instance, typeOf: term.concept ?? fallback, attrs });
       this.stagedEdges.push({ kind: EdgeKind.Contains, via: null, from: name, to: id });
       for (const rel of term.relationships ?? []) {
@@ -214,6 +230,8 @@ export class Builder {
   }
 
   private stageNode(id: NodeId, tier: Tier, typeOf: NodeId): void {
-    this.stagedNodes.push({ id, tier, typeOf, attrs: new Map() });
+    const attrs = new Map<string, Scalar>();
+    if (this.currentNamespace !== null) attrs.set("namespace", this.currentNamespace);
+    this.stagedNodes.push({ id, tier, typeOf, attrs });
   }
 }

@@ -3,7 +3,7 @@ import type { SourceSpan } from "../diagnostics/span.js";
 import type { Analysis } from "./analysis.js";
 import { spanToRange } from "./position.js";
 import {
-  DeclKind, type Declaration, type ConceptDecl, type InstanceDecl,
+  DeclKind, type Declaration, type ConceptDecl, type InstanceDecl, type ModelDecl,
 } from "../parse/ast.js";
 
 export function documentSymbols(a: Analysis, uri: string): DocumentSymbol[] {
@@ -23,7 +23,16 @@ function toSymbol(decl: Declaration): DocumentSymbol | null {
       return conceptSymbol(decl, range);
     case DeclKind.Instance:
       return instanceSymbol(decl, range);
+    case DeclKind.Model:
+      return modelSymbol(decl, range);
   }
+}
+
+function modelSymbol(decl: ModelDecl, range: Range): DocumentSymbol {
+  const children = decl.instances.map((c) => instanceSymbol(c, spanToRange(c.span)));
+  const sym = leaf(decl.id, SymbolKind.Module, range, nameRange(decl.idSpan, range));
+  if (children.length > 0) sym.children = children;
+  return sym;
 }
 
 function conceptSymbol(decl: ConceptDecl, range: Range): DocumentSymbol {

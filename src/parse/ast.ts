@@ -14,6 +14,7 @@ export enum DeclKind {
   Taxonomy,
   Concept,
   Instance,
+  Model,
 }
 
 export enum ValueKind {
@@ -88,6 +89,22 @@ export interface InstanceDecl {
   instanceOfSpan?: SourceSpan;
   /** Span of the record's id identifier. */
   idSpan?: SourceSpan;
+}
+
+export interface ModelDecl {
+  kind: DeclKind.Model;
+  id: string;
+  /** The bound meta-model (`: <meta-model>`) — required. */
+  metaModel: string;
+  /** The `uses <lib>, …` library list; empty when omitted. */
+  libraries: string[];
+  /** The concrete objects this model carries. */
+  instances: InstanceDecl[];
+  span: SourceSpan;
+  idSpan?: SourceSpan;
+  metaModelSpan?: SourceSpan;
+  /** Span of each `uses` library identifier, parallel to `libraries`. */
+  librarySpans?: SourceSpan[];
 }
 
 export interface FieldDecl {
@@ -167,7 +184,7 @@ export interface PrimitiveDecl {
   nameSpan?: SourceSpan;
 }
 
-export type Declaration = ConceptDecl | TaxonomyDecl | PrimitiveDecl | InstanceDecl;
+export type Declaration = ConceptDecl | TaxonomyDecl | PrimitiveDecl | InstanceDecl | ModelDecl;
 
 export interface NamespaceNode {
   path: string;

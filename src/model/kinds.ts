@@ -9,4 +9,5 @@ export enum MetaKind {
   Taxonomy = "taxonomy",
   Field = "field",
   Relationship = "relationship",
+  Model = "model",
 }
