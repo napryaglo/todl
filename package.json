@@ -1,6 +1,6 @@
 {
   "name": "@pragmatic-lab/todl",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Typed substrate for authoring and reasoning over ontologies and taxonomies",
   "type": "module",
   "main": "dist/index.js",
