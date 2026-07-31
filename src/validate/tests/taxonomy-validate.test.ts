@@ -18,11 +18,14 @@ test("a taxonomy with no represented concept is flagged", () => {
 });
 
 test("a taxonomy-typed field value must resolve to a term", () => {
+  // Use a value that is a defined node but not a term of the taxonomy — the
+  // validator then reports TaxonomyValueUnresolved (an undefined symbol would
+  // emit ReferenceUndefined from the loader instead, before validation runs).
   const c = codes(`concept category { icon : string; }
     concept component { category : component-category; }
     taxonomy component-category : represents category { term conversational-interface { icon = "x"; } }
     component good { category = component-category.conversational-interface; }
-    component bad { category = nonsense; }`);
+    component bad { category = good; }`);
   assert.ok(c.includes(DiagnosticCode.TaxonomyValueUnresolved));
 });
 

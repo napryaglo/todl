@@ -2,12 +2,14 @@
  * Loader (design spec §5) — parse TODL sources and build a {@link Repository}.
  *
  * Two passes over the combined declarations: pass one defines the bare type
- * declarations (primitives, enums + case nodes, concepts + extends) and creates
- * placeholder nodes for any *referenced-but-undefined* id (the fixtures
- * deliberately reference `lane` / `event-trigger` / … without defining them);
- * pass two adds concept members and instances. Executable invariants register
- * after loading. Field types / relationship targets are attrs, so they need no
- * node — only extends parents and instance value refs become edges.
+ * declarations (primitives, enums + case nodes, concepts + extends); pass two
+ * adds concept members and instances. Executable invariants register after
+ * loading. Field types / relationship targets are attrs, so they need no node —
+ * only extends parents and instance value refs become edges.
+ *
+ * Any id that is referenced but never defined (in the sources or in a previously
+ * loaded base model) emits a `reference.undefined` diagnostic and all staged
+ * edges to that id are dropped — no placeholder node is created.
  */
 
 import { parse } from "./parser.js";
@@ -53,9 +55,9 @@ export function load(sources: SourceFile[]): LoadResult {
 }
 
 // Load `sources` INTO an existing model (which may already carry base nodes from
-// a prior compile — see checkAgainst). Same 3-pass pipeline as a fresh load, and
-// a reference that resolves to a node already in `model` is not stubbed
-// UNRESOLVED. Returns the accumulated diagnostics; the caller owns the model.
+// a prior compile — see checkAgainst). Same 3-pass pipeline as a fresh load. A
+// reference that resolves to a node already in `model` is not reported undefined.
+// Returns the accumulated diagnostics; the caller owns the model.
 export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   const declarations = sources.flatMap((source) => {
@@ -73,7 +75,9 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
   // field once concept schemas are committed.
   const deferredCompositions: { parentId: string; parentConcept: string; decl: InstanceDecl }[] = [];
 
-  // Pass 1: bare type declarations + placeholders for unresolved references.
+  // Pass 1: bare type declarations. After all names are collected, any referenced
+  // id absent from both the new sources and the existing model emits a
+  // reference.undefined diagnostic and its edges are skipped by Builder.commit.
   const first = model.builder();
   for (const declaration of declarations) {
     switch (declaration.kind) {

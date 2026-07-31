@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { check, checkAgainst } from "../api.js";
 import { toJSON } from "../emit/json.js";
-import { Severity, type Diagnostic } from "../diagnostics/diagnostic.js";
+import { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagnostic.js";
 import type { SourceFile } from "../diagnostics/span.js";
 
 // A base meta-model: concepts + a base taxonomy the library will reference.
@@ -57,8 +57,20 @@ test("a reference resolvable in neither base nor source is still flagged", () =>
     uri: "bad.todl",
     text: `namespace lib { taxonomy m : represents location { location x { parent = &nonsense.ghost; } } }`,
   };
-  const { model } = checkAgainst([base], [bad]);
-  assert.equal(model.resolve("nonsense.ghost")?.typeOf, "unresolved");
+  const { model, diagnostics } = checkAgainst([base], [bad]);
+  assert.ok(diagnostics.some((d) => d.code === DiagnosticCode.ReferenceUndefined));
+  assert.equal(model.resolve("nonsense.ghost"), undefined);
+});
+
+test("a reference resolved via the base model is not reported undefined", () => {
+  // base defines `location`; source declares an instance of it
+  const base = toJSON(check([META]).model);
+  const src: SourceFile = {
+    uri: "src.todl",
+    text: `namespace lib { location azure { label = "Azure"; } }`,
+  };
+  const result = checkAgainst([base], [src]);
+  assert.equal(result.diagnostics.filter((d) => d.code === DiagnosticCode.ReferenceUndefined).length, 0);
 });
 
 test("duplicate bases dedup: same base twice matches once", () => {

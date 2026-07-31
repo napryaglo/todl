@@ -30,8 +30,8 @@ test("diagnosticsByUri groups diagnostics per file and lists every source", () =
 });
 
 test("analyze surfaces validation diagnostics for a missing required field", () => {
-  // An unresolved *reference* is stubbed to a placeholder by the loader (by
-  // design), so it is not a diagnostic; a missing required scalar field is.
+  // An unresolved *reference* is reported as reference.undefined by the loader,
+  // which is distinct from a missing required scalar field (tested here).
   const a = analyze([{ uri: "d.todl", text: [
     "namespace demo {",
     "  primitive string { }",

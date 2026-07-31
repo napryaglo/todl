@@ -3,6 +3,10 @@ namespace adl.meta-models.bpmn.concepts
     import adl.meta-models.bpmn.primitives.identifier;
     import adl.meta-models.bpmn.enums.task-type;
 
+    concept event-trigger { }
+
+    concept flow-type { }
+
     concept task
     {
         description = "An atomic activity in the process.";

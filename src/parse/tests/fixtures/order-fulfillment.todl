@@ -2,10 +2,14 @@ namespace demo.order-fulfillment
 {
     lane sales { label = "Sales"; }
 
+    event-trigger message { }
+
+    flow-type sequence { }
+
     event order-placed
     {
         label      = "Order Placed";
-        event-type = start;
+        event-type = event-type.start;
         trigger    = message;
         lives-in   = &sales;
         outgoing   = [&order-to-validate];
@@ -14,7 +18,7 @@ namespace demo.order-fulfillment
     task validate-payment
     {
         label    = "Validate Payment";
-        type     = service;
+        type     = task-type.service;
         lives-in = &sales;
         incoming = [&order-to-validate];
     }

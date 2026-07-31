@@ -5,8 +5,8 @@ import { startServer, pushedInit } from "./harness.js";
 
 // Compile a base model defining `element` with a REQUIRED `label` field. The
 // base's schema is what makes an instance missing `label` an error — proving the
-// pushed base actually reached the analysis (an unresolved reference, by
-// contrast, is silently stubbed and would never diagnose).
+// pushed base actually reached the analysis (an unresolved reference would emit a
+// reference.undefined diagnostic, not the cardinality diagnostic checked here).
 function baseDoc(): unknown {
   const { model } = check([{ uri: "base.todl", text: "namespace base {\n  concept element { label : string; }\n}" }]);
   return toJSON(model);

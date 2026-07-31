@@ -47,7 +47,7 @@ test("loads instances with scalar attrs and relationship edges", () => {
   assert.equal(model.resolve("validate-payment")?.attrs.get("label"), "Validate Payment");
   assert.deepEqual(
     model.related("validate-payment", EdgeKind.Relationship, Direction.Out, "type"),
-    ["service"],
+    ["task-type.service"],
   );
   assert.deepEqual(
     model.related("order-placed", EdgeKind.Relationship, Direction.Out, "outgoing"),
@@ -55,12 +55,13 @@ test("loads instances with scalar attrs and relationship edges", () => {
   );
 });
 
-test("undefined references become unresolved placeholder nodes", () => {
-  const model = corpus();
-  assert.equal(model.resolve("message")?.typeOf, UNRESOLVED_TYPEOF);
+test("an undefined reference is reported, not stubbed", () => {
+  const { model, diagnostics } = loadFiles([
+    { uri: "t.todl", text: `namespace n { concept thing {} thing a instanceof ghost { } }` },
+  ]);
+  assert.ok(diagnostics.some((d) => d.code === DiagnosticCode.ReferenceUndefined && /ghost/.test(d.message)));
+  assert.equal(model.resolve("ghost"), undefined);
 });
-
-const UNRESOLVED_TYPEOF = "unresolved";
 
 test("loads a meta-model descriptor with numeric and list members", () => {
   const model = load([
