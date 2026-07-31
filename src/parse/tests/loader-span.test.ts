@@ -8,7 +8,9 @@ const CONCEPTS = `namespace ea {
   concept component { label : string; }
 }`;
 const MODEL = `namespace app {
-  component teams-chat { label = "Teams"; }
+  model m : ea {
+    component teams-chat { label = "Teams"; }
+  }
 }`;
 
 test("load takes SourceFiles, builds a model, and records instance spans", () => {

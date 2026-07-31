@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { parse } from "../parser.js";
-import { DeclKind, ValueKind, type InstanceDecl, type RefValue } from "../ast.js";
+import { DeclKind, ValueKind, type InstanceDecl, type ModelDecl, type RefValue } from "../ast.js";
 import { Cardinality } from "../../model/graph.js";
 import { DiagnosticCode } from "../../diagnostics/diagnostic.js";
 
@@ -122,35 +122,33 @@ test("parses concept-prefixed edge-shorthand with a body", () => {
   }
 });
 
-test("parses an application-connectors block of --> edges", () => {
+test("parses an application-connectors block of --> edges inside a model", () => {
   const { namespace: ns } = parse(`namespace d {
     model m : ea {
       application-connectors { &external-agent-bridge --> &agent-service }
     }
   }`);
-  const model = ns.declarations[0] as InstanceDecl;
-  const block = model.children.find((c) => c.concept === "application-connectors");
+  const model = ns.declarations[0] as ModelDecl;
+  const block = model.instances.find((c) => c.concept === "application-connectors");
   assert.ok(block);
   assert.equal(block?.children.length, 1);
   assert.equal(block?.children[0]?.concept, "connector");
 });
 
-test("parses nested container instances with a meta-model binding", () => {
+test("parses a model with a meta-model binding and nested instances", () => {
   const { namespace: ns } = parse(`namespace d {
     model m : enterprise-architecture {
-      title = "T";
       location saas-3p { label = "3rd-Party SaaS"; type = logical-grouping; }
     }
   }`);
   const model = ns.declarations[0];
-  assert.ok(model && model.kind === DeclKind.Instance);
-  if (model.kind === DeclKind.Instance) {
-    assert.equal(model.concept, "model");
-    assert.equal(model.binds, "enterprise-architecture");
-    assert.equal(model.assignments[0]?.name, "title");
-    assert.equal(model.children.length, 1);
-    assert.equal(model.children[0]?.concept, "location");
-    assert.equal(model.children[0]?.id, "saas-3p");
+  assert.ok(model && model.kind === DeclKind.Model);
+  if (model.kind === DeclKind.Model) {
+    assert.equal(model.id, "m");
+    assert.equal(model.metaModel, "enterprise-architecture");
+    assert.equal(model.instances.length, 1);
+    assert.equal(model.instances[0]?.concept, "location");
+    assert.equal(model.instances[0]?.id, "saas-3p");
   }
 });
 

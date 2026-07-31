@@ -99,7 +99,6 @@ test("nested instances load with contains edges and a meta-model binding", () =>
   const model = load([
     `namespace d {
       model m : enterprise-architecture {
-        title = "T";
         location saas-3p { label = "x"; }
       }
     }`,
