@@ -15,7 +15,7 @@ export function check(sources: SourceFile[]): { model: Repository; diagnostics: 
 /**
  * Load + validate `sources` against already-compiled base models (published
  * meta-models / libraries, as TodlDocument JSON). Bases seed the graph so a
- * source reference resolves to a base node instead of stubbing UNRESOLVED.
+ * source reference resolves to a base node instead of being reported undefined.
  * `checkAgainst([], sources)` is equivalent to `check(sources)`.
  */
 export function checkAgainst(

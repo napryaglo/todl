@@ -52,3 +52,27 @@ test("two references to the same undefined id → two diagnostics", () => {
   ]);
   assert.equal(undefinedRefs(diagnostics).length, 2);
 });
+
+test("undefined taxonomy represents target → ReferenceUndefined", () => {
+  const { diagnostics } = load([
+    src(`namespace n { taxonomy t : represents ghostconcept { } }`),
+  ]);
+  const refs = undefinedRefs(diagnostics);
+  assert.equal(refs.length, 1);
+  const ref = refs[0];
+  assert.ok(ref);
+  assert.match(ref.message, /ghostconcept/);
+});
+
+test("undefined bare Name value → ReferenceUndefined, referencing node kept", () => {
+  const { model, diagnostics } = load([
+    src(`namespace n { concept thing { relationship rel -> thing; } thing a { rel = ghostname; } }`),
+  ]);
+  const refs = undefinedRefs(diagnostics);
+  assert.equal(refs.length, 1);
+  const ref = refs[0];
+  assert.ok(ref);
+  assert.match(ref.message, /ghostname/);
+  assert.ok(model.resolve("a") !== undefined, "referencing node survives");
+  assert.equal(model.resolve("ghostname"), undefined, "no stub for undefined Name target");
+});
