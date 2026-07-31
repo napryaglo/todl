@@ -71,6 +71,8 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
   }
   const declarations = units.map((u) => u.decl);
 
+  detectOrphans(declarations, diagnostics);
+
   const defined = new Set<string>();
   const sites: RefSite[] = [];
   for (const declaration of declarations) collectNames(declaration, defined, sites);
@@ -400,6 +402,37 @@ function collectValueRefs(value: ValueNode, sites: RefSite[], ownerNode: NodeId,
 
 /** File-level grouping keywords that wrap records but are not themselves records. */
 const WRAPPER_CONCEPTS = new Set(["technology-library"]);
+
+/**
+ * A concrete object (`isClass = false`) is legal only inside a model. Walk the
+ * top-level declarations: a `model` subtree is legal (skip it); any other
+ * declaration is scanned for concrete objects with no model ancestor, and each
+ * is flagged. Classes and transparent wrappers are recursed through, not flagged.
+ */
+function detectOrphans(declarations: Declaration[], diagnostics: Diagnostic[]): void {
+  for (const declaration of declarations) {
+    if (declaration.kind === DeclKind.Instance) flagOrphans(declaration, diagnostics);
+  }
+}
+
+function flagOrphans(decl: InstanceDecl, diagnostics: Diagnostic[]): void {
+  if (WRAPPER_CONCEPTS.has(decl.concept)) {
+    for (const child of decl.children) flagOrphans(child, diagnostics);
+    return;
+  }
+  if (decl.isClass) {
+    for (const child of decl.children) flagOrphans(child, diagnostics);
+    return;
+  }
+  diagnostics.push({
+    code: DiagnosticCode.InstanceOrphan,
+    severity: Severity.Error,
+    message: `object "${decl.id}" must be declared inside a model`,
+    span: decl.conceptSpan ?? decl.span,
+    node: decl.id,
+    path: null,
+  });
+}
 
 /** Stage a model container node and its contained objects (rooted via Contains). */
 function applyModel(

@@ -29,6 +29,8 @@ export enum DiagnosticCode {
   AmbiguousFieldBinding = "instance.ambiguous-field-binding",
   // Reference-resolution phase.
   ReferenceUndefined = "reference.undefined",
+  // Model phase.
+  InstanceOrphan = "instance.orphan",
 }
 
 export interface Diagnostic {
