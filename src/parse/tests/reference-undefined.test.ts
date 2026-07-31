@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { load } from "../loader.js";
-import { DiagnosticCode, Severity } from "../../diagnostics/diagnostic.js";
+import { DiagnosticCode, Severity, type Diagnostic } from "../../diagnostics/diagnostic.js";
 
 function src(text: string) { return { uri: "t.todl", text }; }
-function undefinedRefs(diags: { code: DiagnosticCode }[]) {
+function undefinedRefs(diags: Diagnostic[]): Diagnostic[] {
   return diags.filter((d) => d.code === DiagnosticCode.ReferenceUndefined);
 }
 
@@ -14,16 +14,21 @@ test("undefined instanceOf target → ReferenceUndefined, node kept, no stub", (
   ]);
   const refs = undefinedRefs(diagnostics);
   assert.equal(refs.length, 1);
-  assert.equal(refs[0].severity, Severity.Error);
-  assert.match(refs[0].message, /ghost/);
+  const ref = refs[0];
+  assert.ok(ref);
+  assert.equal(ref.severity, Severity.Error);
+  assert.match(ref.message, /ghost/);
   assert.ok(model.resolve("a") !== undefined, "referencing node survives");
   assert.equal(model.resolve("ghost"), undefined, "no UNRESOLVED stub");
 });
 
 test("undefined concept extends target → ReferenceUndefined", () => {
   const { diagnostics } = load([src(`namespace n { concept c : missing {} }`)]);
-  assert.equal(undefinedRefs(diagnostics).length, 1);
-  assert.match(undefinedRefs(diagnostics)[0].message, /missing/);
+  const refs = undefinedRefs(diagnostics);
+  assert.equal(refs.length, 1);
+  const ref = refs[0];
+  assert.ok(ref);
+  assert.match(ref.message, /missing/);
 });
 
 test("undefined value ref → ReferenceUndefined", () => {
