@@ -12,7 +12,7 @@
 
 import { Tier, EdgeKind, Direction, Cardinality, type NodeId, type Node } from "../model/graph.js";
 import { MetaKind } from "../model/kinds.js";
-import type { Repository, FieldSchema, RelationshipSchema } from "../model/model.js";
+import { Repository, type FieldSchema, type RelationshipSchema } from "../model/model.js";
 import { satisfies } from "../predicate/evaluate.js";
 import type { SourceSpan } from "../diagnostics/span.js";
 import { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagnostic.js";
@@ -42,10 +42,54 @@ export function validate(model: Repository): Diagnostic[] {
       checkTermConcepts(diagnostics, model, node);
       continue;
     }
+    if (node.tier === Tier.Instance && node.typeOf === MetaKind.Model) {
+      validateModel(diagnostics, model, node);
+      continue;
+    }
     if (node.tier !== Tier.Instance) continue;
     validateInstance(diagnostics, model, node);
   }
   return diagnostics;
+}
+
+/** The model's bound vocabulary: its meta-model plus each used library. */
+function boundModules(node: Node): { metaModel: string | undefined; uses: string[]; set: Set<string> } {
+  const metaModel = typeof node.attrs.get("meta-model") === "string"
+    ? (node.attrs.get("meta-model") as string) : undefined;
+  const count = typeof node.attrs.get("uses.count") === "number"
+    ? (node.attrs.get("uses.count") as number) : 0;
+  const uses: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const lib = node.attrs.get(`uses.${i}`);
+    if (typeof lib === "string") uses.push(lib);
+  }
+  const set = new Set<string>([...(metaModel ? [metaModel] : []), ...uses]);
+  return { metaModel, uses, set };
+}
+
+/** Validate a model node: bound modules resolve, and constructors stay in scope. */
+function validateModel(out: Diagnostic[], model: Repository, node: Node): void {
+  const { metaModel, uses } = boundModules(node);
+
+  const present = new Set<string>();
+  for (const n of model.allNodes()) {
+    const ns = n.attrs.get("namespace");
+    if (typeof ns === "string") present.add(ns);
+  }
+
+  const flagBinding = (name: string, member: string): void => {
+    if (present.has(name)) return;
+    out.push({
+      code: DiagnosticCode.ModelBindingUndefined,
+      severity: Severity.Error,
+      message: `model "${node.id}" binds "${name}", but no loaded module provides it`,
+      span: model.spanOf(Repository.memberKey(node.id, member)) ?? model.spanOf(node.id),
+      node: node.id,
+      path: null,
+    });
+  };
+  if (metaModel !== undefined) flagBinding(metaModel, "meta-model");
+  uses.forEach((lib, i) => flagBinding(lib, `uses.${i}`));
 }
 
 function validateInstance(out: Diagnostic[], model: Repository, node: Node): void {

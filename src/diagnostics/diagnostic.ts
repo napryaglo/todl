@@ -31,6 +31,7 @@ export enum DiagnosticCode {
   ReferenceUndefined = "reference.undefined",
   // Model phase.
   InstanceOrphan = "instance.orphan",
+  ModelBindingUndefined = "model.binding-undefined",
 }
 
 export interface Diagnostic {

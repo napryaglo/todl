@@ -1,0 +1,30 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { check } from "../../api.js";
+import { DiagnosticCode } from "../../diagnostics/diagnostic.js";
+
+const codes = (text: string) => check([{ uri: "a.todl", text }]).diagnostics.map((d) => d.code);
+
+test("binding a meta-model that is a loaded namespace is clean", () => {
+  const c = codes(`namespace acme {
+    concept component { }
+    model prod : acme { component checkout { } }
+  }`);
+  assert.ok(!c.includes(DiagnosticCode.ModelBindingUndefined));
+});
+
+test("binding a meta-model no module provides is model.binding-undefined", () => {
+  const c = codes(`namespace acme {
+    concept component { }
+    model prod : nonexistent { component checkout { } }
+  }`);
+  assert.ok(c.includes(DiagnosticCode.ModelBindingUndefined));
+});
+
+test("a uses library no module provides is model.binding-undefined", () => {
+  const c = codes(`namespace acme {
+    concept component { }
+    model prod : acme uses ghost-lib { component checkout { } }
+  }`);
+  assert.ok(c.includes(DiagnosticCode.ModelBindingUndefined));
+});
