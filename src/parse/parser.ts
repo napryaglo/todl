@@ -24,6 +24,7 @@ import {
   type Term,
   type TaxonomyDecl,
   type InstanceDecl,
+  type ModelDecl,
   type AssignmentNode,
   type ValueNode,
 } from "./ast.js";
@@ -166,6 +167,7 @@ class Parser {
     if (this.checkKeyword("primitive")) return this.parsePrimitive(start);
     if (this.checkKeyword("taxonomy")) return this.parseTaxonomy(start);
     if (this.checkKeyword("concept")) return this.parseConcept(start);
+    if (this.checkKeyword("model")) return this.parseModel(start);
     if (this.checkKeyword("class")) {
       this.advance(); // class modifier
       return this.parseInstanceFrom(this.expectIdentifier(), start, true);
@@ -222,6 +224,55 @@ class Parser {
     if (conceptSpan !== undefined) decl.conceptSpan = conceptSpan;
     if (instanceOfSpan !== undefined) decl.instanceOfSpan = instanceOfSpan;
     decl.idSpan = tokenSpan(idTok, this.uri);
+    return decl;
+  }
+
+  /**
+   * Parse a model: `model <id> : <meta-model> [uses <lib>, …] { <objects> }`.
+   * The body reuses instance-record parsing for each contained object.
+   */
+  private parseModel(start: Token): ModelDecl {
+    this.expectKeyword("model");
+    const idTok = this.expect(TokenKind.Identifier);
+    this.expect(TokenKind.Colon);
+    const metaTok = this.expect(TokenKind.Identifier);
+    const libraries: string[] = [];
+    const librarySpans: SourceSpan[] = [];
+    if (this.checkKeyword("uses")) {
+      this.advance();
+      do {
+        const libTok = this.expect(TokenKind.Identifier);
+        libraries.push(libTok.value);
+        librarySpans.push(tokenSpan(libTok, this.uri));
+      } while (this.match(TokenKind.Comma));
+    }
+    const instances: InstanceDecl[] = [];
+    this.expect(TokenKind.LBrace);
+    while (!this.check(TokenKind.RBrace)) {
+      const memberStart = this.startToken();
+      if (this.checkKeyword("application-connectors")) {
+        instances.push(this.parseApplicationConnectors(memberStart));
+        continue;
+      }
+      const first = this.expect(TokenKind.Identifier);
+      if (this.check(TokenKind.Amp)) {
+        instances.push(this.parseEdgeRecord(first.value, memberStart));
+        continue;
+      }
+      instances.push(this.parseInstanceFrom(first.value, memberStart, false, tokenSpan(first, this.uri)));
+    }
+    this.expect(TokenKind.RBrace);
+    const decl: ModelDecl = {
+      kind: DeclKind.Model,
+      id: idTok.value,
+      metaModel: metaTok.value,
+      libraries,
+      instances,
+      span: this.spanFrom(start),
+    };
+    decl.idSpan = tokenSpan(idTok, this.uri);
+    decl.metaModelSpan = tokenSpan(metaTok, this.uri);
+    if (librarySpans.length > 0) decl.librarySpans = librarySpans;
     return decl;
   }
 
