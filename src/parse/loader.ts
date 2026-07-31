@@ -24,8 +24,8 @@ import {
   type ValueNode,
   type AssignmentNode,
 } from "./ast.js";
-import type { Scalar } from "../model/graph.js";
-import type { SourceFile } from "../diagnostics/span.js";
+import type { NodeId, Scalar } from "../model/graph.js";
+import type { SourceFile, SourceSpan } from "../diagnostics/span.js";
 import { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagnostic.js";
 
 export interface LoadResult {
@@ -33,7 +33,12 @@ export interface LoadResult {
   diagnostics: Diagnostic[];
 }
 
-const UNRESOLVED = "unresolved";
+interface RefSite {
+  id: string;
+  span: SourceSpan | null;
+  node: NodeId | null;
+  path: string | null;
+}
 
 interface PendingInvariant {
   concept: string;
@@ -60,8 +65,8 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
   });
 
   const defined = new Set<string>();
-  const referenced = new Set<string>();
-  for (const declaration of declarations) collectNames(declaration, defined, referenced);
+  const sites: RefSite[] = [];
+  for (const declaration of declarations) collectNames(declaration, defined, sites);
 
   // Composition records nested in a taxonomy term (a `billing` record inside a
   // `technology` term) — deferred to pass 2b so they can bind to the term's
@@ -137,13 +142,20 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
         break;
     }
   }
-  for (const id of referenced) {
-    // A reference already present in the model (a base node under checkAgainst)
-    // resolves to it — don't stub it as UNRESOLVED. Empty graph under plain
-    // load(), so this is a no-op there.
-    if (!defined.has(id) && !model.has(id)) first.assertInstance(UNRESOLVED, id);
+  const undefinedIds = new Set<string>();
+  for (const site of sites) {
+    if (defined.has(site.id) || model.has(site.id)) continue;
+    undefinedIds.add(site.id);
+    diagnostics.push({
+      code: DiagnosticCode.ReferenceUndefined,
+      severity: Severity.Error,
+      message: `reference to undefined symbol "${site.id}"`,
+      span: site.span,
+      node: site.node,
+      path: site.path,
+    });
   }
-  first.commit();
+  first.commit(undefinedIds);
 
   // Pass 2a: concept members (fields / relationships / invariants). Committing
   // these before instances lets a nested record consult the parent's schema.
@@ -167,7 +179,7 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
       }
     }
   }
-  second.commit();
+  second.commit(undefinedIds);
 
   // Pass 2b: instances. The schema is committed, so a nested record binds to the
   // parent field typed by its concept (in addition to the structural Contains).
@@ -183,7 +195,7 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
   for (const composition of deferredCompositions) {
     applyInstance(third, model, composition.decl, composition.parentId, composition.parentConcept, asserted, diagnostics);
   }
-  third.commit();
+  third.commit(undefinedIds);
 
   for (const invariant of invariants) {
     model.defineInvariant(invariant.concept, invariant.expr, invariant.description);
@@ -227,20 +239,30 @@ function recordInstanceSpans(model: Repository, decl: InstanceDecl): void {
   for (const child of decl.children) recordInstanceSpans(model, child);
 }
 
-function collectNames(declaration: Declaration, defined: Set<string>, referenced: Set<string>): void {
+function collectNames(declaration: Declaration, defined: Set<string>, sites: RefSite[]): void {
   switch (declaration.kind) {
     case DeclKind.Primitive:
       defined.add(declaration.name);
       break;
     case DeclKind.Taxonomy: {
       defined.add(declaration.name);
-      for (const concept of declaration.represents) referenced.add(concept);
+      for (let i = 0; i < declaration.represents.length; i++) {
+        const concept = declaration.represents[i]!;
+        sites.push({
+          id: concept,
+          span: declaration.representsSpans?.[i] ?? declaration.span,
+          node: declaration.name,
+          path: null,
+        });
+      }
       // Term nodes are taxonomy-qualified (see Builder.defineTaxonomy); record
       // every term's qualified id (nested included) so bare term values resolve,
       // and collect the refs their fixed relationships/compositions point at.
       const add = (t: Term): void => {
         defined.add(`${declaration.name}.${t.id}`);
-        for (const assignment of t.assignments) collectValueRefs(assignment.value, referenced);
+        for (const assignment of t.assignments) {
+          collectValueRefs(assignment.value, sites, `${declaration.name}.${t.id}`, assignment.name, assignment.span ?? null);
+        }
         t.children.forEach(add);
       };
       declaration.terms.forEach(add);
@@ -248,19 +270,35 @@ function collectNames(declaration: Declaration, defined: Set<string>, referenced
     }
     case DeclKind.Concept:
       defined.add(declaration.name);
-      if (declaration.extends !== null) referenced.add(declaration.extends);
+      if (declaration.extends !== null) {
+        sites.push({
+          id: declaration.extends,
+          span: declaration.extendsSpan ?? declaration.span,
+          node: declaration.name,
+          path: null,
+        });
+      }
       break;
     case DeclKind.Instance:
-      collectInstanceNames(declaration, defined, referenced);
+      collectInstanceNames(declaration, defined, sites);
       break;
   }
 }
 
-function collectInstanceNames(decl: InstanceDecl, defined: Set<string>, referenced: Set<string>): void {
+function collectInstanceNames(decl: InstanceDecl, defined: Set<string>, sites: RefSite[]): void {
   defined.add(decl.id);
-  if (decl.instanceOf !== null) referenced.add(decl.instanceOf);
-  for (const assignment of decl.assignments) collectValueRefs(assignment.value, referenced);
-  for (const child of decl.children) collectInstanceNames(child, defined, referenced);
+  if (decl.instanceOf !== null) {
+    sites.push({
+      id: decl.instanceOf,
+      span: decl.instanceOfSpan ?? decl.span,
+      node: decl.id,
+      path: null,
+    });
+  }
+  for (const assignment of decl.assignments) {
+    collectValueRefs(assignment.value, sites, decl.id, assignment.name, assignment.span ?? null);
+  }
+  for (const child of decl.children) collectInstanceNames(child, defined, sites);
 }
 
 /** A term's scalar fixed-value fields (String/Name/Composite) as an attr map.
@@ -312,16 +350,16 @@ function termToInstanceDecl(taxonomy: string, t: Term): InstanceDecl {
   };
 }
 
-function collectValueRefs(value: ValueNode, referenced: Set<string>): void {
+function collectValueRefs(value: ValueNode, sites: RefSite[], ownerNode: NodeId, memberName: string, memberSpan: SourceSpan | null): void {
   switch (value.kind) {
     case ValueKind.Ref:
-      referenced.add(value.ref);
+      sites.push({ id: value.ref, span: value.span ?? memberSpan ?? null, node: ownerNode, path: memberName });
       break;
     case ValueKind.Name:
-      referenced.add(value.name);
+      sites.push({ id: value.name, span: memberSpan ?? null, node: ownerNode, path: memberName });
       break;
     case ValueKind.List:
-      for (const item of value.items) collectValueRefs(item, referenced);
+      for (const item of value.items) collectValueRefs(item, sites, ownerNode, memberName, memberSpan);
       break;
     case ValueKind.String:
     case ValueKind.Composite:

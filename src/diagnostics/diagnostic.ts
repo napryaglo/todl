@@ -27,6 +27,8 @@ export enum DiagnosticCode {
   TaxonomyTermConceptAmbiguous = "taxonomy.term-concept-ambiguous",
   // Instance-loading phase.
   AmbiguousFieldBinding = "instance.ambiguous-field-binding",
+  // Reference-resolution phase.
+  ReferenceUndefined = "reference.undefined",
 }
 
 export interface Diagnostic {
