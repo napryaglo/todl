@@ -46,6 +46,10 @@ function addDecl(uri: string, decl: Declaration, add: Add): void {
       for (const term of decl.terms) addTerm(uri, term, add);
       break;
     case DeclKind.Instance:  addInstance(uri, decl, add); break;
+    case DeclKind.Model:
+      add(uri, decl.id, decl.idSpan, SymbolKind.Instance);
+      for (const inst of decl.instances) addInstance(uri, inst, add);
+      break;
   }
 }
 

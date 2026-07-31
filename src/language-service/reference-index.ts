@@ -56,6 +56,10 @@ function walkDecl(uri: string, decl: Declaration, push: Push): void {
     walkInstance(uri, decl, push);
   } else if (decl.kind === DeclKind.Taxonomy) {
     walkTaxonomy(uri, decl, push);
+  } else if (decl.kind === DeclKind.Model) {
+    // The `: meta-model` / `uses` names resolve to modules, not symbols, so they
+    // are not indexed here; descend into the contained objects' references.
+    for (const inst of decl.instances) walkInstance(uri, inst, push);
   }
 }
 
