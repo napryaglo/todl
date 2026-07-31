@@ -22,6 +22,7 @@ import {
   ValueKind,
   type Declaration,
   type InstanceDecl,
+  type ModelDecl,
   type Term,
   type ValueNode,
   type AssignmentNode,
@@ -60,11 +61,15 @@ export function load(sources: SourceFile[]): LoadResult {
 // Returns the accumulated diagnostics; the caller owns the model.
 export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
-  const declarations = sources.flatMap((source) => {
+  const units: { ns: string; decl: Declaration }[] = [];
+  for (const source of sources) {
     const result = parse(source.text, source.uri);
     diagnostics.push(...result.diagnostics);
-    return result.namespace.declarations;
-  });
+    for (const decl of result.namespace.declarations) {
+      units.push({ ns: result.namespace.path, decl });
+    }
+  }
+  const declarations = units.map((u) => u.decl);
 
   const defined = new Set<string>();
   const sites: RefSite[] = [];
@@ -73,13 +78,14 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
   // Composition records nested in a taxonomy term (a `billing` record inside a
   // `technology` term) — deferred to pass 2b so they can bind to the term's
   // field once concept schemas are committed.
-  const deferredCompositions: { parentId: string; parentConcept: string; decl: InstanceDecl }[] = [];
+  const deferredCompositions: { ns: string; parentId: string; parentConcept: string; decl: InstanceDecl }[] = [];
 
   // Pass 1: bare type declarations. After all names are collected, any referenced
   // id absent from both the new sources and the existing model emits a
   // reference.undefined diagnostic and its edges are skipped by Builder.commit.
   const first = model.builder();
-  for (const declaration of declarations) {
+  for (const { ns, decl: declaration } of units) {
+    first.setNamespace(ns);
     switch (declaration.kind) {
       case DeclKind.Primitive:
         first.definePrimitive(declaration.name);
@@ -112,6 +118,7 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
               hierarchy.push(buildTerm(child, childConcept ?? ownConcept));
             } else if (represented.has(childConcept)) {
               deferredCompositions.push({
+                ns,
                 parentId: `${decl.name}.${t.id}`,
                 parentConcept: ownConcept,
                 decl: termToInstanceDecl(decl.name, child),
@@ -143,7 +150,8 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
         first.defineConcept(declaration.name, declaration.extends);
         break;
       case DeclKind.Instance:
-        break;
+      case DeclKind.Model:
+        break; // staged in pass 2b
     }
   }
   const undefinedIds = new Set<string>();
@@ -165,8 +173,9 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
   // these before instances lets a nested record consult the parent's schema.
   const second = model.builder();
   const invariants: PendingInvariant[] = [];
-  for (const declaration of declarations) {
+  for (const { ns, decl: declaration } of units) {
     if (declaration.kind !== DeclKind.Concept) continue;
+    second.setNamespace(ns);
     for (const field of declaration.fields) {
       second.addField(declaration.name, field.name, field.type, field.cardinality);
     }
@@ -189,14 +198,18 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
   // parent field typed by its concept (in addition to the structural Contains).
   const third = model.builder();
   const asserted = new Set<string>();
-  for (const declaration of declarations) {
+  for (const { ns, decl: declaration } of units) {
+    third.setNamespace(ns);
     if (declaration.kind === DeclKind.Instance) {
       applyInstance(third, model, declaration, null, null, asserted, diagnostics);
+    } else if (declaration.kind === DeclKind.Model) {
+      applyModel(third, model, declaration, asserted, diagnostics);
     }
   }
   // Composition records nested in taxonomy terms — applied here so they bind to
   // the parent term's field against the now-committed concept schema.
   for (const composition of deferredCompositions) {
+    third.setNamespace(composition.ns);
     applyInstance(third, model, composition.decl, composition.parentId, composition.parentConcept, asserted, diagnostics);
   }
   third.commit(undefinedIds);
@@ -228,6 +241,16 @@ function recordSpans(model: Repository, declarations: Declaration[]): void {
       }
       case DeclKind.Instance:
         recordInstanceSpans(model, declaration);
+        break;
+      case DeclKind.Model:
+        model.recordSpan(declaration.id, declaration.span);
+        if (declaration.metaModelSpan !== undefined) {
+          model.recordSpan(Repository.memberKey(declaration.id, "meta-model"), declaration.metaModelSpan);
+        }
+        declaration.librarySpans?.forEach((s, i) =>
+          model.recordSpan(Repository.memberKey(declaration.id, `uses.${i}`), s),
+        );
+        for (const inst of declaration.instances) recordInstanceSpans(model, inst);
         break;
     }
   }
@@ -285,6 +308,10 @@ function collectNames(declaration: Declaration, defined: Set<string>, sites: Ref
       break;
     case DeclKind.Instance:
       collectInstanceNames(declaration, defined, sites);
+      break;
+    case DeclKind.Model:
+      defined.add(declaration.id);
+      for (const inst of declaration.instances) collectInstanceNames(inst, defined, sites);
       break;
   }
 }
@@ -373,6 +400,25 @@ function collectValueRefs(value: ValueNode, sites: RefSite[], ownerNode: NodeId,
 
 /** File-level grouping keywords that wrap records but are not themselves records. */
 const WRAPPER_CONCEPTS = new Set(["technology-library"]);
+
+/** Stage a model container node and its contained objects (rooted via Contains). */
+function applyModel(
+  builder: Builder,
+  model: Repository,
+  decl: ModelDecl,
+  asserted: Set<string>,
+  diagnostics: Diagnostic[],
+): void {
+  builder.assertModel(decl.id);
+  builder.setField(decl.id, "id", decl.id);
+  builder.setField(decl.id, "meta-model", decl.metaModel);
+  builder.setField(decl.id, "uses.count", decl.libraries.length);
+  decl.libraries.forEach((lib, i) => builder.setField(decl.id, `uses.${i}`, lib));
+  asserted.add(decl.id);
+  for (const child of decl.instances) {
+    applyInstance(builder, model, child, decl.id, null, asserted, diagnostics);
+  }
+}
 
 function applyInstance(
   builder: Builder,
