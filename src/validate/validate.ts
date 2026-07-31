@@ -90,6 +90,38 @@ function validateModel(out: Diagnostic[], model: Repository, node: Node): void {
   };
   if (metaModel !== undefined) flagBinding(metaModel, "meta-model");
   uses.forEach((lib, i) => flagBinding(lib, `uses.${i}`));
+
+  const { set: bound } = boundModules(node);
+  for (const objId of model.closure(node.id, EdgeKind.Contains, Direction.Out, false)) {
+    const obj = model.resolve(objId);
+    if (obj === undefined) continue;
+    checkConstructor(out, model, obj, obj.typeOf, bound);    // the concept
+    const cls = model.classOf(objId);
+    if (cls !== null) checkConstructor(out, model, obj, cls, bound); // the instanceof class/term
+  }
+}
+
+/** A constructor (concept or class/term) is in scope iff its provider namespace is bound. */
+function checkConstructor(
+  out: Diagnostic[],
+  model: Repository,
+  obj: Node,
+  ctorId: NodeId,
+  bound: Set<string>,
+): void {
+  const ctor = model.resolve(ctorId);
+  if (ctor === undefined) return;
+  const ns = ctor.attrs.get("namespace");
+  if (typeof ns !== "string") return; // graceful degradation: unlabeled (old) base node
+  if (bound.has(ns)) return;
+  out.push({
+    code: DiagnosticCode.ConstructorOutOfScope,
+    severity: Severity.Error,
+    message: `"${obj.id}" is built from "${ctorId}" (module "${ns}"), which is not in the model's bound vocabulary`,
+    span: model.spanOf(obj.id),
+    node: obj.id,
+    path: null,
+  });
 }
 
 function validateInstance(out: Diagnostic[], model: Repository, node: Node): void {

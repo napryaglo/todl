@@ -32,6 +32,7 @@ export enum DiagnosticCode {
   // Model phase.
   InstanceOrphan = "instance.orphan",
   ModelBindingUndefined = "model.binding-undefined",
+  ConstructorOutOfScope = "constructor.out-of-scope",
 }
 
 export interface Diagnostic {
