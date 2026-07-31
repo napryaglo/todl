@@ -122,3 +122,21 @@ test("defineTaxonomy stages the represented concept plus class terms", () => {
     ["component-category.web-portal"],
   );
 });
+
+test("commit(skip) drops an edge to a skipped target instead of throwing", () => {
+  const graph = new Graph();
+  const b = new Builder(graph);
+  b.assertInstance("thing", "a");
+  b.addInstanceOf("a", "ghost"); // edge a -[InstanceOf]-> ghost (dangling)
+  assert.doesNotThrow(() => b.commit(new Set(["ghost"])));
+  assert.ok(graph.getNode("a") !== undefined, "the source node still commits");
+  assert.equal(graph.getNode("ghost"), undefined, "the skipped target is not created");
+});
+
+test("commit still throws for a missing target that is NOT skipped", () => {
+  const graph = new Graph();
+  const b = new Builder(graph);
+  b.assertInstance("thing", "a");
+  b.addInstanceOf("a", "ghost");
+  assert.throws(() => b.commit(new Set(["other"])), /edge target "ghost" does not exist/);
+});

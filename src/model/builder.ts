@@ -170,7 +170,7 @@ export class Builder {
   // ── Commit ──────────────────────────────────────────────────────────────
 
   /** Validate every staged reference, then apply all edits and clear staging. */
-  commit(): void {
+  commit(skipMissingTargets?: ReadonlySet<NodeId>): void {
     const willExist = new Set<NodeId>();
     for (const node of this.stagedNodes) {
       if (this.graph.hasNode(node.id) || willExist.has(node.id)) {
@@ -189,6 +189,9 @@ export class Builder {
       if (!exists(edge.from)) {
         throw new Error(`edge source "${edge.from}" does not exist`);
       }
+      if (skipMissingTargets?.has(edge.to) && !exists(edge.to)) {
+        continue; // known-undefined (already diagnosed by the loader) — drop the edge
+      }
       if (!exists(edge.to)) {
         throw new Error(`edge target "${edge.to}" does not exist`);
       }
@@ -201,6 +204,7 @@ export class Builder {
       this.graph.setAttr(attr.id, attr.name, attr.value);
     }
     for (const edge of this.stagedEdges) {
+      if (skipMissingTargets?.has(edge.to) && !this.graph.hasNode(edge.to)) continue;
       this.graph.addEdge({ kind: edge.kind, via: edge.via, from: edge.from, to: edge.to });
     }
 
