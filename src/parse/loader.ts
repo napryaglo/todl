@@ -243,6 +243,9 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
       stageApplications(fourth, model, PACKAGE_NODE_ID, decl.annotations, seenApps, diagnostics);
     } else if (decl.kind === DeclKind.Taxonomy) {
       fourth.setNamespace(ns);
+      // Taxonomy-level annotations decorate the taxonomy node itself
+      // (`<taxonomy>@<name>`), exactly like a concept.
+      stageApplications(fourth, model, decl.name, decl.annotations, seenApps, diagnostics);
       const walkTerm = (t: Term): void => {
         if (t.annotations.length > 0) {
           stageApplications(fourth, model, `${decl.name}.${t.id}`, t.annotations, seenApps, diagnostics);
@@ -336,6 +339,9 @@ function collectNames(declaration: Declaration, defined: Set<string>, sites: Ref
       // Term nodes are taxonomy-qualified (see Builder.defineTaxonomy); record
       // every term's qualified id (nested included) so bare term values resolve,
       // and collect the refs their fixed relationships/compositions point at.
+      for (const app of declaration.annotations) {
+        sites.push({ id: app.name, span: app.nameSpan ?? app.span, node: `${declaration.name}@${app.name}`, path: null });
+      }
       const add = (t: Term): void => {
         defined.add(`${declaration.name}.${t.id}`);
         for (const assignment of t.assignments) {
@@ -545,7 +551,7 @@ function stageInstanceAnnotations(
         diagnostics.push({
           code: DiagnosticCode.AnnotationInvalidTarget,
           severity: Severity.Error,
-          message: `annotation "${app.name}" cannot be applied to concrete instance "${decl.id}" — annotations are type-level (allowed on concepts, taxonomy terms, classes, and the package)`,
+          message: `annotation "${app.name}" cannot be applied to concrete instance "${decl.id}" — annotations are type-level (allowed on concepts, taxonomies, taxonomy terms, classes, and the package)`,
           span: app.nameSpan ?? app.span,
           node: decl.id,
           path: null,

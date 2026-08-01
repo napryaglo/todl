@@ -1,13 +1,40 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parse } from "../parser.js";
-import { DeclKind, type TaxonomyDecl, type InstanceDecl } from "../ast.js";
+import { DeclKind, type TaxonomyDecl, type InstanceDecl, type StringValue } from "../ast.js";
 
 function decls(text: string) {
   const { namespace, diagnostics } = parse(text, "t.todl");
   assert.deepEqual(diagnostics, [], "expected no parse diagnostics");
   return namespace.declarations;
 }
+
+test("annotate parses at the taxonomy level (annotates the taxonomy itself)", () => {
+  const tax = decls(`namespace t {
+    taxonomy actors : represents actor {
+      annotate icon { path = "resources/actors.svg"; }
+      term internal { label = "Internal"; }
+    }
+  }`)[0] as TaxonomyDecl;
+  assert.equal(tax.annotations.length, 1, "one taxonomy-level annotation");
+  assert.equal(tax.annotations[0]!.name, "icon");
+  assert.equal(tax.annotations[0]!.assignments[0]!.name, "path");
+  // The annotate is NOT mis-parsed as a concept-led term named "icon".
+  assert.deepEqual(tax.terms.map((t) => t.id), ["internal"]);
+});
+
+test("a taxonomy keeps both taxonomy-level and term-level annotations", () => {
+  const tax = decls(`namespace t {
+    taxonomy actors : represents actor {
+      annotate icon { path = "tax.svg"; }
+      term internal { annotate icon { path = "term.svg"; } }
+    }
+  }`)[0] as TaxonomyDecl;
+  assert.equal(tax.annotations.length, 1);
+  assert.equal((tax.annotations[0]!.assignments[0]!.value as StringValue).text, "tax.svg");
+  assert.equal(tax.terms[0]!.annotations.length, 1);
+  assert.equal((tax.terms[0]!.annotations[0]!.assignments[0]!.value as StringValue).text, "term.svg");
+});
 
 test("annotate parses inside a taxonomy term body", () => {
   const tax = decls(`namespace t {

@@ -484,8 +484,16 @@ class Parser {
     while (this.match(TokenKind.Comma)) pushTarget();
     let description = "";
     const terms: Term[] = [];
+    const annotations: AnnotationApplication[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
+      // Checked before tryParseTerm: `annotate` lexes as an identifier, so
+      // `annotate icon {` would otherwise match the concept-led-term lookahead
+      // (`<identifier> <identifier> {`) and be mis-parsed as a term.
+      if (this.checkKeyword("annotate")) {
+        annotations.push(this.parseAnnotationApplication(this.startToken()));
+        continue;
+      }
       const term = this.tryParseTerm();
       if (term !== null) {
         terms.push(term);
@@ -495,7 +503,7 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    const decl: TaxonomyDecl = { kind: DeclKind.Taxonomy, name, represents, representsSpans, description, terms, span: this.spanFrom(start) };
+    const decl: TaxonomyDecl = { kind: DeclKind.Taxonomy, name, represents, representsSpans, description, terms, annotations, span: this.spanFrom(start) };
     decl.nameSpan = tokenSpan(nameTok, this.uri);
     return decl;
   }
