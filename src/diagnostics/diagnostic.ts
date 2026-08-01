@@ -35,6 +35,7 @@ export enum DiagnosticCode {
   ConstructorOutOfScope = "constructor.out-of-scope",
   // Annotation phase.
   AnnotationDuplicate = "annotation.duplicate",
+  AnnotationUnknownParam = "annotation.unknown-param",
 }
 
 export interface Diagnostic {
