@@ -200,6 +200,9 @@ export interface TaxonomyDecl {
   representsSpans?: SourceSpan[];
   description: string;
   terms: Term[];
+  /** `annotate` applications on the taxonomy itself (decorate the taxonomy
+   * node, e.g. a taxonomy-wide icon), distinct from its terms' annotations. */
+  annotations: AnnotationApplication[];
   span: SourceSpan;
   /** Span of the taxonomy's name identifier. */
   nameSpan?: SourceSpan;

@@ -27,6 +27,30 @@ test("the motivating fixture compiles clean", () => {
   assert.deepEqual(check([{ uri: "a.todl", text: src }]).diagnostics, []);
 });
 
+test("a taxonomy-level annotation compiles clean", () => {
+  const src = `namespace tech {
+    concept actor { label : string; }
+    annotation icon { path : string; }
+    taxonomy actors : represents actor {
+      annotate icon { path = "resources/actors.svg"; }
+      term internal { label = "Internal"; }
+    }
+  }`;
+  assert.deepEqual(check([{ uri: "a.todl", text: src }]).diagnostics, []);
+});
+
+test("an unknown param on a taxonomy-level annotation is annotation.unknown-param", () => {
+  const src = `namespace tech {
+    concept actor { label : string; }
+    annotation icon { path : string; }
+    taxonomy actors : represents actor {
+      annotate icon { bogus = "x"; }
+      term internal { label = "Internal"; }
+    }
+  }`;
+  assert.ok(check([{ uri: "a.todl", text: src }]).diagnostics.map((d) => d.code).includes(DiagnosticCode.AnnotationUnknownParam));
+});
+
 test("an unknown param on a term annotation is annotation.unknown-param", () => {
   assert.ok(codes(`annotate icon { bogus = "x"; }`).includes(DiagnosticCode.AnnotationUnknownParam));
 });
