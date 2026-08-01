@@ -36,6 +36,7 @@ export enum DiagnosticCode {
   // Annotation phase.
   AnnotationDuplicate = "annotation.duplicate",
   AnnotationUnknownParam = "annotation.unknown-param",
+  AnnotationInvalidTarget = "annotation.invalid-target",
 }
 
 export interface Diagnostic {

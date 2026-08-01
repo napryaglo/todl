@@ -241,6 +241,21 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
       fourth.setNamespace(ns);
       if (!packageStaged) { fourth.definePackageNode(PACKAGE_NODE_ID); packageStaged = true; }
       stageApplications(fourth, model, PACKAGE_NODE_ID, decl.annotations, seenApps, diagnostics);
+    } else if (decl.kind === DeclKind.Taxonomy) {
+      fourth.setNamespace(ns);
+      const walkTerm = (t: Term): void => {
+        if (t.annotations.length > 0) {
+          stageApplications(fourth, model, `${decl.name}.${t.id}`, t.annotations, seenApps, diagnostics);
+        }
+        t.children.forEach(walkTerm);
+      };
+      decl.terms.forEach(walkTerm);
+    } else if (decl.kind === DeclKind.Instance) {
+      fourth.setNamespace(ns);
+      stageInstanceAnnotations(fourth, model, decl, seenApps, diagnostics);
+    } else if (decl.kind === DeclKind.Model) {
+      fourth.setNamespace(ns);
+      for (const inst of decl.instances) stageInstanceAnnotations(fourth, model, inst, seenApps, diagnostics);
     }
   }
   fourth.commit(undefinedIds);
@@ -511,6 +526,34 @@ function stageApplications(
     model.recordSpan(appId, app.span);
     for (const a of app.assignments) applyValue(builder, appId, a.name, a.value);
   }
+}
+
+/** Stage annotations on a class instance; reject them on a concrete instance
+ * (`annotation.invalid-target`). Recurses into nested records. */
+function stageInstanceAnnotations(
+  builder: Builder,
+  model: Repository,
+  decl: InstanceDecl,
+  seen: Set<string>,
+  diagnostics: Diagnostic[],
+): void {
+  if (decl.annotations.length > 0) {
+    if (decl.isClass) {
+      stageApplications(builder, model, decl.id, decl.annotations, seen, diagnostics);
+    } else {
+      for (const app of decl.annotations) {
+        diagnostics.push({
+          code: DiagnosticCode.AnnotationInvalidTarget,
+          severity: Severity.Error,
+          message: `annotation "${app.name}" cannot be applied to concrete instance "${decl.id}" — annotations are type-level (allowed on concepts, taxonomy terms, classes, and the package)`,
+          span: app.nameSpan ?? app.span,
+          node: decl.id,
+          path: null,
+        });
+      }
+    }
+  }
+  for (const child of decl.children) stageInstanceAnnotations(builder, model, child, seen, diagnostics);
 }
 
 /** Stage a model container node and its contained objects (rooted via Contains). */
