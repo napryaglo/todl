@@ -206,9 +206,14 @@ class Parser {
     const binds = this.match(TokenKind.Colon) ? this.expectIdentifier() : null;
     const assignments: AssignmentNode[] = [];
     const children: InstanceDecl[] = [];
+    const annotations: AnnotationApplication[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
       const memberStart = this.startToken();
+      if (this.checkKeyword("annotate")) {
+        annotations.push(this.parseAnnotationApplication(memberStart));
+        continue;
+      }
       if (this.checkKeyword("application-connectors")) {
         children.push(this.parseApplicationConnectors(memberStart));
         continue;
@@ -225,7 +230,7 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    const decl: InstanceDecl = { kind: DeclKind.Instance, concept, id, binds, isClass, instanceOf, assignments, children, span: this.spanFrom(start) };
+    const decl: InstanceDecl = { kind: DeclKind.Instance, concept, id, binds, isClass, instanceOf, assignments, children, annotations, span: this.spanFrom(start) };
     if (conceptSpan !== undefined) decl.conceptSpan = conceptSpan;
     if (instanceOfSpan !== undefined) decl.instanceOfSpan = instanceOfSpan;
     decl.idSpan = tokenSpan(idTok, this.uri);
@@ -367,7 +372,7 @@ class Parser {
       this.match(TokenKind.Semicolon); // optional terminator (bare in an application-connectors block)
     }
     const id = `${concept}#${(this.edgeSeq += 1)}`;
-    return { kind: DeclKind.Instance, concept, id, binds: null, isClass: false, instanceOf: null, assignments, children: [], span: this.spanFrom(start) };
+    return { kind: DeclKind.Instance, concept, id, binds: null, isClass: false, instanceOf: null, assignments, children: [], annotations: [], span: this.spanFrom(start) };
   }
 
   /** Parse an `application-connectors { &a --> &b … }` block into a container of connectors. */
@@ -381,7 +386,7 @@ class Parser {
     }
     this.expect(TokenKind.RBrace);
     const id = `application-connectors#${(this.edgeSeq += 1)}`;
-    return { kind: DeclKind.Instance, concept: "application-connectors", id, binds: null, isClass: false, instanceOf: null, assignments: [], children, span: this.spanFrom(start) };
+    return { kind: DeclKind.Instance, concept: "application-connectors", id, binds: null, isClass: false, instanceOf: null, assignments: [], children, annotations: [], span: this.spanFrom(start) };
   }
 
   private parseRef(): string {
@@ -523,8 +528,13 @@ class Parser {
     const id = idTok.value;
     const assignments: AssignmentNode[] = [];
     const children: Term[] = [];
+    const annotations: AnnotationApplication[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
+      if (this.checkKeyword("annotate")) {
+        annotations.push(this.parseAnnotationApplication(this.startToken()));
+        continue;
+      }
       const child = this.tryParseTerm();
       if (child !== null) {
         children.push(child);
@@ -538,7 +548,7 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    const term: Term = { id, concept, assignments, children, span: this.spanFrom(start) };
+    const term: Term = { id, concept, assignments, children, annotations, span: this.spanFrom(start) };
     term.idSpan = tokenSpan(idTok, this.uri);
     return term;
   }
