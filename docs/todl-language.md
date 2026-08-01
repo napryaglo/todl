@@ -16,10 +16,10 @@ describes the surface the current parser and validator actually enforce.
 > diagnostics the compiler produces, the compiler wins — it is the live
 > authority. A clean diagnostic list is a valid model.
 >
-> The repository root's `legacy-todl-architecture.md` documents the *older*
-> Python toolchain (`enum` / `variant`, `$slug` references, `list<T>` generics,
-> YAML models). That surface is **not** what this compiler accepts. Ignore it
-> when writing `.todl`; read this document instead.
+> Older, archived notes describe a *previous* Python toolchain (`enum` /
+> `variant`, `$slug` references, `list<T>` generics, YAML models). That surface
+> is **not** what this compiler accepts. Ignore it when writing `.todl`; read
+> this document instead.
 
 ---
 
