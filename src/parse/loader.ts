@@ -424,6 +424,7 @@ function termToInstanceDecl(taxonomy: string, t: Term): InstanceDecl {
     instanceOf: null,
     assignments: t.assignments,
     children: t.children.map((c) => termToInstanceDecl(taxonomy, c)),
+    annotations: [],
     span: t.span,
   };
 }

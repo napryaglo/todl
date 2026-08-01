@@ -84,6 +84,9 @@ export interface InstanceDecl {
   assignments: AssignmentNode[];
   /** Nested records declared inside this instance's body (containment). */
   children: InstanceDecl[];
+  /** `annotate` applications in this record's body. Staged only for classes;
+   * on a concrete instance the loader reports `annotation.invalid-target`. */
+  annotations: AnnotationApplication[];
   span: SourceSpan;
   /** Span of the leading concept identifier (`<concept> <id>`). */
   conceptSpan?: SourceSpan;
@@ -180,6 +183,8 @@ export interface Term {
   /** The term's fixed field values — it is a class of its concept. */
   assignments: AssignmentNode[];
   children: Term[];
+  /** `annotate` applications on this term (a term is a class of its concept). */
+  annotations: AnnotationApplication[];
   span: SourceSpan;
   /** Span of the term's id identifier. */
   idSpan?: SourceSpan;
