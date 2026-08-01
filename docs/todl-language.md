@@ -296,8 +296,10 @@ annotation category { name : string; order : integer ?; }
 annotation author   { name : string; email : string ?; }
 ```
 
-Apply it with `annotate` — legal only inside a `concept` body or a `package { }`
-block — giving each param a fixed value:
+Apply it with `annotate` — legal inside a `concept` body, a taxonomy `term`
+body, a `class` declaration, or a `package { }` block (annotations are
+type-level; a concrete instance carrying `annotate` is `annotation.invalid-target`)
+— giving each param a fixed value:
 
 ```todl
 concept actor
@@ -313,6 +315,18 @@ package
     annotate author { name = "Acme Corp"; email = "eng@acme.io"; }
 }
 ```
+
+A taxonomy term is a class of its concept, so it takes annotations too — this is
+how each term gets its own icon:
+
+    taxonomy actors : represents actor
+    {
+        term internal
+        {
+            label = "Internal";
+            annotate icon { path = "resources/internal.svg"; }
+        }
+    }
 
 - Each annotation applies **at most once per target**; a repeat is
   `annotation.duplicate`.
@@ -493,6 +507,8 @@ the offending `node`, and a concept-qualified member `path`.
 - `annotation.duplicate` — the same annotation is applied twice to one target.
 - `annotation.unknown-param` — an `annotate` gives a param the annotation didn't
   declare.
+- `annotation.invalid-target` — `annotate` appears on a concrete instance;
+  annotations are type-level (concepts, taxonomy terms, classes, package).
 
 Fix errors from the top down: a syntax error early in a file can cascade into
 spurious later diagnostics. Re-check after each fix.
@@ -596,7 +612,9 @@ concept thing : parent
     invariant { description = "…"; predicate = this.owner != none; }
 }
 
-taxonomy some-taxonomy : represents thing { term a { label = "A"; } }
+taxonomy some-taxonomy : represents thing {
+    term a { label = "A"; annotate icon { path = "a.svg"; } }   // terms take annotations
+}
 
 class thing preset { tags = a; }            // partial, fixed-value; top-level ok
 
