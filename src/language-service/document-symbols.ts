@@ -25,6 +25,10 @@ function toSymbol(decl: Declaration): DocumentSymbol | null {
       return instanceSymbol(decl, range);
     case DeclKind.Model:
       return modelSymbol(decl, range);
+    case DeclKind.Annotation:
+      return leaf(decl.name, SymbolKind.Interface, range, nameRange(decl.nameSpan, range));
+    case DeclKind.Package:
+      return null; // a package block has no name to surface as a symbol
   }
 }
 

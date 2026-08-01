@@ -46,6 +46,13 @@ export function validate(model: Repository): Diagnostic[] {
       validateModel(diagnostics, model, node);
       continue;
     }
+    if (node.tier === Tier.Ontology) {
+      const def = model.resolve(node.typeOf);
+      if (def !== undefined && def.typeOf === MetaKind.Annotation) {
+        validateAnnotationApplication(diagnostics, model, node);
+      }
+      continue;
+    }
     if (node.tier !== Tier.Instance) continue;
     validateInstance(diagnostics, model, node);
   }
@@ -122,6 +129,40 @@ function checkConstructor(
     node: obj.id,
     path: null,
   });
+}
+
+/** Validate an annotation application against its annotation's declared params. */
+function validateAnnotationApplication(out: Diagnostic[], model: Repository, node: Node): void {
+  const schema = model.effectiveSchema(node.typeOf);
+  const declared = new Set(schema.fields.map((f) => f.name));
+
+  for (const key of node.attrs.keys()) {
+    if (key === "namespace") continue; // provenance, not a param
+    if (!declared.has(key)) {
+      out.push({
+        code: DiagnosticCode.AnnotationUnknownParam,
+        severity: Severity.Error,
+        message: `annotation "${node.typeOf}" has no parameter "${key}"`,
+        span: model.spanOf(node.id),
+        node: node.id,
+        path: null,
+      });
+    }
+  }
+
+  for (const f of schema.fields) {
+    const required = f.cardinality === Cardinality.One || f.cardinality === Cardinality.NonEmpty;
+    if (required && !node.attrs.has(f.name)) {
+      out.push({
+        code: DiagnosticCode.RequiredMissing,
+        severity: Severity.Error,
+        message: `annotation "${node.typeOf}" requires parameter "${f.name}"`,
+        span: model.spanOf(node.id),
+        node: node.id,
+        path: null,
+      });
+    }
+  }
 }
 
 function validateInstance(out: Diagnostic[], model: Repository, node: Node): void {

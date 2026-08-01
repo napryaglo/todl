@@ -71,6 +71,27 @@ export class Builder {
     return this;
   }
 
+  /** Stage an annotation-type declaration node (Ontology-tier). */
+  defineAnnotation(id: NodeId): this {
+    this.stageNode(id, Tier.Ontology, MetaKind.Annotation);
+    return this;
+  }
+
+  /** Stage the singleton package node (Ontology-tier), host of package annotations. */
+  definePackageNode(id: NodeId): this {
+    this.stageNode(id, Tier.Ontology, MetaKind.Package);
+    return this;
+  }
+
+  /** Stage an annotation application `<target>@<annotationId>` (Ontology-tier, typed by
+   *  the annotation) plus the `Annotated` edge target -> application. Returns the app id. */
+  annotate(target: NodeId, annotationId: NodeId): NodeId {
+    const appId = `${target}@${annotationId}`;
+    this.stageNode(appId, Tier.Ontology, annotationId);
+    this.stagedEdges.push({ kind: EdgeKind.Annotated, via: null, from: target, to: appId });
+    return appId;
+  }
+
   /** Stage a scalar field write on `id`. */
   setField(id: NodeId, name: string, value: Scalar): this {
     this.stagedAttrs.push({ id, name, value });

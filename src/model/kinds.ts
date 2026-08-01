@@ -10,4 +10,9 @@ export enum MetaKind {
   Field = "field",
   Relationship = "relationship",
   Model = "model",
+  Annotation = "annotation",
+  Package = "package",
 }
+
+/** Reserved id of the singleton package node that hosts package-level annotations. */
+export const PACKAGE_NODE_ID = "package";

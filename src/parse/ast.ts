@@ -15,6 +15,8 @@ export enum DeclKind {
   Concept,
   Instance,
   Model,
+  Annotation,
+  Package,
 }
 
 export enum ValueKind {
@@ -107,6 +109,30 @@ export interface ModelDecl {
   librarySpans?: SourceSpan[];
 }
 
+export interface AnnotationApplication {
+  /** The annotation being applied. */
+  name: string;
+  /** Fixed `param = value` param assignments. */
+  assignments: AssignmentNode[];
+  span: SourceSpan;
+  nameSpan?: SourceSpan;
+}
+
+export interface AnnotationDecl {
+  kind: DeclKind.Annotation;
+  name: string;
+  /** Typed params, reusing FieldDecl (name / type / cardinality). */
+  params: FieldDecl[];
+  span: SourceSpan;
+  nameSpan?: SourceSpan;
+}
+
+export interface PackageDecl {
+  kind: DeclKind.Package;
+  annotations: AnnotationApplication[];
+  span: SourceSpan;
+}
+
 export interface FieldDecl {
   name: string;
   type: string;
@@ -137,6 +163,7 @@ export interface ConceptDecl {
   fields: FieldDecl[];
   relationships: RelationshipDecl[];
   invariants: InvariantDecl[];
+  annotations: AnnotationApplication[];
   span: SourceSpan;
   /** Span of the `extends` parent identifier (`: <parent>`), when present. */
   extendsSpan?: SourceSpan;
@@ -184,7 +211,9 @@ export interface PrimitiveDecl {
   nameSpan?: SourceSpan;
 }
 
-export type Declaration = ConceptDecl | TaxonomyDecl | PrimitiveDecl | InstanceDecl | ModelDecl;
+export type Declaration =
+  | ConceptDecl | TaxonomyDecl | PrimitiveDecl | InstanceDecl | ModelDecl
+  | AnnotationDecl | PackageDecl;
 
 export interface NamespaceNode {
   path: string;
