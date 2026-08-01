@@ -23,10 +23,12 @@ import {
   type Declaration,
   type InstanceDecl,
   type ModelDecl,
+  type AnnotationApplication,
   type Term,
   type ValueNode,
   type AssignmentNode,
 } from "./ast.js";
+import { PACKAGE_NODE_ID } from "../model/kinds.js";
 import type { NodeId, Scalar } from "../model/graph.js";
 import type { SourceFile, SourceSpan } from "../diagnostics/span.js";
 import { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagnostic.js";
@@ -151,9 +153,13 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
       case DeclKind.Concept:
         first.defineConcept(declaration.name, declaration.extends);
         break;
+      case DeclKind.Annotation:
+        first.defineAnnotation(declaration.name);
+        break;
       case DeclKind.Instance:
       case DeclKind.Model:
-        break; // staged in pass 2b
+      case DeclKind.Package:
+        break; // instances/models staged in pass 2b; package applications in the applications pass
     }
   }
   const undefinedIds = new Set<string>();
@@ -176,6 +182,11 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
   const second = model.builder();
   const invariants: PendingInvariant[] = [];
   for (const { ns, decl: declaration } of units) {
+    if (declaration.kind === DeclKind.Annotation) {
+      second.setNamespace(ns);
+      for (const p of declaration.params) second.addField(declaration.name, p.name, p.type, p.cardinality);
+      continue;
+    }
     if (declaration.kind !== DeclKind.Concept) continue;
     second.setNamespace(ns);
     for (const field of declaration.fields) {
@@ -216,6 +227,24 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
   }
   third.commit(undefinedIds);
 
+  // Applications pass: annotation applications on concepts + package. Runs after
+  // member schemas are committed. A duplicate `<target>@<Ann>` is diagnosed and
+  // skipped (the builder would throw on the duplicate node id).
+  const fourth = model.builder();
+  const seenApps = new Set<string>();
+  let packageStaged = false;
+  for (const { ns, decl } of units) {
+    if (decl.kind === DeclKind.Concept) {
+      fourth.setNamespace(ns);
+      stageApplications(fourth, model, decl.name, decl.annotations, seenApps, diagnostics);
+    } else if (decl.kind === DeclKind.Package) {
+      fourth.setNamespace(ns);
+      if (!packageStaged) { fourth.definePackageNode(PACKAGE_NODE_ID); packageStaged = true; }
+      stageApplications(fourth, model, PACKAGE_NODE_ID, decl.annotations, seenApps, diagnostics);
+    }
+  }
+  fourth.commit(undefinedIds);
+
   for (const invariant of invariants) {
     model.defineInvariant(invariant.concept, invariant.expr, invariant.description);
   }
@@ -254,6 +283,11 @@ function recordSpans(model: Repository, declarations: Declaration[]): void {
         );
         for (const inst of declaration.instances) recordInstanceSpans(model, inst);
         break;
+      case DeclKind.Annotation:
+        model.recordSpan(declaration.name, declaration.span);
+        break;
+      case DeclKind.Package:
+        break; // application spans are recorded during the applications pass
     }
   }
 }
@@ -307,6 +341,9 @@ function collectNames(declaration: Declaration, defined: Set<string>, sites: Ref
           path: null,
         });
       }
+      for (const app of declaration.annotations) {
+        sites.push({ id: app.name, span: app.nameSpan ?? app.span, node: `${declaration.name}@${app.name}`, path: null });
+      }
       break;
     case DeclKind.Instance:
       collectInstanceNames(declaration, defined, sites);
@@ -314,6 +351,14 @@ function collectNames(declaration: Declaration, defined: Set<string>, sites: Ref
     case DeclKind.Model:
       defined.add(declaration.id);
       for (const inst of declaration.instances) collectInstanceNames(inst, defined, sites);
+      break;
+    case DeclKind.Annotation:
+      defined.add(declaration.name);
+      break;
+    case DeclKind.Package:
+      for (const app of declaration.annotations) {
+        sites.push({ id: app.name, span: app.nameSpan ?? app.span, node: `${PACKAGE_NODE_ID}@${app.name}`, path: null });
+      }
       break;
   }
 }
@@ -432,6 +477,39 @@ function flagOrphans(decl: InstanceDecl, diagnostics: Diagnostic[]): void {
     node: decl.id,
     path: null,
   });
+}
+
+/**
+ * Stage each annotation application on `target` as `<target>@<name>` (typed by
+ * the annotation) plus its scalar param attrs. A repeated application on the same
+ * target is diagnosed (`annotation.duplicate`) and skipped — the first wins.
+ */
+function stageApplications(
+  builder: Builder,
+  model: Repository,
+  target: string,
+  apps: readonly AnnotationApplication[],
+  seen: Set<string>,
+  diagnostics: Diagnostic[],
+): void {
+  for (const app of apps) {
+    const appId = `${target}@${app.name}`;
+    if (seen.has(appId)) {
+      diagnostics.push({
+        code: DiagnosticCode.AnnotationDuplicate,
+        severity: Severity.Error,
+        message: `annotation "${app.name}" is already applied to "${target}"`,
+        span: app.nameSpan ?? app.span,
+        node: appId,
+        path: null,
+      });
+      continue;
+    }
+    seen.add(appId);
+    builder.annotate(target, app.name);
+    model.recordSpan(appId, app.span);
+    for (const a of app.assignments) applyValue(builder, appId, a.name, a.value);
+  }
 }
 
 /** Stage a model container node and its contained objects (rooted via Contains). */
