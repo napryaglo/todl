@@ -25,6 +25,9 @@ import {
   type TaxonomyDecl,
   type InstanceDecl,
   type ModelDecl,
+  type AnnotationDecl,
+  type AnnotationApplication,
+  type PackageDecl,
   type AssignmentNode,
   type ValueNode,
 } from "./ast.js";
@@ -168,6 +171,8 @@ class Parser {
     if (this.checkKeyword("taxonomy")) return this.parseTaxonomy(start);
     if (this.checkKeyword("concept")) return this.parseConcept(start);
     if (this.checkKeyword("model")) return this.parseModel(start);
+    if (this.checkKeyword("annotation")) return this.parseAnnotation(start);
+    if (this.checkKeyword("package")) return this.parsePackage(start);
     if (this.checkKeyword("class")) {
       this.advance(); // class modifier
       return this.parseInstanceFrom(this.expectIdentifier(), start, true);
@@ -274,6 +279,62 @@ class Parser {
     decl.metaModelSpan = tokenSpan(metaTok, this.uri);
     if (librarySpans.length > 0) decl.librarySpans = librarySpans;
     return decl;
+  }
+
+  /** `annotation <Name> { <param> : <type><card>; … }` — typed param fields. */
+  private parseAnnotation(start: Token): AnnotationDecl {
+    this.expectKeyword("annotation");
+    const nameTok = this.expect(TokenKind.Identifier);
+    const params: FieldDecl[] = [];
+    this.expect(TokenKind.LBrace);
+    while (!this.check(TokenKind.RBrace)) {
+      const pNameTok = this.expect(TokenKind.Identifier);
+      this.expect(TokenKind.Colon);
+      const typeTok = this.expect(TokenKind.Identifier);
+      const cardinality = this.parseCardinality();
+      this.expect(TokenKind.Semicolon);
+      params.push({
+        name: pNameTok.value, type: typeTok.value, cardinality,
+        nameSpan: tokenSpan(pNameTok, this.uri), typeSpan: tokenSpan(typeTok, this.uri),
+      });
+    }
+    this.expect(TokenKind.RBrace);
+    const decl: AnnotationDecl = { kind: DeclKind.Annotation, name: nameTok.value, params, span: this.spanFrom(start) };
+    decl.nameSpan = tokenSpan(nameTok, this.uri);
+    return decl;
+  }
+
+  /** `annotate <Name> { <param> = <value>; … }` — an application (concept or package body). */
+  private parseAnnotationApplication(start: Token): AnnotationApplication {
+    this.expectKeyword("annotate");
+    const nameTok = this.expect(TokenKind.Identifier);
+    const assignments: AssignmentNode[] = [];
+    this.expect(TokenKind.LBrace);
+    while (!this.check(TokenKind.RBrace)) {
+      const aStart = this.startToken();
+      const pName = this.expect(TokenKind.Identifier).value;
+      this.expect(TokenKind.Equals);
+      const value = this.parseValue();
+      this.expect(TokenKind.Semicolon);
+      assignments.push({ name: pName, value, span: this.spanFrom(aStart) });
+    }
+    this.expect(TokenKind.RBrace);
+    const app: AnnotationApplication = { name: nameTok.value, assignments, span: this.spanFrom(start) };
+    app.nameSpan = tokenSpan(nameTok, this.uri);
+    return app;
+  }
+
+  /** `package { annotate … }` — a block of package-level applications. */
+  private parsePackage(start: Token): PackageDecl {
+    this.expectKeyword("package");
+    const annotations: AnnotationApplication[] = [];
+    this.expect(TokenKind.LBrace);
+    while (!this.check(TokenKind.RBrace)) {
+      if (!this.checkKeyword("annotate")) throw this.error(`expected "annotate" in a package block`);
+      annotations.push(this.parseAnnotationApplication(this.startToken()));
+    }
+    this.expect(TokenKind.RBrace);
+    return { kind: DeclKind.Package, annotations, span: this.spanFrom(start) };
   }
 
   /**
@@ -498,6 +559,7 @@ class Parser {
     const fields: FieldDecl[] = [];
     const relationships: RelationshipDecl[] = [];
     const invariants: InvariantDecl[] = [];
+    const annotations: AnnotationApplication[] = [];
 
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
@@ -505,6 +567,8 @@ class Parser {
         relationships.push(this.parseRelationship());
       } else if (this.checkKeyword("invariant")) {
         invariants.push(this.parseInvariant());
+      } else if (this.checkKeyword("annotate")) {
+        annotations.push(this.parseAnnotationApplication(this.startToken()));
       } else if (this.checkKeyword("authoring")) {
         // Doc-only authoring-form blocks (`authoring list-form { … }`) carry no
         // schema; skip them.
@@ -537,7 +601,7 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    const decl: ConceptDecl = { kind: DeclKind.Concept, name, extends: extendsName, description, fields, relationships, invariants, span: this.spanFrom(start) };
+    const decl: ConceptDecl = { kind: DeclKind.Concept, name, extends: extendsName, description, fields, relationships, invariants, annotations, span: this.spanFrom(start) };
     if (extendsSpan !== undefined) decl.extendsSpan = extendsSpan;
     decl.nameSpan = tokenSpan(nameTok, this.uri);
     return decl;
