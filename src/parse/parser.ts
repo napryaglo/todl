@@ -430,6 +430,15 @@ class Parser {
       return { kind: ValueKind.List, items };
     }
     if (this.check(TokenKind.Identifier)) {
+      // `true` / `false` are reserved boolean literals — a bare one is always a
+      // boolean value (not a name/relationship). A dotted or `|`-composed use
+      // (`x.true`, `a | true`) keeps the identifier path below.
+      const word = this.current().value;
+      if ((word === "true" || word === "false")
+          && this.peekKind(1) !== TokenKind.Dot && this.peekKind(1) !== TokenKind.Pipe) {
+        this.advance();
+        return { kind: ValueKind.Boolean, value: word === "true" };
+      }
       const first = this.advance().value;
       if (this.check(TokenKind.Pipe)) {
         const parts = [first];

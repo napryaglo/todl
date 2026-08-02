@@ -184,6 +184,9 @@ namespace acme.ea.model
 - **Strings**: `"single line"`; **raw / multi-line** triple-quoted `"""…"""`
   (keeps newlines — used for `description` prose).
 - **Numbers**: bare integers (`order = 1;`).
+- **Booleans**: the reserved literals `true` / `false` (`visible = true;`). A bare
+  `true` / `false` is always a boolean value; a `boolean`-typed field or param
+  given a non-boolean is `type.boolean-invalid`.
 - **References**: `&name` or `&dotted.path` — the `&` sigil points at another
   record. `@` and `$` are reserved for Mural and are errors in `.todl`.
 - **Terminators**: every statement ends in `;`. Blocks are `{ … }`, lists are
@@ -482,6 +485,8 @@ the offending `node`, and a concept-qualified member `path`.
 
 - `relationship.target-type` — a relationship value isn't the target concept
   (or a subtype of it).
+- `type.boolean-invalid` — a `boolean`-typed field or param got a non-boolean
+  value (something other than `true` / `false`).
 - `invariant.failed` — an instance violates a concept invariant.
 
 **Classes & taxonomies**

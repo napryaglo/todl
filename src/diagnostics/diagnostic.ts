@@ -17,6 +17,7 @@ export enum DiagnosticCode {
   TooMany = "cardinality.too-many",
   EmptyNotAllowed = "cardinality.empty-not-allowed",
   TargetTypeMismatch = "relationship.target-type",
+  BooleanValueInvalid = "type.boolean-invalid",
   InvariantFailed = "invariant.failed",
   // Class + taxonomy phase.
   ClassOverride = "class.override",
