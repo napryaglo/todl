@@ -1,6 +1,6 @@
 {
   "name": "@pragmatic-lab/todl",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Typed substrate for authoring and reasoning over ontologies and taxonomies",
   "type": "module",
   "main": "dist/index.js",
@@ -43,7 +43,8 @@
     "test": "tsx --conditions=development --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "engines": {
     "node": ">=20"
