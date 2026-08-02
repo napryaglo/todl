@@ -25,11 +25,18 @@ export enum ValueKind {
   Ref,
   List,
   Composite,
+  Boolean,
 }
 
 export interface StringValue {
   kind: ValueKind.String;
   text: string;
+}
+
+/** A boolean literal — the reserved words `true` / `false`. */
+export interface BooleanValue {
+  kind: ValueKind.Boolean;
+  value: boolean;
 }
 
 /** A bare identifier value — an enum member (`service`). */
@@ -62,7 +69,8 @@ export type ValueNode =
   | NameValue
   | RefValue
   | ListValue
-  | CompositeValue;
+  | CompositeValue
+  | BooleanValue;
 
 export interface AssignmentNode {
   name: string;
