@@ -407,6 +407,7 @@ function termAttrs(assignments: AssignmentNode[]): Map<string, Scalar> {
   for (const assignment of assignments) {
     const value = assignment.value;
     if (value.kind === ValueKind.String) attrs.set(assignment.name, value.text);
+    else if (value.kind === ValueKind.Boolean) attrs.set(assignment.name, value.value);
     else if (value.kind === ValueKind.Name) attrs.set(assignment.name, value.name);
     else if (value.kind === ValueKind.Composite) attrs.set(assignment.name, value.parts.join(" | "));
   }
@@ -660,6 +661,9 @@ function applyValue(builder: Builder, id: string, name: string, value: ValueNode
   switch (value.kind) {
     case ValueKind.String:
       builder.setField(id, name, value.text);
+      break;
+    case ValueKind.Boolean:
+      builder.setField(id, name, value.value);
       break;
     case ValueKind.Name:
       builder.addRelationship(id, name, value.name);
