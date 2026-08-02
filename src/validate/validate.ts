@@ -10,7 +10,7 @@
  * instance) is counted over the merged class+leaf view.
  */
 
-import { Tier, EdgeKind, Direction, Cardinality, type NodeId, type Node } from "../model/graph.js";
+import { Tier, EdgeKind, Direction, Cardinality, type NodeId, type Node, type Scalar } from "../model/graph.js";
 import { MetaKind } from "../model/kinds.js";
 import { Repository, type FieldSchema, type RelationshipSchema } from "../model/model.js";
 import { satisfies } from "../predicate/evaluate.js";
@@ -162,6 +162,7 @@ function validateAnnotationApplication(out: Diagnostic[], model: Repository, nod
         path: null,
       });
     }
+    checkBooleanValue(out, model, node, f, node.attrs);
   }
 }
 
@@ -182,6 +183,7 @@ function validateInstance(out: Diagnostic[], model: Repository, node: Node): voi
     const count = (effAttrs.has(field.name) ? 1 : 0) + targets.length;
     checkCardinality(out, model, node, field.name, field.cardinality, count, partial);
     checkTaxonomyValue(out, model, node, field, targets);
+    checkBooleanValue(out, model, node, field, effAttrs);
   }
   for (const relationship of schema.relationships) {
     const targets = targetsFor(relationship.name);
@@ -255,6 +257,30 @@ function checkTaxonomyValue(
       );
     }
   }
+}
+
+/** A `boolean`-typed field/param must carry a boolean value (`true`/`false`),
+ * not a string, number, or bare name. Absence is a cardinality concern. */
+function checkBooleanValue(
+  out: Diagnostic[],
+  model: Repository,
+  node: Node,
+  field: FieldSchema,
+  attrs: ReadonlyMap<string, Scalar>,
+): void {
+  if (field.type !== "boolean") return;
+  const v = attrs.get(field.name);
+  if (v === undefined || typeof v === "boolean") return;
+  const path = `${node.typeOf}.${field.name}`;
+  out.push(
+    error(
+      DiagnosticCode.BooleanValueInvalid,
+      node.id,
+      path,
+      `"${path}" expects a boolean (true or false) but got "${String(v)}"`,
+      spanFor(model, node.id, field.name),
+    ),
+  );
 }
 
 /** `instanceof X` requires X to exist, be a class, and share the leaf's concept. */
