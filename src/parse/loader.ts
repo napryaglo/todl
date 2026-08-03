@@ -43,6 +43,10 @@ interface RefSite {
   span: SourceSpan | null;
   node: NodeId | null;
   path: string | null;
+  /** Set for a reference inside a term body: the enclosing taxonomy and its
+   * `uses` list, plus a hook that rewrites the AST value to the resolved
+   * qualified id so downstream passes point at the real term node. */
+  scope?: { taxonomy: string; uses: readonly string[]; rewrite: (id: string) => void };
 }
 
 interface PendingInvariant {
@@ -110,14 +114,53 @@ export function loadInto(
   const sites: RefSite[] = [];
   for (const declaration of declarations) collectNames(declaration, defined, sites);
 
+  // Resolve references BEFORE Pass 1 — Pass 1's defineTaxonomy reads term value
+  // refs (termRelationships/termAttrs), so any taxonomy-scoped rewrite must be
+  // applied first. A bare ref inside a term body resolves against the enclosing
+  // taxonomy's own terms (sibling), then its `uses` list; on a match the AST
+  // value node is rewritten in place to the qualified id. Everything else keeps
+  // today's bare check. Any id still unresolved is reference.undefined and its
+  // edges are dropped by Builder.commit (via undefinedIds).
+  const undefinedIds = new Set<string>();
+  const has = (id: string): boolean => defined.has(id) || model.has(id);
+  for (const site of sites) {
+    if (has(site.id)) continue; // resolves as written
+    if (site.scope !== undefined) {
+      const sibling = `${site.scope.taxonomy}.${site.id}`;
+      if (has(sibling)) { site.scope.rewrite(sibling); continue; } // sibling shadows uses
+      const matches = site.scope.uses.map((u) => `${u}.${site.id}`).filter(has);
+      if (matches.length === 1) { site.scope.rewrite(matches[0]!); continue; }
+      if (matches.length > 1) {
+        diagnostics.push({
+          code: DiagnosticCode.TaxonomyAmbiguousBareReference,
+          severity: Severity.Error,
+          message: `bare reference "${site.id}" is defined by more than one used taxonomy (${matches.join(", ")}); qualify it`,
+          span: site.span,
+          node: site.node,
+          path: site.path,
+        });
+        continue;
+      }
+    }
+    undefinedIds.add(site.id);
+    diagnostics.push({
+      code: DiagnosticCode.ReferenceUndefined,
+      severity: Severity.Error,
+      message: `reference to undefined symbol "${site.id}"`,
+      span: site.span,
+      node: site.node,
+      path: site.path,
+    });
+  }
+
   // Composition records nested in a taxonomy term (a `billing` record inside a
   // `technology` term) — deferred to pass 2b so they can bind to the term's
   // field once concept schemas are committed.
   const deferredCompositions: { ns: string; parentId: string; parentConcept: string; decl: InstanceDecl }[] = [];
 
-  // Pass 1: bare type declarations. After all names are collected, any referenced
-  // id absent from both the new sources and the existing model emits a
-  // reference.undefined diagnostic and its edges are skipped by Builder.commit.
+  // Pass 1: bare type declarations. Any referenced id absent from both the new
+  // sources and the existing model was flagged above and its edges are skipped
+  // by Builder.commit.
   const first = model.builder();
   for (const { ns, decl: declaration } of units) {
     first.setNamespace(ns);
@@ -199,19 +242,6 @@ export function loadInto(
       case DeclKind.Package:
         break; // instances/models staged in pass 2b; package applications in the applications pass
     }
-  }
-  const undefinedIds = new Set<string>();
-  for (const site of sites) {
-    if (defined.has(site.id) || model.has(site.id)) continue;
-    undefinedIds.add(site.id);
-    diagnostics.push({
-      code: DiagnosticCode.ReferenceUndefined,
-      severity: Severity.Error,
-      message: `reference to undefined symbol "${site.id}"`,
-      span: site.span,
-      node: site.node,
-      path: site.path,
-    });
   }
   first.commit(undefinedIds);
 
@@ -380,10 +410,11 @@ function collectNames(declaration: Declaration, defined: Set<string>, sites: Ref
       for (const app of declaration.annotations) {
         sites.push({ id: app.name, span: app.nameSpan ?? app.span, node: `${declaration.name}@${app.name}`, path: null });
       }
+      const scope = { taxonomy: declaration.name, uses: declaration.uses };
       const add = (t: Term): void => {
         defined.add(`${declaration.name}.${t.id}`);
         for (const assignment of t.assignments) {
-          collectValueRefs(assignment.value, sites, `${declaration.name}.${t.id}`, assignment.name, assignment.span ?? null);
+          collectValueRefs(assignment.value, sites, `${declaration.name}.${t.id}`, assignment.name, assignment.span ?? null, scope);
         }
         t.children.forEach(add);
       };
@@ -489,16 +520,29 @@ function termToInstanceDecl(taxonomy: string, t: Term): InstanceDecl {
   };
 }
 
-function collectValueRefs(value: ValueNode, sites: RefSite[], ownerNode: NodeId, memberName: string, memberSpan: SourceSpan | null): void {
+function collectValueRefs(
+  value: ValueNode,
+  sites: RefSite[],
+  ownerNode: NodeId,
+  memberName: string,
+  memberSpan: SourceSpan | null,
+  scope?: { taxonomy: string; uses: readonly string[] },
+): void {
   switch (value.kind) {
     case ValueKind.Ref:
-      sites.push({ id: value.ref, span: value.span ?? memberSpan ?? null, node: ownerNode, path: memberName });
+      sites.push({
+        id: value.ref, span: value.span ?? memberSpan ?? null, node: ownerNode, path: memberName,
+        ...(scope ? { scope: { ...scope, rewrite: (r) => { (value as { ref: string }).ref = r; } } } : {}),
+      });
       break;
     case ValueKind.Name:
-      sites.push({ id: value.name, span: memberSpan ?? null, node: ownerNode, path: memberName });
+      sites.push({
+        id: value.name, span: memberSpan ?? null, node: ownerNode, path: memberName,
+        ...(scope ? { scope: { ...scope, rewrite: (r) => { (value as { name: string }).name = r; } } } : {}),
+      });
       break;
     case ValueKind.List:
-      for (const item of value.items) collectValueRefs(item, sites, ownerNode, memberName, memberSpan);
+      for (const item of value.items) collectValueRefs(item, sites, ownerNode, memberName, memberSpan, scope);
       break;
     case ValueKind.String:
     case ValueKind.Composite:

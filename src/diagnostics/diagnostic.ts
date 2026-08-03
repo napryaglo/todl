@@ -30,6 +30,8 @@ export enum DiagnosticCode {
   AmbiguousFieldBinding = "instance.ambiguous-field-binding",
   // Reference-resolution phase.
   ReferenceUndefined = "reference.undefined",
+  // Taxonomy bare-reference resolution.
+  TaxonomyAmbiguousBareReference = "taxonomy.ambiguous-bare-reference",
   // Model phase.
   InstanceOrphan = "instance.orphan",
   ModelBindingUndefined = "model.binding-undefined",
