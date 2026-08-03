@@ -150,9 +150,16 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
         first.defineTaxonomy(decl.name, decl.represents, decl.terms.map((t) => buildTerm(t, t.concept ?? primary)));
         break;
       }
-      case DeclKind.Concept:
-        first.defineConcept(declaration.name, declaration.extends);
+      case DeclKind.Concept: {
+        // A parent-less concept implicitly extends the prelude root `element`
+        // (when it is in scope). `element` itself, and a raw `load` with no
+        // prelude base, keep their declared (null) parent. The synthetic parent
+        // is a base node, so it never yields a reference.undefined.
+        const parent = declaration.extends
+          ?? (declaration.name !== "element" && model.has("element") ? "element" : null);
+        first.defineConcept(declaration.name, parent);
         break;
+      }
       case DeclKind.Annotation:
         first.defineAnnotation(declaration.name);
         break;
