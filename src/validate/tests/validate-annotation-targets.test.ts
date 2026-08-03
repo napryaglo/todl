@@ -5,7 +5,7 @@ import { DiagnosticCode } from "../../diagnostics/diagnostic.js";
 
 const BASE = `namespace tech {
   concept actor { label : string; }
-  annotation icon { path : string; }
+  annotation badge { path : string; }
   taxonomy actors : represents actor { `;
 
 function codes(termBody: string): DiagnosticCode[] {
@@ -16,11 +16,11 @@ function codes(termBody: string): DiagnosticCode[] {
 test("the motivating fixture compiles clean", () => {
   const src = `namespace tech {
     concept actor { label : string; }
-    annotation icon { path : string; }
+    annotation badge { path : string; }
     taxonomy actors : represents actor {
       term internal {
         label = "Internal";
-        annotate icon { path = "resources/ai_agent.svg"; }
+        annotate badge { path = "resources/ai_agent.svg"; }
       }
     }
   }`;
@@ -30,9 +30,9 @@ test("the motivating fixture compiles clean", () => {
 test("a taxonomy-level annotation compiles clean", () => {
   const src = `namespace tech {
     concept actor { label : string; }
-    annotation icon { path : string; }
+    annotation badge { path : string; }
     taxonomy actors : represents actor {
-      annotate icon { path = "resources/actors.svg"; }
+      annotate badge { path = "resources/actors.svg"; }
       term internal { label = "Internal"; }
     }
   }`;
@@ -42,9 +42,9 @@ test("a taxonomy-level annotation compiles clean", () => {
 test("an unknown param on a taxonomy-level annotation is annotation.unknown-param", () => {
   const src = `namespace tech {
     concept actor { label : string; }
-    annotation icon { path : string; }
+    annotation badge { path : string; }
     taxonomy actors : represents actor {
-      annotate icon { bogus = "x"; }
+      annotate badge { bogus = "x"; }
       term internal { label = "Internal"; }
     }
   }`;
@@ -52,16 +52,16 @@ test("an unknown param on a taxonomy-level annotation is annotation.unknown-para
 });
 
 test("an unknown param on a term annotation is annotation.unknown-param", () => {
-  assert.ok(codes(`annotate icon { bogus = "x"; }`).includes(DiagnosticCode.AnnotationUnknownParam));
+  assert.ok(codes(`annotate badge { bogus = "x"; }`).includes(DiagnosticCode.AnnotationUnknownParam));
 });
 
 test("a missing required param on a term annotation is cardinality.required-missing", () => {
-  assert.ok(codes(`annotate icon { }`).includes(DiagnosticCode.RequiredMissing));
+  assert.ok(codes(`annotate badge { }`).includes(DiagnosticCode.RequiredMissing));
 });
 
 test("a duplicate term annotation is annotation.duplicate", () => {
   assert.ok(
-    codes(`annotate icon { path = "a"; } annotate icon { path = "b"; }`)
+    codes(`annotate badge { path = "a"; } annotate badge { path = "b"; }`)
       .includes(DiagnosticCode.AnnotationDuplicate),
   );
 });

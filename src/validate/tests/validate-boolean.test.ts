@@ -10,9 +10,9 @@ function codes(text: string): DiagnosticCode[] {
 test("a boolean annotation param accepting true/false compiles clean", () => {
   assert.deepEqual(codes(`namespace tech {
     concept actor { label : string; }
-    annotation toolbox { visible : boolean; }
+    annotation shelf { visible : boolean; }
     taxonomy actors : represents actor {
-      annotate toolbox { visible = true; }
+      annotate shelf { visible = true; }
       term internal { label = "Internal"; }
     }
   }`), []);
@@ -21,9 +21,9 @@ test("a boolean annotation param accepting true/false compiles clean", () => {
 test("a string on a boolean param is type.boolean-invalid", () => {
   assert.ok(codes(`namespace tech {
     concept actor { label : string; }
-    annotation toolbox { visible : boolean; }
+    annotation shelf { visible : boolean; }
     taxonomy actors : represents actor {
-      annotate toolbox { visible = "yes"; }
+      annotate shelf { visible = "yes"; }
       term internal { label = "Internal"; }
     }
   }`).includes(DiagnosticCode.BooleanValueInvalid));

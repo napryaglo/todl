@@ -1,15 +1,19 @@
-import { load, loadInto } from "./parse/loader.js";
+import { loadInto } from "./parse/loader.js";
 import { validate } from "./validate/validate.js";
 import { Graph, Tier, EdgeKind } from "./model/graph.js";
 import { Repository } from "./model/model.js";
 import type { TodlDocument } from "./emit/json.js";
 import type { SourceFile } from "./diagnostics/span.js";
 import type { Diagnostic } from "./diagnostics/diagnostic.js";
+import { preludeDocument } from "./stdlib/prelude.js";
 
-/** Load the sources and validate the result; every diagnostic is spanned. */
+/**
+ * Load the sources and validate the result; every diagnostic is spanned. The
+ * default library (prelude) is injected as the implicit foundation base, so
+ * standard names (`identifier`, `icon`, `element`, …) resolve everywhere.
+ */
 export function check(sources: SourceFile[]): { model: Repository; diagnostics: Diagnostic[] } {
-  const { model, diagnostics } = load(sources);
-  return { model, diagnostics: [...diagnostics, ...validate(model)] };
+  return checkAgainst([], sources);
 }
 
 /**
@@ -22,7 +26,7 @@ export function checkAgainst(
   bases: TodlDocument[],
   sources: SourceFile[],
 ): { model: Repository; diagnostics: Diagnostic[] } {
-  const model = new Repository(mergeBases(bases));
+  const model = new Repository(mergeBases([preludeDocument(), ...bases]));
   const diagnostics = loadInto(model, sources);
   return { model, diagnostics: [...diagnostics, ...validate(model)] };
 }

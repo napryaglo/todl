@@ -3,12 +3,12 @@ import assert from "node:assert/strict";
 import { check, toJSON } from "@pragmatic-lab/todl";
 import { startServer, pushedInit } from "./harness.js";
 
-// Compile a base model defining `element` with a REQUIRED `label` field. The
+// Compile a base model defining `record` with a REQUIRED `label` field. The
 // base's schema is what makes an instance missing `label` an error — proving the
 // pushed base actually reached the analysis (an unresolved reference would emit a
 // reference.undefined diagnostic, not the cardinality diagnostic checked here).
 function baseDoc(): unknown {
-  const { model } = check([{ uri: "base.todl", text: "namespace base {\n  concept element { label : string; }\n}" }]);
+  const { model } = check([{ uri: "base.todl", text: "namespace base {\n  concept record { label : string; }\n}" }]);
   return toJSON(model);
 }
 
@@ -26,10 +26,10 @@ test("a pushed base's schema drives validation (required field from the base)", 
   client.sendNotification("initialized", {});
   client.sendNotification("todl/setBases", { rootUri: "todl://p/", bases: [baseDoc()] });
   const diag = waitDiag(client, "todl://p/m.todl");
-  // An `element` instance missing the base-declared required `label`.
+  // An `record` instance missing the base-declared required `label`.
   client.sendNotification("textDocument/didOpen", { textDocument: {
     uri: "todl://p/m.todl", languageId: "todl", version: 1,
-    text: "namespace m {\n  element e { }\n}",
+    text: "namespace m {\n  record e { }\n}",
   } });
   const diagnostics = await diag;
   assert.ok(diagnostics.length >= 1);
