@@ -5,7 +5,7 @@ import { Repository } from "./model/model.js";
 import type { TodlDocument } from "./emit/json.js";
 import type { SourceFile } from "./diagnostics/span.js";
 import type { Diagnostic } from "./diagnostics/diagnostic.js";
-import { preludeDocument } from "./stdlib/prelude.js";
+import { preludeDocument, preludeNames } from "./stdlib/prelude.js";
 
 /**
  * Load the sources and validate the result; every diagnostic is spanned. The
@@ -27,7 +27,7 @@ export function checkAgainst(
   sources: SourceFile[],
 ): { model: Repository; diagnostics: Diagnostic[] } {
   const model = new Repository(mergeBases([preludeDocument(), ...bases]));
-  const diagnostics = loadInto(model, sources);
+  const diagnostics = loadInto(model, sources, preludeNames());
   return { model, diagnostics: [...diagnostics, ...validate(model)] };
 }
 

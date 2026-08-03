@@ -61,7 +61,11 @@ export function load(sources: SourceFile[]): LoadResult {
 // a prior compile — see checkAgainst). Same 3-pass pipeline as a fresh load. A
 // reference that resolves to a node already in `model` is not reported undefined.
 // Returns the accumulated diagnostics; the caller owns the model.
-export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[] {
+export function loadInto(
+  model: Repository,
+  sources: SourceFile[],
+  reserved: ReadonlySet<string> = new Set(),
+): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   const units: { ns: string; decl: Declaration }[] = [];
   for (const source of sources) {
@@ -71,6 +75,33 @@ export function loadInto(model: Repository, sources: SourceFile[]): Diagnostic[]
       units.push({ ns: result.namespace.path, decl });
     }
   }
+
+  // A source that redeclares a name the default library (prelude) already
+  // provides is warned and DROPPED — the prelude wins (it is the foundation
+  // base), and re-defining the same node id would otherwise make the builder
+  // throw on the duplicate. Named ontology declarations carry `.name` + `.span`.
+  const active = units.filter(({ decl }) => {
+    const named =
+      decl.kind === DeclKind.Primitive ||
+      decl.kind === DeclKind.Concept ||
+      decl.kind === DeclKind.Annotation ||
+      decl.kind === DeclKind.Taxonomy;
+    if (reserved.size > 0 && named && reserved.has(decl.name)) {
+      diagnostics.push({
+        code: DiagnosticCode.PreludeNameRedeclared,
+        severity: Severity.Warning,
+        message: `"${decl.name}" is provided by the default library; remove the local declaration`,
+        span: decl.span,
+        node: decl.name,
+        path: null,
+      });
+      return false;
+    }
+    return true;
+  });
+  units.length = 0;
+  units.push(...active);
+
   const declarations = units.map((u) => u.decl);
 
   detectOrphans(declarations, diagnostics);

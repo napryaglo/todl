@@ -34,6 +34,8 @@ export enum DiagnosticCode {
   InstanceOrphan = "instance.orphan",
   ModelBindingUndefined = "model.binding-undefined",
   ConstructorOutOfScope = "constructor.out-of-scope",
+  // Prelude (default library) phase.
+  PreludeNameRedeclared = "prelude.name-redeclared",
   // Annotation phase.
   AnnotationDuplicate = "annotation.duplicate",
   AnnotationUnknownParam = "annotation.unknown-param",
