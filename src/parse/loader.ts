@@ -28,7 +28,7 @@ import {
   type ValueNode,
   type AssignmentNode,
 } from "./ast.js";
-import { PACKAGE_NODE_ID } from "../model/kinds.js";
+import { PACKAGE_NODE_ID, MetaKind } from "../model/kinds.js";
 import type { NodeId, Scalar } from "../model/graph.js";
 import type { SourceFile, SourceSpan } from "../diagnostics/span.js";
 import { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagnostic.js";
@@ -150,6 +150,27 @@ export function loadInto(
       span: site.span,
       node: site.node,
       path: site.path,
+    });
+  }
+
+  // Validate `uses` targets: each must name a known taxonomy (a source
+  // declaration or a base node typed taxonomy). Unknown names, or names that
+  // resolve to a non-taxonomy, are diagnosed — mirroring model.binding-undefined.
+  const taxonomyNames = new Set<string>();
+  for (const decl of declarations) if (decl.kind === DeclKind.Taxonomy) taxonomyNames.add(decl.name);
+  for (const n of model.allNodes()) if (n.typeOf === MetaKind.Taxonomy) taxonomyNames.add(n.id);
+  for (const { decl } of units) {
+    if (decl.kind !== DeclKind.Taxonomy) continue;
+    decl.uses.forEach((u, i) => {
+      if (taxonomyNames.has(u)) return;
+      diagnostics.push({
+        code: DiagnosticCode.TaxonomyUsesUndefined,
+        severity: Severity.Error,
+        message: `taxonomy "${decl.name}" uses "${u}", which is not a known taxonomy`,
+        span: decl.usesSpans?.[i] ?? decl.span,
+        node: decl.name,
+        path: null,
+      });
     });
   }
 

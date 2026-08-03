@@ -32,6 +32,7 @@ export enum DiagnosticCode {
   ReferenceUndefined = "reference.undefined",
   // Taxonomy bare-reference resolution.
   TaxonomyAmbiguousBareReference = "taxonomy.ambiguous-bare-reference",
+  TaxonomyUsesUndefined = "taxonomy.uses-undefined",
   // Model phase.
   InstanceOrphan = "instance.orphan",
   ModelBindingUndefined = "model.binding-undefined",
