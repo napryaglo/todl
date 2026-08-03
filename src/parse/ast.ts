@@ -211,6 +211,11 @@ export interface TaxonomyDecl {
   /** `annotate` applications on the taxonomy itself (decorate the taxonomy
    * node, e.g. a taxonomy-wide icon), distinct from its terms' annotations. */
   annotations: AnnotationApplication[];
+  /** The `uses <tax>, …` list of other taxonomies whose terms are in bare
+   * scope for this taxonomy's term-body references; empty when omitted. */
+  uses: string[];
+  /** Span of each `uses` target identifier, parallel to `uses`. */
+  usesSpans?: SourceSpan[];
   span: SourceSpan;
   /** Span of the taxonomy's name identifier. */
   nameSpan?: SourceSpan;
