@@ -1,0 +1,19 @@
+namespace todl
+{
+    // Standard primitives — stop redeclaring these in every meta-model.
+    primitive identifier : string { regex = "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"; }
+    primitive slug       : string { regex = "^[a-z0-9]+(?:-[a-z0-9]+)*$"; }
+    primitive label      : string { }
+
+    // Standard annotations.
+    annotation icon     { path    : string?; }
+    annotation toolbox  { visible : boolean?; }
+    annotation instance { concept : identifier; via : identifier?; }
+
+    // Universal root concept — implicit supertype of every parent-less concept.
+    concept element
+    {
+        label       : label?;
+        description : string?;
+    }
+}
