@@ -491,6 +491,16 @@ class Parser {
     };
     pushTarget();
     while (this.match(TokenKind.Comma)) pushTarget();
+    const uses: string[] = [];
+    const usesSpans: SourceSpan[] = [];
+    if (this.checkKeyword("uses")) {
+      this.advance();
+      do {
+        const u = this.expect(TokenKind.Identifier);
+        uses.push(u.value);
+        usesSpans.push(tokenSpan(u, this.uri));
+      } while (this.match(TokenKind.Comma));
+    }
     let description = "";
     const terms: Term[] = [];
     const annotations: AnnotationApplication[] = [];
@@ -512,8 +522,9 @@ class Parser {
       }
     }
     this.expect(TokenKind.RBrace);
-    const decl: TaxonomyDecl = { kind: DeclKind.Taxonomy, name, represents, representsSpans, description, terms, annotations, span: this.spanFrom(start) };
+    const decl: TaxonomyDecl = { kind: DeclKind.Taxonomy, name, represents, representsSpans, description, terms, annotations, uses, span: this.spanFrom(start) };
     decl.nameSpan = tokenSpan(nameTok, this.uri);
+    if (usesSpans.length > 0) decl.usesSpans = usesSpans;
     return decl;
   }
 
