@@ -1,7 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import { preludeDocument, preludeNames } from "../prelude.js";
+import { PRELUDE_SOURCE } from "../prelude.generated.js";
+
+test("prelude.generated.ts is in sync with prelude.todl (run `npm run gen:prelude`)", () => {
+  const todl = readFileSync(new URL("../prelude.todl", import.meta.url), "utf8");
+  assert.equal(PRELUDE_SOURCE, todl, "prelude.generated.ts is stale — regenerate it");
+});
 
 test("prelude compiles with no diagnostics and carries the standard nodes", () => {
   const doc = preludeDocument();

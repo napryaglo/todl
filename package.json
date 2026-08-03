@@ -42,7 +42,8 @@
   "scripts": {
     "test": "tsx --conditions=development --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
-    "build": "tsc -p tsconfig.build.json && node -e \"const fs=require('fs');fs.mkdirSync('dist/stdlib',{recursive:true});fs.copyFileSync('src/stdlib/prelude.todl','dist/stdlib/prelude.todl')\"",
+    "gen:prelude": "node scripts/gen-prelude.mjs",
+    "build": "npm run gen:prelude && tsc -p tsconfig.build.json",
     "clean": "rimraf dist",
     "prepublishOnly": "npm run clean && npm run build"
   },
