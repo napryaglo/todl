@@ -179,9 +179,10 @@ class Parser {
     }
     if (this.checkKeyword("application-connectors")) return this.parseApplicationConnectors(start);
     if (this.check(TokenKind.Identifier)) {
-      const conceptTok = this.expect(TokenKind.Identifier);
-      if (this.check(TokenKind.Amp)) return this.parseEdgeRecord(conceptTok.value, start);
-      return this.parseInstanceFrom(conceptTok.value, start, false, tokenSpan(conceptTok, this.uri));
+      const cStart = this.current();
+      const concept = this.parseDottedPath();           // record concept may be ns-qualified
+      if (this.check(TokenKind.Amp)) return this.parseEdgeRecord(concept, start);
+      return this.parseInstanceFrom(concept, start, false, this.spanFrom(cStart));
     }
     throw this.error(`expected a declaration (primitive / enum / concept / instance)`);
   }
@@ -270,12 +271,13 @@ class Parser {
         instances.push(this.parseApplicationConnectors(memberStart));
         continue;
       }
-      const first = this.expect(TokenKind.Identifier);
+      const cStart = this.current();
+      const concept = this.parseDottedPath();           // record concept may be ns-qualified
       if (this.check(TokenKind.Amp)) {
-        instances.push(this.parseEdgeRecord(first.value, memberStart));
+        instances.push(this.parseEdgeRecord(concept, memberStart));
         continue;
       }
-      instances.push(this.parseInstanceFrom(first.value, memberStart, false, tokenSpan(first, this.uri)));
+      instances.push(this.parseInstanceFrom(concept, memberStart, false, this.spanFrom(cStart)));
     }
     this.expect(TokenKind.RBrace);
     const decl: ModelDecl = {

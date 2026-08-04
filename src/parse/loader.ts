@@ -540,6 +540,19 @@ function collectInstanceNames(
 ): void {
   defined.add(decl.id);
   sourceNs.set(decl.id, home.ns);
+  // The record's CONCEPT is a reference (to a concept node), gated like any
+  // other. `technology-library` is a transparent file wrapper, not a concept —
+  // skip it (see applyInstance / WRAPPER_CONCEPTS).
+  if (!WRAPPER_CONCEPTS.has(decl.concept)) {
+    sites.push({
+      id: decl.concept,
+      span: decl.conceptSpan ?? decl.span,
+      node: decl.id,
+      path: null,
+      home,
+      rewrite: (r) => { (decl as { concept: string }).concept = r; },
+    });
+  }
   if (decl.instanceOf !== null) {
     sites.push({
       id: decl.instanceOf,

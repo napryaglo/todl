@@ -8,6 +8,7 @@ const CONCEPTS = `namespace ea {
   concept component { label : string; }
 }`;
 const MODEL = `namespace app {
+  import ea;
   model m : ea {
     component teams-chat { label = "Teams"; }
   }
