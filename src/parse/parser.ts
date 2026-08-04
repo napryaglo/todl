@@ -301,12 +301,14 @@ class Parser {
     while (!this.check(TokenKind.RBrace)) {
       const pNameTok = this.expect(TokenKind.Identifier);
       this.expect(TokenKind.Colon);
-      const typeTok = this.expect(TokenKind.Identifier);
+      const typeStart = this.current();
+      const typeName = this.parseDottedPath();          // param type may be ns-qualified
+      const typeSpan = this.spanFrom(typeStart);
       const cardinality = this.parseCardinality();
       this.expect(TokenKind.Semicolon);
       params.push({
-        name: pNameTok.value, type: typeTok.value, cardinality,
-        nameSpan: tokenSpan(pNameTok, this.uri), typeSpan: tokenSpan(typeTok, this.uri),
+        name: pNameTok.value, type: typeName, cardinality,
+        nameSpan: tokenSpan(pNameTok, this.uri), typeSpan,
       });
     }
     this.expect(TokenKind.RBrace);
@@ -318,7 +320,9 @@ class Parser {
   /** `annotate <Name> { <param> = <value>; … }` — an application (concept or package body). */
   private parseAnnotationApplication(start: Token): AnnotationApplication {
     this.expectKeyword("annotate");
-    const nameTok = this.expect(TokenKind.Identifier);
+    const nameStart = this.current();
+    const name = this.parseDottedPath();                // applied annotation may be ns-qualified
+    const nameSpan = this.spanFrom(nameStart);
     const assignments: AssignmentNode[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
@@ -330,8 +334,8 @@ class Parser {
       assignments.push({ name: pName, value, span: this.spanFrom(aStart) });
     }
     this.expect(TokenKind.RBrace);
-    const app: AnnotationApplication = { name: nameTok.value, assignments, span: this.spanFrom(start) };
-    app.nameSpan = tokenSpan(nameTok, this.uri);
+    const app: AnnotationApplication = { name, assignments, span: this.spanFrom(start) };
+    app.nameSpan = nameSpan;
     return app;
   }
 
@@ -628,12 +632,14 @@ class Parser {
         const nameTok = this.expect(TokenKind.Identifier);
         const memberName = nameTok.value;
         if (this.match(TokenKind.Colon)) {
-          const typeTok = this.expect(TokenKind.Identifier);
+          const typeStart = this.current();
+          const typeName = this.parseDottedPath();      // field type may be ns-qualified
+          const typeSpan = this.spanFrom(typeStart);
           const cardinality = this.parseCardinality();
           this.expect(TokenKind.Semicolon);
           fields.push({
-            name: memberName, type: typeTok.value, cardinality,
-            nameSpan: tokenSpan(nameTok, this.uri), typeSpan: tokenSpan(typeTok, this.uri),
+            name: memberName, type: typeName, cardinality,
+            nameSpan: tokenSpan(nameTok, this.uri), typeSpan,
           });
         } else if (this.match(TokenKind.Equals)) {
           if (this.check(TokenKind.String) || this.check(TokenKind.RawString)) {
@@ -660,12 +666,14 @@ class Parser {
     this.expectKeyword("relationship");
     const nameTok = this.expect(TokenKind.Identifier);
     this.expect(TokenKind.Arrow);
-    const targetTok = this.expect(TokenKind.Identifier);
+    const targetStart = this.current();
+    const target = this.parseDottedPath();              // relationship target may be ns-qualified
+    const targetSpan = this.spanFrom(targetStart);
     const cardinality = this.parseCardinality();
     this.expect(TokenKind.Semicolon);
     return {
-      name: nameTok.value, target: targetTok.value, cardinality,
-      nameSpan: tokenSpan(nameTok, this.uri), targetSpan: tokenSpan(targetTok, this.uri),
+      name: nameTok.value, target, cardinality,
+      nameSpan: tokenSpan(nameTok, this.uri), targetSpan,
     };
   }
 

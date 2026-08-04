@@ -484,12 +484,12 @@ function collectNames(
       decl.terms.forEach(add);
       break;
     }
-    case DeclKind.Concept:
-      define(declaration.name);
-      if (declaration.extends !== null) {
-        const decl = declaration;
+    case DeclKind.Concept: {
+      const decl = declaration;
+      define(decl.name);
+      if (decl.extends !== null) {
         sites.push({
-          id: decl.extends!,
+          id: decl.extends,
           span: decl.extendsSpan ?? decl.span,
           node: decl.name,
           path: null,
@@ -497,8 +497,18 @@ function collectNames(
           rewrite: (r) => { (decl as { extends: string | null }).extends = r; },
         });
       }
-      for (const app of declaration.annotations) annotationSite(app, `${declaration.name}@${app.name}`);
+      // Field / relationship TYPE references — resolved (and namespace-gated)
+      // through the same resolver, so a qualified `ns.Type` resolves and a bare
+      // cross-namespace type requires an import, like every other reference.
+      for (const f of decl.fields) {
+        sites.push({ id: f.type, span: f.typeSpan ?? decl.span, node: decl.name, path: f.name, home, rewrite: (r) => { f.type = r; } });
+      }
+      for (const rel of decl.relationships) {
+        sites.push({ id: rel.target, span: rel.targetSpan ?? decl.span, node: decl.name, path: rel.name, home, rewrite: (r) => { rel.target = r; } });
+      }
+      for (const app of decl.annotations) annotationSite(app, `${decl.name}@${app.name}`);
       break;
+    }
     case DeclKind.Instance:
       collectInstanceNames(declaration, home, defined, sites, sourceNs);
       break;
@@ -506,9 +516,15 @@ function collectNames(
       define(declaration.id);
       for (const inst of declaration.instances) collectInstanceNames(inst, home, defined, sites, sourceNs);
       break;
-    case DeclKind.Annotation:
-      define(declaration.name);
+    case DeclKind.Annotation: {
+      const decl = declaration;
+      define(decl.name);
+      // Param TYPE references, gated like concept field types.
+      for (const p of decl.params) {
+        sites.push({ id: p.type, span: p.typeSpan ?? decl.span, node: decl.name, path: p.name, home, rewrite: (r) => { p.type = r; } });
+      }
       break;
+    }
     case DeclKind.Package:
       for (const app of declaration.annotations) annotationSite(app, `${PACKAGE_NODE_ID}@${app.name}`);
       break;

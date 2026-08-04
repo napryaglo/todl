@@ -11,6 +11,12 @@
  */
 import type { Repository } from "../model/model.js";
 
+// The foundational scalar TYPE keywords (`Scalar = string | number | boolean`).
+// They are valid field/param types but are NOT declared nodes, so the resolver
+// treats them as always-existing + global (reachable everywhere, never
+// rewritten) — a qualified `ns.Concept` field type still gates normally.
+const BUILTIN_TYPES: ReadonlySet<string> = new Set(["string", "number", "integer", "boolean"]);
+
 /** A reference's home: the namespace of the file it sits in + that file's
  * imports. A target is reachable iff its namespace is this ns, one of the
  * imports, or global (prelude / namespace-less). */
@@ -47,7 +53,7 @@ export function makeResolver(
     const attr = model.resolve(id)?.attrs.get("namespace");
     return typeof attr === "string" ? attr : null;
   };
-  const exists = (id: string): boolean => defined.has(id) || model.has(id);
+  const exists = (id: string): boolean => defined.has(id) || model.has(id) || BUILTIN_TYPES.has(id);
   const reachable = (id: string, home: Home): boolean => {
     // Prelude / default-library symbols (its namespace is `todl`) are
     // implicitly imported everywhere, like java.lang — `reserved` is exactly
