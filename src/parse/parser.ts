@@ -179,9 +179,10 @@ class Parser {
     }
     if (this.checkKeyword("application-connectors")) return this.parseApplicationConnectors(start);
     if (this.check(TokenKind.Identifier)) {
-      const conceptTok = this.expect(TokenKind.Identifier);
-      if (this.check(TokenKind.Amp)) return this.parseEdgeRecord(conceptTok.value, start);
-      return this.parseInstanceFrom(conceptTok.value, start, false, tokenSpan(conceptTok, this.uri));
+      const cStart = this.current();
+      const concept = this.parseDottedPath();           // record concept may be ns-qualified
+      if (this.check(TokenKind.Amp)) return this.parseEdgeRecord(concept, start);
+      return this.parseInstanceFrom(concept, start, false, this.spanFrom(cStart));
     }
     throw this.error(`expected a declaration (primitive / enum / concept / instance)`);
   }
@@ -199,9 +200,10 @@ class Parser {
     let instanceOfSpan: SourceSpan | undefined;
     if (this.checkKeyword("instanceof")) {
       this.advance();
-      const t = this.expect(TokenKind.Identifier);
-      instanceOf = t.value;
-      instanceOfSpan = tokenSpan(t, this.uri);
+      // The class/term may be namespace-qualified; resolution strips the ns.
+      const startTok = this.current();
+      instanceOf = this.parseDottedPath();
+      instanceOfSpan = this.spanFrom(startTok);
     }
     const binds = this.match(TokenKind.Colon) ? this.expectIdentifier() : null;
     const assignments: AssignmentNode[] = [];
@@ -245,15 +247,20 @@ class Parser {
     this.expectKeyword("model");
     const idTok = this.expect(TokenKind.Identifier);
     this.expect(TokenKind.Colon);
-    const metaTok = this.expect(TokenKind.Identifier);
+    // Model bindings are NAMESPACE names, which may be dotted
+    // (`libraries.microsoft`, `adl.meta.model`) — accept a dotted path, not a
+    // single identifier. A bare name still parses (single-segment path).
+    const metaStart = this.current();
+    const metaModel = this.parseDottedPath();
+    const metaModelSpan = this.spanFrom(metaStart);
     const libraries: string[] = [];
     const librarySpans: SourceSpan[] = [];
     if (this.checkKeyword("uses")) {
       this.advance();
       do {
-        const libTok = this.expect(TokenKind.Identifier);
-        libraries.push(libTok.value);
-        librarySpans.push(tokenSpan(libTok, this.uri));
+        const libStart = this.current();
+        libraries.push(this.parseDottedPath());
+        librarySpans.push(this.spanFrom(libStart));
       } while (this.match(TokenKind.Comma));
     }
     const instances: InstanceDecl[] = [];
@@ -264,24 +271,25 @@ class Parser {
         instances.push(this.parseApplicationConnectors(memberStart));
         continue;
       }
-      const first = this.expect(TokenKind.Identifier);
+      const cStart = this.current();
+      const concept = this.parseDottedPath();           // record concept may be ns-qualified
       if (this.check(TokenKind.Amp)) {
-        instances.push(this.parseEdgeRecord(first.value, memberStart));
+        instances.push(this.parseEdgeRecord(concept, memberStart));
         continue;
       }
-      instances.push(this.parseInstanceFrom(first.value, memberStart, false, tokenSpan(first, this.uri)));
+      instances.push(this.parseInstanceFrom(concept, memberStart, false, this.spanFrom(cStart)));
     }
     this.expect(TokenKind.RBrace);
     const decl: ModelDecl = {
       kind: DeclKind.Model,
       id: idTok.value,
-      metaModel: metaTok.value,
+      metaModel,
       libraries,
       instances,
       span: this.spanFrom(start),
     };
     decl.idSpan = tokenSpan(idTok, this.uri);
-    decl.metaModelSpan = tokenSpan(metaTok, this.uri);
+    decl.metaModelSpan = metaModelSpan;
     if (librarySpans.length > 0) decl.librarySpans = librarySpans;
     return decl;
   }
@@ -295,12 +303,14 @@ class Parser {
     while (!this.check(TokenKind.RBrace)) {
       const pNameTok = this.expect(TokenKind.Identifier);
       this.expect(TokenKind.Colon);
-      const typeTok = this.expect(TokenKind.Identifier);
+      const typeStart = this.current();
+      const typeName = this.parseDottedPath();          // param type may be ns-qualified
+      const typeSpan = this.spanFrom(typeStart);
       const cardinality = this.parseCardinality();
       this.expect(TokenKind.Semicolon);
       params.push({
-        name: pNameTok.value, type: typeTok.value, cardinality,
-        nameSpan: tokenSpan(pNameTok, this.uri), typeSpan: tokenSpan(typeTok, this.uri),
+        name: pNameTok.value, type: typeName, cardinality,
+        nameSpan: tokenSpan(pNameTok, this.uri), typeSpan,
       });
     }
     this.expect(TokenKind.RBrace);
@@ -312,7 +322,9 @@ class Parser {
   /** `annotate <Name> { <param> = <value>; … }` — an application (concept or package body). */
   private parseAnnotationApplication(start: Token): AnnotationApplication {
     this.expectKeyword("annotate");
-    const nameTok = this.expect(TokenKind.Identifier);
+    const nameStart = this.current();
+    const name = this.parseDottedPath();                // applied annotation may be ns-qualified
+    const nameSpan = this.spanFrom(nameStart);
     const assignments: AssignmentNode[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
@@ -324,8 +336,8 @@ class Parser {
       assignments.push({ name: pName, value, span: this.spanFrom(aStart) });
     }
     this.expect(TokenKind.RBrace);
-    const app: AnnotationApplication = { name: nameTok.value, assignments, span: this.spanFrom(start) };
-    app.nameSpan = tokenSpan(nameTok, this.uri);
+    const app: AnnotationApplication = { name, assignments, span: this.spanFrom(start) };
+    app.nameSpan = nameSpan;
     return app;
   }
 
@@ -591,9 +603,11 @@ class Parser {
     let extendsName: string | null = null;
     let extendsSpan: SourceSpan | undefined;
     if (this.match(TokenKind.Colon)) {
-      const t = this.expect(TokenKind.Identifier);
-      extendsName = t.value;
-      extendsSpan = tokenSpan(t, this.uri);
+      // A parent may be namespace-qualified (`ns.concept`); resolution strips
+      // the namespace. Bare names still parse.
+      const startTok = this.current();
+      extendsName = this.parseDottedPath();
+      extendsSpan = this.spanFrom(startTok);
     }
 
     let description = "";
@@ -620,12 +634,14 @@ class Parser {
         const nameTok = this.expect(TokenKind.Identifier);
         const memberName = nameTok.value;
         if (this.match(TokenKind.Colon)) {
-          const typeTok = this.expect(TokenKind.Identifier);
+          const typeStart = this.current();
+          const typeName = this.parseDottedPath();      // field type may be ns-qualified
+          const typeSpan = this.spanFrom(typeStart);
           const cardinality = this.parseCardinality();
           this.expect(TokenKind.Semicolon);
           fields.push({
-            name: memberName, type: typeTok.value, cardinality,
-            nameSpan: tokenSpan(nameTok, this.uri), typeSpan: tokenSpan(typeTok, this.uri),
+            name: memberName, type: typeName, cardinality,
+            nameSpan: tokenSpan(nameTok, this.uri), typeSpan,
           });
         } else if (this.match(TokenKind.Equals)) {
           if (this.check(TokenKind.String) || this.check(TokenKind.RawString)) {
@@ -652,12 +668,14 @@ class Parser {
     this.expectKeyword("relationship");
     const nameTok = this.expect(TokenKind.Identifier);
     this.expect(TokenKind.Arrow);
-    const targetTok = this.expect(TokenKind.Identifier);
+    const targetStart = this.current();
+    const target = this.parseDottedPath();              // relationship target may be ns-qualified
+    const targetSpan = this.spanFrom(targetStart);
     const cardinality = this.parseCardinality();
     this.expect(TokenKind.Semicolon);
     return {
-      name: nameTok.value, target: targetTok.value, cardinality,
-      nameSpan: tokenSpan(nameTok, this.uri), targetSpan: tokenSpan(targetTok, this.uri),
+      name: nameTok.value, target, cardinality,
+      nameSpan: tokenSpan(nameTok, this.uri), targetSpan,
     };
   }
 

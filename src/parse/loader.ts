@@ -28,6 +28,8 @@ import {
   type ValueNode,
   type AssignmentNode,
 } from "./ast.js";
+import { makeResolver, type Home } from "../resolve/resolver.js";
+import { collectDefinitions, visitReferences } from "./references.js";
 import { PACKAGE_NODE_ID, MetaKind } from "../model/kinds.js";
 import type { NodeId, Scalar } from "../model/graph.js";
 import type { SourceFile, SourceSpan } from "../diagnostics/span.js";
@@ -36,14 +38,6 @@ import { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagno
 export interface LoadResult {
   model: Repository;
   diagnostics: Diagnostic[];
-}
-
-/** A reference's home: the namespace of the file it sits in + that file's
- * imports. A target node is reachable iff its namespace is this ns, one of the
- * imports, or global (prelude / namespace-less). */
-interface Home {
-  ns: string;
-  imports: readonly string[];
 }
 
 interface RefSite {
@@ -128,45 +122,19 @@ export function loadInto(
   // Namespace of each SOURCE-defined id (base nodes carry their ns as a
   // `namespace` attr). Drives the reachability gate below.
   const sourceNs = new Map<string, string>();
-  for (const { ns, imports, decl } of units) collectNames(decl, { ns, imports }, defined, sites, sourceNs);
+  for (const { ns, imports, decl } of units) {
+    collectDefinitions(decl, ns, defined, sourceNs);
+    const home: Home = { ns, imports };
+    visitReferences(decl, (v) => {
+      sites.push({ id: v.name, span: v.span ?? null, node: v.ownerNode, path: v.memberPath, home, rewrite: v.rewrite, ...(v.scope ? { scope: v.scope } : {}) });
+    });
+  }
 
-  // ---- Namespace-scoped resolution (design: namespace-scoped-resolution) ----
-  // A reference resolves against a VISIBILITY-GATED id universe: a target's
-  // namespace must be the reference's own ns, one of its file's imports, or
-  // global (prelude / namespace-less). A qualified `ns.x` resolves the flat
-  // node `x` when its namespace is `ns` — explicit, so it needs no import.
+  // ---- Namespace-scoped resolution (design: unified-reference-resolver) ----
+  // The single resolver module gates every reference by namespace reachability
+  // (own ns / imports / global) and resolves qualified `ns.x` to its flat node.
   const undefinedIds = new Set<string>();
-  const nsOf = (id: string): string | null => {
-    if (sourceNs.has(id)) return sourceNs.get(id)!;
-    const attr = model.resolve(id)?.attrs.get("namespace");
-    return typeof attr === "string" ? attr : null;
-  };
-  const exists = (id: string): boolean => defined.has(id) || model.has(id);
-  const reachable = (id: string, home: Home): boolean => {
-    // Prelude / default-library symbols (its namespace is `todl`) are
-    // implicitly imported everywhere, like java.lang — `reserved` is exactly
-    // the prelude's declared names, injected by check()/checkAgainst().
-    if (reserved.has(id)) return true;
-    const ns = nsOf(id);
-    return ns === null || ns === home.ns || home.imports.includes(ns);
-  };
-  type Resolved =
-    | { kind: "ok" }
-    | { kind: "qualified"; flat: string }
-    | { kind: "unreachable"; ns: string }
-    | { kind: "undefined" };
-  const resolveRef = (id: string, home: Home): Resolved => {
-    if (exists(id)) return reachable(id, home) ? { kind: "ok" } : { kind: "unreachable", ns: nsOf(id)! };
-    // Strip leading namespace segment(s): `ea.categories` → flat `categories`
-    // in ns `ea`; `ns.tax.term` → flat `tax.term` in ns `ns`. Flat-id match
-    // (above) wins first, so `categories.platform-api` stays the term node.
-    const segs = id.split(".");
-    for (let k = 1; k < segs.length; k++) {
-      const rest = segs.slice(k).join(".");
-      if (exists(rest) && nsOf(rest) === segs.slice(0, k).join(".")) return { kind: "qualified", flat: rest };
-    }
-    return { kind: "undefined" };
-  };
+  const { nsOf, exists, reachable, resolveRef } = makeResolver(model, defined, sourceNs, reserved);
 
   // Normalize + validate `uses` targets FIRST — the term-body scope resolution
   // below reads each taxonomy's (flat) `uses` list to form `used.term`
@@ -479,105 +447,6 @@ function recordInstanceSpans(model: Repository, decl: InstanceDecl): void {
   for (const child of decl.children) recordInstanceSpans(model, child);
 }
 
-function collectNames(
-  declaration: Declaration,
-  home: Home,
-  defined: Set<string>,
-  sites: RefSite[],
-  sourceNs: Map<string, string>,
-): void {
-  const define = (id: string): void => { defined.add(id); sourceNs.set(id, home.ns); };
-  const annotationSite = (app: AnnotationApplication, node: NodeId): void => {
-    sites.push({ id: app.name, span: app.nameSpan ?? app.span, node, path: null, home, rewrite: (r) => { app.name = r; } });
-  };
-  switch (declaration.kind) {
-    case DeclKind.Primitive:
-      define(declaration.name);
-      break;
-    case DeclKind.Taxonomy: {
-      const decl = declaration;
-      define(decl.name);
-      for (let i = 0; i < decl.represents.length; i++) {
-        const idx = i;
-        sites.push({
-          id: decl.represents[i]!,
-          span: decl.representsSpans?.[i] ?? decl.span,
-          node: decl.name,
-          path: null,
-          home,
-          rewrite: (r) => { decl.represents[idx] = r; },
-        });
-      }
-      for (const app of decl.annotations) annotationSite(app, `${decl.name}@${app.name}`);
-      // Term nodes are taxonomy-qualified (see Builder.defineTaxonomy); record
-      // every term's qualified id (nested included) so bare term values resolve,
-      // and collect the refs their fixed relationships/compositions point at.
-      const scope = { taxonomy: decl.name, uses: decl.uses };
-      const add = (t: Term): void => {
-        define(`${decl.name}.${t.id}`);
-        for (const assignment of t.assignments) {
-          collectValueRefs(assignment.value, sites, `${decl.name}.${t.id}`, assignment.name, assignment.span ?? null, home, scope);
-        }
-        t.children.forEach(add);
-      };
-      decl.terms.forEach(add);
-      break;
-    }
-    case DeclKind.Concept:
-      define(declaration.name);
-      if (declaration.extends !== null) {
-        const decl = declaration;
-        sites.push({
-          id: decl.extends!,
-          span: decl.extendsSpan ?? decl.span,
-          node: decl.name,
-          path: null,
-          home,
-          rewrite: (r) => { (decl as { extends: string | null }).extends = r; },
-        });
-      }
-      for (const app of declaration.annotations) annotationSite(app, `${declaration.name}@${app.name}`);
-      break;
-    case DeclKind.Instance:
-      collectInstanceNames(declaration, home, defined, sites, sourceNs);
-      break;
-    case DeclKind.Model:
-      define(declaration.id);
-      for (const inst of declaration.instances) collectInstanceNames(inst, home, defined, sites, sourceNs);
-      break;
-    case DeclKind.Annotation:
-      define(declaration.name);
-      break;
-    case DeclKind.Package:
-      for (const app of declaration.annotations) annotationSite(app, `${PACKAGE_NODE_ID}@${app.name}`);
-      break;
-  }
-}
-
-function collectInstanceNames(
-  decl: InstanceDecl,
-  home: Home,
-  defined: Set<string>,
-  sites: RefSite[],
-  sourceNs: Map<string, string>,
-): void {
-  defined.add(decl.id);
-  sourceNs.set(decl.id, home.ns);
-  if (decl.instanceOf !== null) {
-    sites.push({
-      id: decl.instanceOf,
-      span: decl.instanceOfSpan ?? decl.span,
-      node: decl.id,
-      path: null,
-      home,
-      rewrite: (r) => { (decl as { instanceOf: string | null }).instanceOf = r; },
-    });
-  }
-  for (const assignment of decl.assignments) {
-    collectValueRefs(assignment.value, sites, decl.id, assignment.name, assignment.span ?? null, home);
-  }
-  for (const child of decl.children) collectInstanceNames(child, home, defined, sites, sourceNs);
-}
 
 /** A term's scalar fixed-value fields (String/Name/Composite) as an attr map.
  * `Ref`/`List` assignments are domain relationships — see {@link termRelationships}. */
@@ -630,38 +499,6 @@ function termToInstanceDecl(taxonomy: string, t: Term): InstanceDecl {
   };
 }
 
-function collectValueRefs(
-  value: ValueNode,
-  sites: RefSite[],
-  ownerNode: NodeId,
-  memberName: string,
-  memberSpan: SourceSpan | null,
-  home: Home,
-  scope?: { taxonomy: string; uses: readonly string[] },
-): void {
-  switch (value.kind) {
-    case ValueKind.Ref:
-      sites.push({
-        id: value.ref, span: value.span ?? memberSpan ?? null, node: ownerNode, path: memberName, home,
-        rewrite: (r) => { (value as { ref: string }).ref = r; },
-        ...(scope ? { scope } : {}),
-      });
-      break;
-    case ValueKind.Name:
-      sites.push({
-        id: value.name, span: memberSpan ?? null, node: ownerNode, path: memberName, home,
-        rewrite: (r) => { (value as { name: string }).name = r; },
-        ...(scope ? { scope } : {}),
-      });
-      break;
-    case ValueKind.List:
-      for (const item of value.items) collectValueRefs(item, sites, ownerNode, memberName, memberSpan, home, scope);
-      break;
-    case ValueKind.String:
-    case ValueKind.Composite:
-      break;
-  }
-}
 
 /** File-level grouping keywords that wrap records but are not themselves records. */
 const WRAPPER_CONCEPTS = new Set(["technology-library"]);

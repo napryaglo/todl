@@ -1,12 +1,12 @@
 import type { Range, Position } from "vscode-languageserver-types";
-import type { SourceSpan } from "../diagnostics/span.js";
-import {
-  DeclKind, ValueKind,
-  type NamespaceNode, type Declaration, type InstanceDecl, type TaxonomyDecl, type ValueNode,
-} from "../parse/ast.js";
+import type { NamespaceNode } from "../parse/ast.js";
+import { visitReferences, RefRole } from "../parse/references.js";
 import { spanToRange } from "./position.js";
 
-export enum Role { Extends, FieldType, RelationshipTarget, RefValue, InstanceConcept, InstanceOf, Import, Represents }
+// Occurrence roles for the editor — the language-service's view of a reference's
+// kind. Derived from the shared-walk RefRole so the reference-index and the
+// loader agree on WHAT a reference is; this enum stays the editor-facing surface.
+export enum Role { Extends, FieldType, RelationshipTarget, RefValue, InstanceConcept, InstanceOf, Import, Represents, AnnotationName }
 
 export interface Occurrence { uri: string; range: Range; role: Role; symbol: string }
 
@@ -16,20 +16,34 @@ export interface ReferenceIndex {
   all(): Occurrence[];
 }
 
-type Push = (uri: string, symbol: string, span: SourceSpan | undefined, role: Role) => void;
+function roleOf(r: RefRole): Role {
+  switch (r) {
+    case RefRole.Extends: return Role.Extends;
+    case RefRole.FieldType: return Role.FieldType;
+    case RefRole.ParamType: return Role.FieldType;
+    case RefRole.RelationshipTarget: return Role.RelationshipTarget;
+    case RefRole.Represents: return Role.Represents;
+    case RefRole.RecordConcept: return Role.InstanceConcept;
+    case RefRole.InstanceOf: return Role.InstanceOf;
+    case RefRole.RefValue: return Role.RefValue;
+    case RefRole.AnnotationName: return Role.AnnotationName;
+  }
+}
 
 export function buildReferenceIndex(files: Map<string, NamespaceNode>): ReferenceIndex {
   const occurrences: Occurrence[] = [];
-  const push: Push = (uri, symbol, span, role) => {
-    if (span === undefined) return;
-    occurrences.push({ uri, symbol, role, range: spanToRange(span) });
-  };
-
   for (const [uri, ns] of files) {
     for (const span of ns.importSpans ?? []) {
       occurrences.push({ uri, symbol: "", role: Role.Import, range: spanToRange(span) });
     }
-    for (const decl of ns.declarations) walkDecl(uri, decl, push);
+    // One shared walk — the SAME one the loader resolves through, so occurrences
+    // and resolution can never disagree on what a reference is.
+    for (const decl of ns.declarations) {
+      visitReferences(decl, (v) => {
+        if (v.span === undefined) return;
+        occurrences.push({ uri, symbol: v.name, role: roleOf(v.role), range: spanToRange(v.span) });
+      });
+    }
   }
 
   const bySymbol = new Map<string, Occurrence[]>();
@@ -45,39 +59,6 @@ export function buildReferenceIndex(files: Map<string, NamespaceNode>): Referenc
     occurrenceAt: (uri, pos) =>
       occurrences.find((o) => o.uri === uri && contains(o.range, pos)) ?? null,
   };
-}
-
-function walkDecl(uri: string, decl: Declaration, push: Push): void {
-  if (decl.kind === DeclKind.Concept) {
-    if (decl.extends !== null) push(uri, decl.extends, decl.extendsSpan, Role.Extends);
-    for (const f of decl.fields) push(uri, f.type, f.typeSpan, Role.FieldType);
-    for (const r of decl.relationships) push(uri, r.target, r.targetSpan, Role.RelationshipTarget);
-  } else if (decl.kind === DeclKind.Instance) {
-    walkInstance(uri, decl, push);
-  } else if (decl.kind === DeclKind.Taxonomy) {
-    walkTaxonomy(uri, decl, push);
-  } else if (decl.kind === DeclKind.Model) {
-    // The `: meta-model` / `uses` names resolve to modules, not symbols, so they
-    // are not indexed here; descend into the contained objects' references.
-    for (const inst of decl.instances) walkInstance(uri, inst, push);
-  }
-}
-
-function walkTaxonomy(uri: string, decl: TaxonomyDecl, push: Push): void {
-  // `taxonomy X : represents C1, C2` — each target references a concept.
-  decl.represents.forEach((concept, i) => push(uri, concept, decl.representsSpans?.[i], Role.Represents));
-}
-
-function walkInstance(uri: string, inst: InstanceDecl, push: Push): void {
-  push(uri, inst.concept, inst.conceptSpan, Role.InstanceConcept);
-  if (inst.instanceOf !== null) push(uri, inst.instanceOf, inst.instanceOfSpan, Role.InstanceOf);
-  for (const a of inst.assignments) pushRefs(uri, a.value, push);
-  for (const child of inst.children) walkInstance(uri, child, push);
-}
-
-function pushRefs(uri: string, value: ValueNode, push: Push): void {
-  if (value.kind === ValueKind.Ref) push(uri, value.ref, value.span, Role.RefValue);
-  else if (value.kind === ValueKind.List) for (const item of value.items) pushRefs(uri, item, push);
 }
 
 function contains(range: Range, pos: Position): boolean {
