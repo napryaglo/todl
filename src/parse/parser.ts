@@ -199,9 +199,10 @@ class Parser {
     let instanceOfSpan: SourceSpan | undefined;
     if (this.checkKeyword("instanceof")) {
       this.advance();
-      const t = this.expect(TokenKind.Identifier);
-      instanceOf = t.value;
-      instanceOfSpan = tokenSpan(t, this.uri);
+      // The class/term may be namespace-qualified; resolution strips the ns.
+      const startTok = this.current();
+      instanceOf = this.parseDottedPath();
+      instanceOfSpan = this.spanFrom(startTok);
     }
     const binds = this.match(TokenKind.Colon) ? this.expectIdentifier() : null;
     const assignments: AssignmentNode[] = [];
@@ -245,15 +246,20 @@ class Parser {
     this.expectKeyword("model");
     const idTok = this.expect(TokenKind.Identifier);
     this.expect(TokenKind.Colon);
-    const metaTok = this.expect(TokenKind.Identifier);
+    // Model bindings are NAMESPACE names, which may be dotted
+    // (`libraries.microsoft`, `adl.meta.model`) — accept a dotted path, not a
+    // single identifier. A bare name still parses (single-segment path).
+    const metaStart = this.current();
+    const metaModel = this.parseDottedPath();
+    const metaModelSpan = this.spanFrom(metaStart);
     const libraries: string[] = [];
     const librarySpans: SourceSpan[] = [];
     if (this.checkKeyword("uses")) {
       this.advance();
       do {
-        const libTok = this.expect(TokenKind.Identifier);
-        libraries.push(libTok.value);
-        librarySpans.push(tokenSpan(libTok, this.uri));
+        const libStart = this.current();
+        libraries.push(this.parseDottedPath());
+        librarySpans.push(this.spanFrom(libStart));
       } while (this.match(TokenKind.Comma));
     }
     const instances: InstanceDecl[] = [];
@@ -275,13 +281,13 @@ class Parser {
     const decl: ModelDecl = {
       kind: DeclKind.Model,
       id: idTok.value,
-      metaModel: metaTok.value,
+      metaModel,
       libraries,
       instances,
       span: this.spanFrom(start),
     };
     decl.idSpan = tokenSpan(idTok, this.uri);
-    decl.metaModelSpan = tokenSpan(metaTok, this.uri);
+    decl.metaModelSpan = metaModelSpan;
     if (librarySpans.length > 0) decl.librarySpans = librarySpans;
     return decl;
   }
@@ -591,9 +597,11 @@ class Parser {
     let extendsName: string | null = null;
     let extendsSpan: SourceSpan | undefined;
     if (this.match(TokenKind.Colon)) {
-      const t = this.expect(TokenKind.Identifier);
-      extendsName = t.value;
-      extendsSpan = tokenSpan(t, this.uri);
+      // A parent may be namespace-qualified (`ns.concept`); resolution strips
+      // the namespace. Bare names still parse.
+      const startTok = this.current();
+      extendsName = this.parseDottedPath();
+      extendsSpan = this.spanFrom(startTok);
     }
 
     let description = "";
