@@ -29,6 +29,7 @@ import {
   type AssignmentNode,
 } from "./ast.js";
 import { makeResolver, type Home } from "../resolve/resolver.js";
+import { collectDefinitions, visitReferences } from "./references.js";
 import { PACKAGE_NODE_ID, MetaKind } from "../model/kinds.js";
 import type { NodeId, Scalar } from "../model/graph.js";
 import type { SourceFile, SourceSpan } from "../diagnostics/span.js";
@@ -121,7 +122,13 @@ export function loadInto(
   // Namespace of each SOURCE-defined id (base nodes carry their ns as a
   // `namespace` attr). Drives the reachability gate below.
   const sourceNs = new Map<string, string>();
-  for (const { ns, imports, decl } of units) collectNames(decl, { ns, imports }, defined, sites, sourceNs);
+  for (const { ns, imports, decl } of units) {
+    collectDefinitions(decl, ns, defined, sourceNs);
+    const home: Home = { ns, imports };
+    visitReferences(decl, (v) => {
+      sites.push({ id: v.name, span: v.span ?? null, node: v.ownerNode, path: v.memberPath, home, rewrite: v.rewrite, ...(v.scope ? { scope: v.scope } : {}) });
+    });
+  }
 
   // ---- Namespace-scoped resolution (design: unified-reference-resolver) ----
   // The single resolver module gates every reference by namespace reachability
@@ -440,134 +447,6 @@ function recordInstanceSpans(model: Repository, decl: InstanceDecl): void {
   for (const child of decl.children) recordInstanceSpans(model, child);
 }
 
-function collectNames(
-  declaration: Declaration,
-  home: Home,
-  defined: Set<string>,
-  sites: RefSite[],
-  sourceNs: Map<string, string>,
-): void {
-  const define = (id: string): void => { defined.add(id); sourceNs.set(id, home.ns); };
-  const annotationSite = (app: AnnotationApplication, node: NodeId): void => {
-    sites.push({ id: app.name, span: app.nameSpan ?? app.span, node, path: null, home, rewrite: (r) => { app.name = r; } });
-  };
-  switch (declaration.kind) {
-    case DeclKind.Primitive:
-      define(declaration.name);
-      break;
-    case DeclKind.Taxonomy: {
-      const decl = declaration;
-      define(decl.name);
-      for (let i = 0; i < decl.represents.length; i++) {
-        const idx = i;
-        sites.push({
-          id: decl.represents[i]!,
-          span: decl.representsSpans?.[i] ?? decl.span,
-          node: decl.name,
-          path: null,
-          home,
-          rewrite: (r) => { decl.represents[idx] = r; },
-        });
-      }
-      for (const app of decl.annotations) annotationSite(app, `${decl.name}@${app.name}`);
-      // Term nodes are taxonomy-qualified (see Builder.defineTaxonomy); record
-      // every term's qualified id (nested included) so bare term values resolve,
-      // and collect the refs their fixed relationships/compositions point at.
-      const scope = { taxonomy: decl.name, uses: decl.uses };
-      const add = (t: Term): void => {
-        define(`${decl.name}.${t.id}`);
-        for (const assignment of t.assignments) {
-          collectValueRefs(assignment.value, sites, `${decl.name}.${t.id}`, assignment.name, assignment.span ?? null, home, scope);
-        }
-        t.children.forEach(add);
-      };
-      decl.terms.forEach(add);
-      break;
-    }
-    case DeclKind.Concept: {
-      const decl = declaration;
-      define(decl.name);
-      if (decl.extends !== null) {
-        sites.push({
-          id: decl.extends,
-          span: decl.extendsSpan ?? decl.span,
-          node: decl.name,
-          path: null,
-          home,
-          rewrite: (r) => { (decl as { extends: string | null }).extends = r; },
-        });
-      }
-      // Field / relationship TYPE references — resolved (and namespace-gated)
-      // through the same resolver, so a qualified `ns.Type` resolves and a bare
-      // cross-namespace type requires an import, like every other reference.
-      for (const f of decl.fields) {
-        sites.push({ id: f.type, span: f.typeSpan ?? decl.span, node: decl.name, path: f.name, home, rewrite: (r) => { f.type = r; } });
-      }
-      for (const rel of decl.relationships) {
-        sites.push({ id: rel.target, span: rel.targetSpan ?? decl.span, node: decl.name, path: rel.name, home, rewrite: (r) => { rel.target = r; } });
-      }
-      for (const app of decl.annotations) annotationSite(app, `${decl.name}@${app.name}`);
-      break;
-    }
-    case DeclKind.Instance:
-      collectInstanceNames(declaration, home, defined, sites, sourceNs);
-      break;
-    case DeclKind.Model:
-      define(declaration.id);
-      for (const inst of declaration.instances) collectInstanceNames(inst, home, defined, sites, sourceNs);
-      break;
-    case DeclKind.Annotation: {
-      const decl = declaration;
-      define(decl.name);
-      // Param TYPE references, gated like concept field types.
-      for (const p of decl.params) {
-        sites.push({ id: p.type, span: p.typeSpan ?? decl.span, node: decl.name, path: p.name, home, rewrite: (r) => { p.type = r; } });
-      }
-      break;
-    }
-    case DeclKind.Package:
-      for (const app of declaration.annotations) annotationSite(app, `${PACKAGE_NODE_ID}@${app.name}`);
-      break;
-  }
-}
-
-function collectInstanceNames(
-  decl: InstanceDecl,
-  home: Home,
-  defined: Set<string>,
-  sites: RefSite[],
-  sourceNs: Map<string, string>,
-): void {
-  defined.add(decl.id);
-  sourceNs.set(decl.id, home.ns);
-  // The record's CONCEPT is a reference (to a concept node), gated like any
-  // other. `technology-library` is a transparent file wrapper, not a concept —
-  // skip it (see applyInstance / WRAPPER_CONCEPTS).
-  if (!WRAPPER_CONCEPTS.has(decl.concept)) {
-    sites.push({
-      id: decl.concept,
-      span: decl.conceptSpan ?? decl.span,
-      node: decl.id,
-      path: null,
-      home,
-      rewrite: (r) => { (decl as { concept: string }).concept = r; },
-    });
-  }
-  if (decl.instanceOf !== null) {
-    sites.push({
-      id: decl.instanceOf,
-      span: decl.instanceOfSpan ?? decl.span,
-      node: decl.id,
-      path: null,
-      home,
-      rewrite: (r) => { (decl as { instanceOf: string | null }).instanceOf = r; },
-    });
-  }
-  for (const assignment of decl.assignments) {
-    collectValueRefs(assignment.value, sites, decl.id, assignment.name, assignment.span ?? null, home);
-  }
-  for (const child of decl.children) collectInstanceNames(child, home, defined, sites, sourceNs);
-}
 
 /** A term's scalar fixed-value fields (String/Name/Composite) as an attr map.
  * `Ref`/`List` assignments are domain relationships — see {@link termRelationships}. */
@@ -620,38 +499,6 @@ function termToInstanceDecl(taxonomy: string, t: Term): InstanceDecl {
   };
 }
 
-function collectValueRefs(
-  value: ValueNode,
-  sites: RefSite[],
-  ownerNode: NodeId,
-  memberName: string,
-  memberSpan: SourceSpan | null,
-  home: Home,
-  scope?: { taxonomy: string; uses: readonly string[] },
-): void {
-  switch (value.kind) {
-    case ValueKind.Ref:
-      sites.push({
-        id: value.ref, span: value.span ?? memberSpan ?? null, node: ownerNode, path: memberName, home,
-        rewrite: (r) => { (value as { ref: string }).ref = r; },
-        ...(scope ? { scope } : {}),
-      });
-      break;
-    case ValueKind.Name:
-      sites.push({
-        id: value.name, span: memberSpan ?? null, node: ownerNode, path: memberName, home,
-        rewrite: (r) => { (value as { name: string }).name = r; },
-        ...(scope ? { scope } : {}),
-      });
-      break;
-    case ValueKind.List:
-      for (const item of value.items) collectValueRefs(item, sites, ownerNode, memberName, memberSpan, home, scope);
-      break;
-    case ValueKind.String:
-    case ValueKind.Composite:
-      break;
-  }
-}
 
 /** File-level grouping keywords that wrap records but are not themselves records. */
 const WRAPPER_CONCEPTS = new Set(["technology-library"]);

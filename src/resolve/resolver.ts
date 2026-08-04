@@ -31,6 +31,14 @@ export type Resolved =
   | { kind: "unreachable"; ns: string }
   | { kind: "undefined" };
 
+/** The namespace-provenance attr of a model node, or null when unlabeled
+ * (prelude / namespace-less / old base). The single reader of a node's
+ * namespace — shared by the resolver and validate.ts. */
+export function namespaceOf(model: Repository, id: string): string | null {
+  const attr = model.resolve(id)?.attrs.get("namespace");
+  return typeof attr === "string" ? attr : null;
+}
+
 export interface Resolver {
   /** The namespace a flat id belongs to, or null for prelude / namespace-less. */
   nsOf(id: string): string | null;
@@ -48,11 +56,8 @@ export function makeResolver(
   sourceNs: ReadonlyMap<string, string>,
   reserved: ReadonlySet<string>,
 ): Resolver {
-  const nsOf = (id: string): string | null => {
-    if (sourceNs.has(id)) return sourceNs.get(id)!;
-    const attr = model.resolve(id)?.attrs.get("namespace");
-    return typeof attr === "string" ? attr : null;
-  };
+  const nsOf = (id: string): string | null =>
+    sourceNs.has(id) ? sourceNs.get(id)! : namespaceOf(model, id);
   const exists = (id: string): boolean => defined.has(id) || model.has(id) || BUILTIN_TYPES.has(id);
   const reachable = (id: string, home: Home): boolean => {
     // Prelude / default-library symbols (its namespace is `todl`) are

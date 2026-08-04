@@ -12,6 +12,7 @@ const TYPE_INDEX: Record<(typeof TYPES)[number], number> = { type: 0, class: 1, 
 const ROLE_TYPE: Record<Role, (typeof TYPES)[number]> = {
   [Role.Extends]: "type", [Role.FieldType]: "type", [Role.RelationshipTarget]: "type",
   [Role.InstanceConcept]: "type", [Role.InstanceOf]: "type", [Role.Represents]: "type",
+  [Role.AnnotationName]: "type",
   [Role.RefValue]: "variable", [Role.Import]: "class",
 };
 

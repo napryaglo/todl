@@ -13,6 +13,7 @@
 import { Tier, EdgeKind, Direction, Cardinality, type NodeId, type Node, type Scalar } from "../model/graph.js";
 import { MetaKind } from "../model/kinds.js";
 import { Repository, type FieldSchema, type RelationshipSchema } from "../model/model.js";
+import { namespaceOf } from "../resolve/resolver.js";
 import { satisfies } from "../predicate/evaluate.js";
 import type { SourceSpan } from "../diagnostics/span.js";
 import { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagnostic.js";
@@ -116,10 +117,9 @@ function checkConstructor(
   ctorId: NodeId,
   bound: Set<string>,
 ): void {
-  const ctor = model.resolve(ctorId);
-  if (ctor === undefined) return;
-  const ns = ctor.attrs.get("namespace");
-  if (typeof ns !== "string") return; // graceful degradation: unlabeled (old) base node
+  if (model.resolve(ctorId) === undefined) return;
+  const ns = namespaceOf(model, ctorId);
+  if (ns === null) return; // graceful degradation: unlabeled (old) base node
   if (bound.has(ns)) return;
   out.push({
     code: DiagnosticCode.ConstructorOutOfScope,
