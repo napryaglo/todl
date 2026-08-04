@@ -28,6 +28,7 @@ import {
   type ValueNode,
   type AssignmentNode,
 } from "./ast.js";
+import { makeResolver, type Home } from "../resolve/resolver.js";
 import { PACKAGE_NODE_ID, MetaKind } from "../model/kinds.js";
 import type { NodeId, Scalar } from "../model/graph.js";
 import type { SourceFile, SourceSpan } from "../diagnostics/span.js";
@@ -36,14 +37,6 @@ import { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagno
 export interface LoadResult {
   model: Repository;
   diagnostics: Diagnostic[];
-}
-
-/** A reference's home: the namespace of the file it sits in + that file's
- * imports. A target node is reachable iff its namespace is this ns, one of the
- * imports, or global (prelude / namespace-less). */
-interface Home {
-  ns: string;
-  imports: readonly string[];
 }
 
 interface RefSite {
@@ -130,43 +123,11 @@ export function loadInto(
   const sourceNs = new Map<string, string>();
   for (const { ns, imports, decl } of units) collectNames(decl, { ns, imports }, defined, sites, sourceNs);
 
-  // ---- Namespace-scoped resolution (design: namespace-scoped-resolution) ----
-  // A reference resolves against a VISIBILITY-GATED id universe: a target's
-  // namespace must be the reference's own ns, one of its file's imports, or
-  // global (prelude / namespace-less). A qualified `ns.x` resolves the flat
-  // node `x` when its namespace is `ns` — explicit, so it needs no import.
+  // ---- Namespace-scoped resolution (design: unified-reference-resolver) ----
+  // The single resolver module gates every reference by namespace reachability
+  // (own ns / imports / global) and resolves qualified `ns.x` to its flat node.
   const undefinedIds = new Set<string>();
-  const nsOf = (id: string): string | null => {
-    if (sourceNs.has(id)) return sourceNs.get(id)!;
-    const attr = model.resolve(id)?.attrs.get("namespace");
-    return typeof attr === "string" ? attr : null;
-  };
-  const exists = (id: string): boolean => defined.has(id) || model.has(id);
-  const reachable = (id: string, home: Home): boolean => {
-    // Prelude / default-library symbols (its namespace is `todl`) are
-    // implicitly imported everywhere, like java.lang — `reserved` is exactly
-    // the prelude's declared names, injected by check()/checkAgainst().
-    if (reserved.has(id)) return true;
-    const ns = nsOf(id);
-    return ns === null || ns === home.ns || home.imports.includes(ns);
-  };
-  type Resolved =
-    | { kind: "ok" }
-    | { kind: "qualified"; flat: string }
-    | { kind: "unreachable"; ns: string }
-    | { kind: "undefined" };
-  const resolveRef = (id: string, home: Home): Resolved => {
-    if (exists(id)) return reachable(id, home) ? { kind: "ok" } : { kind: "unreachable", ns: nsOf(id)! };
-    // Strip leading namespace segment(s): `ea.categories` → flat `categories`
-    // in ns `ea`; `ns.tax.term` → flat `tax.term` in ns `ns`. Flat-id match
-    // (above) wins first, so `categories.platform-api` stays the term node.
-    const segs = id.split(".");
-    for (let k = 1; k < segs.length; k++) {
-      const rest = segs.slice(k).join(".");
-      if (exists(rest) && nsOf(rest) === segs.slice(0, k).join(".")) return { kind: "qualified", flat: rest };
-    }
-    return { kind: "undefined" };
-  };
+  const { nsOf, exists, reachable, resolveRef } = makeResolver(model, defined, sourceNs, reserved);
 
   // Normalize + validate `uses` targets FIRST — the term-body scope resolution
   // below reads each taxonomy's (flat) `uses` list to form `used.term`
