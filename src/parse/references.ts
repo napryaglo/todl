@@ -101,9 +101,16 @@ export function visitReferences(decl: Declaration, visit: Visit): void {
     case DeclKind.Instance:
       visitInstanceRefs(decl, visit);
       break;
-    case DeclKind.Model:
-      for (const inst of decl.instances) visitInstanceRefs(inst, visit);
+    case DeclKind.Model: {
+      // A model's `uses` list is a term-drop scope for its instance value refs
+      // (the model analogue of a taxonomy body's `uses`): a bare `azure-openai`
+      // drops to the flat `stack.azure-openai` term. There is no enclosing
+      // taxonomy, so the sibling slot is empty. `decl.libraries` is the same
+      // array the loader normalizes qualified→flat in place before resolution.
+      const scope = { taxonomy: "", uses: decl.libraries };
+      for (const inst of decl.instances) visitInstanceRefs(inst, visit, scope);
       break;
+    }
     case DeclKind.Package:
       annotationRefs(decl.annotations, PACKAGE_NODE_ID);
       break;
@@ -112,7 +119,14 @@ export function visitReferences(decl: Declaration, visit: Visit): void {
   }
 }
 
-function visitInstanceRefs(decl: InstanceDecl, visit: Visit): void {
+function visitInstanceRefs(
+  decl: InstanceDecl,
+  visit: Visit,
+  scope?: { taxonomy: string; uses: readonly string[] },
+): void {
+  // Concept and `instanceof` are constructor references — resolved by namespace
+  // reachability, never term-dropped — so they carry no scope. Only value
+  // assignments (and nested records) inherit the model's term-drop scope.
   if (!WRAPPER_CONCEPTS.has(decl.concept)) {
     visit({ name: decl.concept, span: decl.conceptSpan ?? decl.span, role: RefRole.RecordConcept,
       ownerNode: decl.id, memberPath: null, rewrite: (r) => { (decl as { concept: string }).concept = r; } });
@@ -121,8 +135,8 @@ function visitInstanceRefs(decl: InstanceDecl, visit: Visit): void {
     visit({ name: decl.instanceOf, span: decl.instanceOfSpan ?? decl.span, role: RefRole.InstanceOf,
       ownerNode: decl.id, memberPath: null, rewrite: (r) => { (decl as { instanceOf: string | null }).instanceOf = r; } });
   }
-  for (const a of decl.assignments) visitValueRefs(a.value, decl.id, a.name, a.span, undefined, visit);
-  for (const child of decl.children) visitInstanceRefs(child, visit);
+  for (const a of decl.assignments) visitValueRefs(a.value, decl.id, a.name, a.span, scope, visit);
+  for (const child of decl.children) visitInstanceRefs(child, visit, scope);
 }
 
 function visitValueRefs(
