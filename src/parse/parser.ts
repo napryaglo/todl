@@ -484,10 +484,13 @@ class Parser {
     this.expectKeyword("represents");
     const represents: string[] = [];
     const representsSpans: SourceSpan[] = [];
+    // represents / uses targets may be namespace-qualified (`ns.concept`,
+    // `ns.taxonomy`); resolution strips the namespace prefix. parseDottedPath
+    // accepts a bare name too, so unqualified authoring is unchanged.
     const pushTarget = (): void => {
-      const t = this.expect(TokenKind.Identifier);
-      represents.push(t.value);
-      representsSpans.push(tokenSpan(t, this.uri));
+      const startTok = this.current();
+      represents.push(this.parseDottedPath());
+      representsSpans.push(this.spanFrom(startTok));
     };
     pushTarget();
     while (this.match(TokenKind.Comma)) pushTarget();
@@ -496,9 +499,9 @@ class Parser {
     if (this.checkKeyword("uses")) {
       this.advance();
       do {
-        const u = this.expect(TokenKind.Identifier);
-        uses.push(u.value);
-        usesSpans.push(tokenSpan(u, this.uri));
+        const startTok = this.current();
+        uses.push(this.parseDottedPath());
+        usesSpans.push(this.spanFrom(startTok));
       } while (this.match(TokenKind.Comma));
     }
     let description = "";

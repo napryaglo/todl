@@ -30,6 +30,11 @@ export enum DiagnosticCode {
   AmbiguousFieldBinding = "instance.ambiguous-field-binding",
   // Reference-resolution phase.
   ReferenceUndefined = "reference.undefined",
+  // A symbol exists but lives in a namespace this reference's home namespace
+  // does not import (and is not the reference's own namespace). Distinct from
+  // reference.undefined so "you forgot an import" reads differently from "no
+  // such symbol" — the migration to namespace-scoped resolution is mechanical.
+  ReferenceUnreachable = "reference.unreachable",
   // Taxonomy bare-reference resolution.
   TaxonomyAmbiguousBareReference = "taxonomy.ambiguous-bare-reference",
   TaxonomyUsesUndefined = "taxonomy.uses-undefined",

@@ -28,6 +28,7 @@ test("a bare cross-taxonomy reference resolves through `uses`", () => {
      }` }]).model);
   const { diagnostics } = checkAgainst([base], [{ uri: "lib.todl", text:
     `namespace lib {
+       import ea;
        taxonomy mtech : represents technology uses categories {
          technology graph { label = "G"; applicable-to = [platform-api]; }
        }

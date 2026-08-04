@@ -53,10 +53,13 @@ for a reference whose home file declares namespace `N` with imports `I`:
 reachable(N, I) = { N } ∪ I ∪ GLOBAL
 ```
 
-- `GLOBAL` = the always-visible scope: the **prelude** and any
-  **namespace-less** declarations (a raw `load` with no `namespace` wrapper).
-  Prelude primitives (`string`, `element`, annotations, …) resolve
-  everywhere without import.
+- `GLOBAL` = the always-visible scope: any **namespace-less** declarations
+  (a raw `load` with no `namespace` wrapper), plus the **prelude / default
+  library**. The prelude declares `namespace todl`, so it is not namespace-less;
+  instead its symbols are recognized via the `reserved` set (the prelude names
+  `check()`/`checkAgainst()` already inject) and are implicitly reachable
+  everywhere — `string`, `element`, `icon`/`toolbox` annotations, … — without
+  an `import todl`.
 - Imports are **file-scoped** (each file declares its own imports) and
   **non-transitive** (importing `ea` does not re-export what `ea` imports).
 - A reference always sees **its own namespace** `N` without an import.
@@ -96,17 +99,18 @@ Worked examples (home = `libraries.microsoft`, imports `tech-architecture`):
 
 ### Parser: accept qualified names at reference sites
 
-Swap `expect(Identifier)` → `parseDottedPath()` at every **reference-target**
-site (declaration-*name* sites stay bare):
+The **visibility gate applies to every reference regardless of the parser** —
+it works on the bare id as-written, so import-honoring needs no parser change.
+Qualified-name *writing* only matters where a user types `ns.x`; this change
+enables it for the **reported taxonomy clauses**, `represents` and `uses`
+([parser.ts:488](../../../src/parse/parser.ts#L488), [:499](../../../src/parse/parser.ts#L499)),
+swapping `expect(Identifier)` → `parseDottedPath()`. `&refs` / value names
+already accept dotted paths (so `ea.categories.platform-api` in a value works).
 
-- `uses` targets ([parser.ts:499](../../../src/parse/parser.ts#L499))
-- `represents` targets ([parser.ts:488](../../../src/parse/parser.ts#L488))
-- field / annotation-param **type** ([parser.ts:298](../../../src/parse/parser.ts#L298), [:320](../../../src/parse/parser.ts#L320))
-- record **concept** ([parser.ts:182](../../../src/parse/parser.ts#L182)) and `instanceOf` ([parser.ts:202](../../../src/parse/parser.ts#L202))
-- model `meta-model` + `uses` library bindings ([parser.ts:248](../../../src/parse/parser.ts#L248), [:254](../../../src/parse/parser.ts#L254))
-
-`&refs` / value names already use `parseDottedPath`. Declaration name sites
-(taxonomy/concept/annotation/term names, param names, ids) are unchanged.
+Qualified *writing* at the other reference sites (record concept, `instanceOf`,
+field/param type, model bindings) is a **scoped follow-up** — their gate
+already works via bare name + import; only the `ns.x` literal form is not yet
+parsed there. Declaration-name sites stay bare.
 
 ### Diagnostics
 

@@ -38,15 +38,28 @@ export interface LoadResult {
   diagnostics: Diagnostic[];
 }
 
+/** A reference's home: the namespace of the file it sits in + that file's
+ * imports. A target node is reachable iff its namespace is this ns, one of the
+ * imports, or global (prelude / namespace-less). */
+interface Home {
+  ns: string;
+  imports: readonly string[];
+}
+
 interface RefSite {
   id: string;
   span: SourceSpan | null;
   node: NodeId | null;
   path: string | null;
+  home: Home;
+  /** Rewrite the AST field/value this reference came from to a flat id — used
+   * when a qualified `ns.x` resolves to the flat node `x`, or a bare term ref
+   * resolves to its taxonomy-qualified sibling. */
+  rewrite?: (id: string) => void;
   /** Set for a reference inside a term body: the enclosing taxonomy and its
-   * `uses` list, plus a hook that rewrites the AST value to the resolved
-   * qualified id so downstream passes point at the real term node. */
-  scope?: { taxonomy: string; uses: readonly string[]; rewrite: (id: string) => void };
+   * (already flat-normalized) `uses` list, for sibling / cross-taxonomy bare
+   * resolution. */
+  scope?: { taxonomy: string; uses: readonly string[] };
 }
 
 interface PendingInvariant {
@@ -71,12 +84,12 @@ export function loadInto(
   reserved: ReadonlySet<string> = new Set(),
 ): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
-  const units: { ns: string; decl: Declaration }[] = [];
+  const units: { ns: string; imports: readonly string[]; decl: Declaration }[] = [];
   for (const source of sources) {
     const result = parse(source.text, source.uri);
     diagnostics.push(...result.diagnostics);
     for (const decl of result.namespace.declarations) {
-      units.push({ ns: result.namespace.path, decl });
+      units.push({ ns: result.namespace.path, imports: result.namespace.imports, decl });
     }
   }
 
@@ -112,24 +125,97 @@ export function loadInto(
 
   const defined = new Set<string>();
   const sites: RefSite[] = [];
-  for (const declaration of declarations) collectNames(declaration, defined, sites);
+  // Namespace of each SOURCE-defined id (base nodes carry their ns as a
+  // `namespace` attr). Drives the reachability gate below.
+  const sourceNs = new Map<string, string>();
+  for (const { ns, imports, decl } of units) collectNames(decl, { ns, imports }, defined, sites, sourceNs);
+
+  // ---- Namespace-scoped resolution (design: namespace-scoped-resolution) ----
+  // A reference resolves against a VISIBILITY-GATED id universe: a target's
+  // namespace must be the reference's own ns, one of its file's imports, or
+  // global (prelude / namespace-less). A qualified `ns.x` resolves the flat
+  // node `x` when its namespace is `ns` — explicit, so it needs no import.
+  const undefinedIds = new Set<string>();
+  const nsOf = (id: string): string | null => {
+    if (sourceNs.has(id)) return sourceNs.get(id)!;
+    const attr = model.resolve(id)?.attrs.get("namespace");
+    return typeof attr === "string" ? attr : null;
+  };
+  const exists = (id: string): boolean => defined.has(id) || model.has(id);
+  const reachable = (id: string, home: Home): boolean => {
+    // Prelude / default-library symbols (its namespace is `todl`) are
+    // implicitly imported everywhere, like java.lang — `reserved` is exactly
+    // the prelude's declared names, injected by check()/checkAgainst().
+    if (reserved.has(id)) return true;
+    const ns = nsOf(id);
+    return ns === null || ns === home.ns || home.imports.includes(ns);
+  };
+  type Resolved =
+    | { kind: "ok" }
+    | { kind: "qualified"; flat: string }
+    | { kind: "unreachable"; ns: string }
+    | { kind: "undefined" };
+  const resolveRef = (id: string, home: Home): Resolved => {
+    if (exists(id)) return reachable(id, home) ? { kind: "ok" } : { kind: "unreachable", ns: nsOf(id)! };
+    // Strip leading namespace segment(s): `ea.categories` → flat `categories`
+    // in ns `ea`; `ns.tax.term` → flat `tax.term` in ns `ns`. Flat-id match
+    // (above) wins first, so `categories.platform-api` stays the term node.
+    const segs = id.split(".");
+    for (let k = 1; k < segs.length; k++) {
+      const rest = segs.slice(k).join(".");
+      if (exists(rest) && nsOf(rest) === segs.slice(0, k).join(".")) return { kind: "qualified", flat: rest };
+    }
+    return { kind: "undefined" };
+  };
+
+  // Normalize + validate `uses` targets FIRST — the term-body scope resolution
+  // below reads each taxonomy's (flat) `uses` list to form `used.term`
+  // candidates, so qualified `uses ns.tax` must be rewritten to flat `tax`
+  // beforehand. Each target must resolve (via ns / import / qualifier) to a
+  // known taxonomy. Mutating decl.uses in place updates the same array the
+  // captured term `scope` holds.
+  const isTaxonomy = (id: string): boolean => {
+    for (const decl of declarations) if (decl.kind === DeclKind.Taxonomy && decl.name === id) return true;
+    return model.resolve(id)?.typeOf === MetaKind.Taxonomy;
+  };
+  for (const { ns, imports, decl } of units) {
+    if (decl.kind !== DeclKind.Taxonomy) continue;
+    const home: Home = { ns, imports };
+    decl.uses.forEach((u, i) => {
+      const r = resolveRef(u, home);
+      const flat = r.kind === "qualified" ? r.flat : u;
+      if (r.kind === "qualified") decl.uses[i] = flat;
+      if ((r.kind === "ok" || r.kind === "qualified") && isTaxonomy(flat)) return;
+      diagnostics.push({
+        code: DiagnosticCode.TaxonomyUsesUndefined,
+        severity: Severity.Error,
+        message: r.kind === "unreachable"
+          ? `taxonomy "${decl.name}" uses "${u}", which is defined in namespace "${r.ns}" but not imported here — add \`import ${r.ns};\``
+          : `taxonomy "${decl.name}" uses "${u}", which is not a known taxonomy`,
+        span: decl.usesSpans?.[i] ?? decl.span,
+        node: decl.name,
+        path: null,
+      });
+    });
+  }
 
   // Resolve references BEFORE Pass 1 — Pass 1's defineTaxonomy reads term value
-  // refs (termRelationships/termAttrs), so any taxonomy-scoped rewrite must be
-  // applied first. A bare ref inside a term body resolves against the enclosing
-  // taxonomy's own terms (sibling), then its `uses` list; on a match the AST
-  // value node is rewritten in place to the qualified id. Everything else keeps
-  // today's bare check. Any id still unresolved is reference.undefined and its
-  // edges are dropped by Builder.commit (via undefinedIds).
-  const undefinedIds = new Set<string>();
-  const has = (id: string): boolean => defined.has(id) || model.has(id);
+  // refs, so any rewrite must be applied first. A qualified name is rewritten to
+  // its flat id; a bare term-body ref resolves against the enclosing taxonomy's
+  // own terms (sibling shadows `uses`) even when the bare id also exists
+  // unreachably elsewhere. Anything unresolved is reference.undefined /
+  // reference.unreachable and its edges are dropped by Builder.commit.
   for (const site of sites) {
-    if (has(site.id)) continue; // resolves as written
+    const r = resolveRef(site.id, site.home);
+    if (r.kind === "ok") continue;
+    if (r.kind === "qualified") { site.rewrite?.(r.flat); continue; }
     if (site.scope !== undefined) {
       const sibling = `${site.scope.taxonomy}.${site.id}`;
-      if (has(sibling)) { site.scope.rewrite(sibling); continue; } // sibling shadows uses
-      const matches = site.scope.uses.map((u) => `${u}.${site.id}`).filter(has);
-      if (matches.length === 1) { site.scope.rewrite(matches[0]!); continue; }
+      if (exists(sibling) && reachable(sibling, site.home)) { site.rewrite?.(sibling); continue; }
+      const matches = site.scope.uses
+        .map((u) => `${u}.${site.id}`)
+        .filter((cand) => exists(cand) && reachable(cand, site.home));
+      if (matches.length === 1) { site.rewrite?.(matches[0]!); continue; }
       if (matches.length > 1) {
         diagnostics.push({
           code: DiagnosticCode.TaxonomyAmbiguousBareReference,
@@ -143,35 +229,19 @@ export function loadInto(
       }
     }
     undefinedIds.add(site.id);
-    diagnostics.push({
-      code: DiagnosticCode.ReferenceUndefined,
-      severity: Severity.Error,
-      message: `reference to undefined symbol "${site.id}"`,
-      span: site.span,
-      node: site.node,
-      path: site.path,
-    });
-  }
-
-  // Validate `uses` targets: each must name a known taxonomy (a source
-  // declaration or a base node typed taxonomy). Unknown names, or names that
-  // resolve to a non-taxonomy, are diagnosed — mirroring model.binding-undefined.
-  const taxonomyNames = new Set<string>();
-  for (const decl of declarations) if (decl.kind === DeclKind.Taxonomy) taxonomyNames.add(decl.name);
-  for (const n of model.allNodes()) if (n.typeOf === MetaKind.Taxonomy) taxonomyNames.add(n.id);
-  for (const { decl } of units) {
-    if (decl.kind !== DeclKind.Taxonomy) continue;
-    decl.uses.forEach((u, i) => {
-      if (taxonomyNames.has(u)) return;
-      diagnostics.push({
-        code: DiagnosticCode.TaxonomyUsesUndefined,
-        severity: Severity.Error,
-        message: `taxonomy "${decl.name}" uses "${u}", which is not a known taxonomy`,
-        span: decl.usesSpans?.[i] ?? decl.span,
-        node: decl.name,
-        path: null,
-      });
-    });
+    diagnostics.push(r.kind === "unreachable"
+      ? {
+          code: DiagnosticCode.ReferenceUnreachable,
+          severity: Severity.Error,
+          message: `reference to "${site.id}", which is defined in namespace "${r.ns}" but not imported here — add \`import ${r.ns};\``,
+          span: site.span, node: site.node, path: site.path,
+        }
+      : {
+          code: DiagnosticCode.ReferenceUndefined,
+          severity: Severity.Error,
+          message: `reference to undefined symbol "${site.id}"`,
+          span: site.span, node: site.node, path: site.path,
+        });
   }
 
   // Composition records nested in a taxonomy term (a `billing` record inside a
@@ -409,85 +479,104 @@ function recordInstanceSpans(model: Repository, decl: InstanceDecl): void {
   for (const child of decl.children) recordInstanceSpans(model, child);
 }
 
-function collectNames(declaration: Declaration, defined: Set<string>, sites: RefSite[]): void {
+function collectNames(
+  declaration: Declaration,
+  home: Home,
+  defined: Set<string>,
+  sites: RefSite[],
+  sourceNs: Map<string, string>,
+): void {
+  const define = (id: string): void => { defined.add(id); sourceNs.set(id, home.ns); };
+  const annotationSite = (app: AnnotationApplication, node: NodeId): void => {
+    sites.push({ id: app.name, span: app.nameSpan ?? app.span, node, path: null, home, rewrite: (r) => { app.name = r; } });
+  };
   switch (declaration.kind) {
     case DeclKind.Primitive:
-      defined.add(declaration.name);
+      define(declaration.name);
       break;
     case DeclKind.Taxonomy: {
-      defined.add(declaration.name);
-      for (let i = 0; i < declaration.represents.length; i++) {
-        const concept = declaration.represents[i]!;
+      const decl = declaration;
+      define(decl.name);
+      for (let i = 0; i < decl.represents.length; i++) {
+        const idx = i;
         sites.push({
-          id: concept,
-          span: declaration.representsSpans?.[i] ?? declaration.span,
-          node: declaration.name,
+          id: decl.represents[i]!,
+          span: decl.representsSpans?.[i] ?? decl.span,
+          node: decl.name,
           path: null,
+          home,
+          rewrite: (r) => { decl.represents[idx] = r; },
         });
       }
+      for (const app of decl.annotations) annotationSite(app, `${decl.name}@${app.name}`);
       // Term nodes are taxonomy-qualified (see Builder.defineTaxonomy); record
       // every term's qualified id (nested included) so bare term values resolve,
       // and collect the refs their fixed relationships/compositions point at.
-      for (const app of declaration.annotations) {
-        sites.push({ id: app.name, span: app.nameSpan ?? app.span, node: `${declaration.name}@${app.name}`, path: null });
-      }
-      const scope = { taxonomy: declaration.name, uses: declaration.uses };
+      const scope = { taxonomy: decl.name, uses: decl.uses };
       const add = (t: Term): void => {
-        defined.add(`${declaration.name}.${t.id}`);
+        define(`${decl.name}.${t.id}`);
         for (const assignment of t.assignments) {
-          collectValueRefs(assignment.value, sites, `${declaration.name}.${t.id}`, assignment.name, assignment.span ?? null, scope);
+          collectValueRefs(assignment.value, sites, `${decl.name}.${t.id}`, assignment.name, assignment.span ?? null, home, scope);
         }
         t.children.forEach(add);
       };
-      declaration.terms.forEach(add);
+      decl.terms.forEach(add);
       break;
     }
     case DeclKind.Concept:
-      defined.add(declaration.name);
+      define(declaration.name);
       if (declaration.extends !== null) {
+        const decl = declaration;
         sites.push({
-          id: declaration.extends,
-          span: declaration.extendsSpan ?? declaration.span,
-          node: declaration.name,
+          id: decl.extends!,
+          span: decl.extendsSpan ?? decl.span,
+          node: decl.name,
           path: null,
+          home,
+          rewrite: (r) => { (decl as { extends: string | null }).extends = r; },
         });
       }
-      for (const app of declaration.annotations) {
-        sites.push({ id: app.name, span: app.nameSpan ?? app.span, node: `${declaration.name}@${app.name}`, path: null });
-      }
+      for (const app of declaration.annotations) annotationSite(app, `${declaration.name}@${app.name}`);
       break;
     case DeclKind.Instance:
-      collectInstanceNames(declaration, defined, sites);
+      collectInstanceNames(declaration, home, defined, sites, sourceNs);
       break;
     case DeclKind.Model:
-      defined.add(declaration.id);
-      for (const inst of declaration.instances) collectInstanceNames(inst, defined, sites);
+      define(declaration.id);
+      for (const inst of declaration.instances) collectInstanceNames(inst, home, defined, sites, sourceNs);
       break;
     case DeclKind.Annotation:
-      defined.add(declaration.name);
+      define(declaration.name);
       break;
     case DeclKind.Package:
-      for (const app of declaration.annotations) {
-        sites.push({ id: app.name, span: app.nameSpan ?? app.span, node: `${PACKAGE_NODE_ID}@${app.name}`, path: null });
-      }
+      for (const app of declaration.annotations) annotationSite(app, `${PACKAGE_NODE_ID}@${app.name}`);
       break;
   }
 }
 
-function collectInstanceNames(decl: InstanceDecl, defined: Set<string>, sites: RefSite[]): void {
+function collectInstanceNames(
+  decl: InstanceDecl,
+  home: Home,
+  defined: Set<string>,
+  sites: RefSite[],
+  sourceNs: Map<string, string>,
+): void {
   defined.add(decl.id);
+  sourceNs.set(decl.id, home.ns);
   if (decl.instanceOf !== null) {
     sites.push({
       id: decl.instanceOf,
       span: decl.instanceOfSpan ?? decl.span,
       node: decl.id,
       path: null,
+      home,
+      rewrite: (r) => { (decl as { instanceOf: string | null }).instanceOf = r; },
     });
   }
   for (const assignment of decl.assignments) {
-    collectValueRefs(assignment.value, sites, decl.id, assignment.name, assignment.span ?? null);
+    collectValueRefs(assignment.value, sites, decl.id, assignment.name, assignment.span ?? null, home);
   }
-  for (const child of decl.children) collectInstanceNames(child, defined, sites);
+  for (const child of decl.children) collectInstanceNames(child, home, defined, sites, sourceNs);
 }
 
 /** A term's scalar fixed-value fields (String/Name/Composite) as an attr map.
@@ -547,23 +636,26 @@ function collectValueRefs(
   ownerNode: NodeId,
   memberName: string,
   memberSpan: SourceSpan | null,
+  home: Home,
   scope?: { taxonomy: string; uses: readonly string[] },
 ): void {
   switch (value.kind) {
     case ValueKind.Ref:
       sites.push({
-        id: value.ref, span: value.span ?? memberSpan ?? null, node: ownerNode, path: memberName,
-        ...(scope ? { scope: { ...scope, rewrite: (r) => { (value as { ref: string }).ref = r; } } } : {}),
+        id: value.ref, span: value.span ?? memberSpan ?? null, node: ownerNode, path: memberName, home,
+        rewrite: (r) => { (value as { ref: string }).ref = r; },
+        ...(scope ? { scope } : {}),
       });
       break;
     case ValueKind.Name:
       sites.push({
-        id: value.name, span: memberSpan ?? null, node: ownerNode, path: memberName,
-        ...(scope ? { scope: { ...scope, rewrite: (r) => { (value as { name: string }).name = r; } } } : {}),
+        id: value.name, span: memberSpan ?? null, node: ownerNode, path: memberName, home,
+        rewrite: (r) => { (value as { name: string }).name = r; },
+        ...(scope ? { scope } : {}),
       });
       break;
     case ValueKind.List:
-      for (const item of value.items) collectValueRefs(item, sites, ownerNode, memberName, memberSpan, scope);
+      for (const item of value.items) collectValueRefs(item, sites, ownerNode, memberName, memberSpan, home, scope);
       break;
     case ValueKind.String:
     case ValueKind.Composite:
