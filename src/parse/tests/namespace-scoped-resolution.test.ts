@@ -116,7 +116,7 @@ test("every reference site is namespace-gated: qualified resolves, bare cross-ns
   const ok = checkAgainst([b], [{ uri: "lib.todl", text:
     `namespace lib {
        concept special : ea.thing { other : ea.thing; }
-       model m : ea uses ea {
+       model m : ea {
          ea.thing w2 { }
        }
      }` }]);

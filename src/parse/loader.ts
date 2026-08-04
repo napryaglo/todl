@@ -167,6 +167,31 @@ export function loadInto(
     });
   }
 
+  // A model's `uses` list is the same shape as a taxonomy's: taxonomy names that
+  // form a term-drop scope for the model's instance value refs. Normalize each
+  // qualified `ns.tax` to its flat id in place (the captured scope holds the same
+  // `decl.libraries` array) and require each to resolve to a known taxonomy.
+  for (const { ns, imports, decl } of units) {
+    if (decl.kind !== DeclKind.Model) continue;
+    const home: Home = { ns, imports };
+    decl.libraries.forEach((u, i) => {
+      const r = resolveRef(u, home);
+      const flat = r.kind === "qualified" ? r.flat : u;
+      if (r.kind === "qualified") decl.libraries[i] = flat;
+      if ((r.kind === "ok" || r.kind === "qualified") && isTaxonomy(flat)) return;
+      diagnostics.push({
+        code: DiagnosticCode.TaxonomyUsesUndefined,
+        severity: Severity.Error,
+        message: r.kind === "unreachable"
+          ? `model "${decl.id}" uses "${u}", which is defined in namespace "${r.ns}" but not imported here — add \`import ${r.ns};\``
+          : `model "${decl.id}" uses "${u}", which is not a known taxonomy`,
+        span: decl.librarySpans?.[i] ?? decl.span,
+        node: decl.id,
+        path: null,
+      });
+    });
+  }
+
   // Resolve references BEFORE Pass 1 — Pass 1's defineTaxonomy reads term value
   // refs, so any rewrite must be applied first. A qualified name is rewritten to
   // its flat id; a bare term-body ref resolves against the enclosing taxonomy's
@@ -178,8 +203,10 @@ export function loadInto(
     if (r.kind === "ok") continue;
     if (r.kind === "qualified") { site.rewrite?.(r.flat); continue; }
     if (site.scope !== undefined) {
-      const sibling = `${site.scope.taxonomy}.${site.id}`;
-      if (exists(sibling) && reachable(sibling, site.home)) { site.rewrite?.(sibling); continue; }
+      // A model scope has no enclosing taxonomy (empty sibling slot); only the
+      // `uses` candidates below apply. A taxonomy-body scope tries its sibling first.
+      const sibling = site.scope.taxonomy ? `${site.scope.taxonomy}.${site.id}` : "";
+      if (sibling && exists(sibling) && reachable(sibling, site.home)) { site.rewrite?.(sibling); continue; }
       const matches = site.scope.uses
         .map((u) => `${u}.${site.id}`)
         .filter((cand) => exists(cand) && reachable(cand, site.home));
@@ -193,6 +220,7 @@ export function loadInto(
           node: site.node,
           path: site.path,
         });
+        undefinedIds.add(site.id); // unresolved: drop the edge so commit doesn't dangle
         continue;
       }
     }

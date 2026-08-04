@@ -60,22 +60,26 @@ export function validate(model: Repository): Diagnostic[] {
   return diagnostics;
 }
 
-/** The model's bound vocabulary: its meta-model plus each used library. */
-function boundModules(node: Node): { metaModel: string | undefined; uses: string[]; set: Set<string> } {
+/** A model's declared bindings: its meta-model namespace (`: <metaModel>`) and
+ * its `uses` taxonomies (each a flat taxonomy node id). */
+function boundModules(node: Node): { metaModel: string | undefined; uses: string[] } {
   const metaModel = typeof node.attrs.get("meta-model") === "string"
     ? (node.attrs.get("meta-model") as string) : undefined;
   const count = typeof node.attrs.get("uses.count") === "number"
     ? (node.attrs.get("uses.count") as number) : 0;
   const uses: string[] = [];
   for (let i = 0; i < count; i++) {
-    const lib = node.attrs.get(`uses.${i}`);
-    if (typeof lib === "string") uses.push(lib);
+    const tax = node.attrs.get(`uses.${i}`);
+    if (typeof tax === "string") uses.push(tax);
   }
-  const set = new Set<string>([...(metaModel ? [metaModel] : []), ...uses]);
-  return { metaModel, uses, set };
+  return { metaModel, uses };
 }
 
-/** Validate a model node: bound modules resolve, and constructors stay in scope. */
+/** Validate a model node: its meta-model resolves, and every constructor stays
+ * within the model's bound vocabulary. The bound namespaces are the meta-model
+ * plus the namespace each used taxonomy lives in (a `uses stack` where `stack`
+ * is in namespace `ea` binds `ea`). `uses` targets themselves are validated as
+ * taxonomies by the loader. */
 function validateModel(out: Diagnostic[], model: Repository, node: Node): void {
   const { metaModel, uses } = boundModules(node);
 
@@ -85,21 +89,24 @@ function validateModel(out: Diagnostic[], model: Repository, node: Node): void {
     if (typeof ns === "string") present.add(ns);
   }
 
-  const flagBinding = (name: string, member: string): void => {
-    if (present.has(name)) return;
+  if (metaModel !== undefined && !present.has(metaModel)) {
     out.push({
       code: DiagnosticCode.ModelBindingUndefined,
       severity: Severity.Error,
-      message: `model "${node.id}" binds "${name}", but no loaded module provides it`,
-      span: model.spanOf(Repository.memberKey(node.id, member)) ?? model.spanOf(node.id),
+      message: `model "${node.id}" binds "${metaModel}", but no loaded module provides it`,
+      span: model.spanOf(Repository.memberKey(node.id, "meta-model")) ?? model.spanOf(node.id),
       node: node.id,
       path: null,
     });
-  };
-  if (metaModel !== undefined) flagBinding(metaModel, "meta-model");
-  uses.forEach((lib, i) => flagBinding(lib, `uses.${i}`));
+  }
 
-  const { set: bound } = boundModules(node);
+  // Bound vocabulary = the meta-model namespace + the namespace of each used
+  // taxonomy. Constructors (concepts, classes/terms) must come from one of these.
+  const bound = new Set<string>(metaModel !== undefined ? [metaModel] : []);
+  for (const tax of uses) {
+    const ns = namespaceOf(model, tax);
+    if (ns !== null) bound.add(ns);
+  }
   for (const objId of model.closure(node.id, EdgeKind.Contains, Direction.Out, false)) {
     const obj = model.resolve(objId);
     if (obj === undefined) continue;

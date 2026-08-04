@@ -21,10 +21,12 @@ test("binding a meta-model no module provides is model.binding-undefined", () =>
   assert.ok(c.includes(DiagnosticCode.ModelBindingUndefined));
 });
 
-test("a uses library no module provides is model.binding-undefined", () => {
+test("a uses target that is not a known taxonomy is flagged", () => {
+  // `uses` on a model names taxonomies (its term-drop scope). A `uses` of
+  // something that is not a known taxonomy is a taxonomy-uses error.
   const c = codes(`namespace acme {
     concept component { }
-    model prod : acme uses ghost-lib { component checkout { } }
+    model prod : acme uses ghost-tax { component checkout { } }
   }`);
-  assert.ok(c.includes(DiagnosticCode.ModelBindingUndefined));
+  assert.ok(c.includes(DiagnosticCode.TaxonomyUsesUndefined));
 });
