@@ -100,9 +100,12 @@ function validateModel(out: Diagnostic[], model: Repository, node: Node): void {
     });
   }
 
-  // Bound vocabulary = the meta-model namespace + the namespace of each used
+  // Bound vocabulary = the model's own namespace (local `class`/`concept`
+  // constructors) + the meta-model namespace + the namespace of each used
   // taxonomy. Constructors (concepts, classes/terms) must come from one of these.
   const bound = new Set<string>(metaModel !== undefined ? [metaModel] : []);
+  const ownNs = namespaceOf(model, node.id);
+  if (ownNs !== null) bound.add(ownNs);
   for (const tax of uses) {
     const ns = namespaceOf(model, tax);
     if (ns !== null) bound.add(ns);

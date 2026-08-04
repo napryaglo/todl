@@ -31,6 +31,20 @@ test("constructors from the meta-model and a bound (via uses) library are in sco
   assert.ok(!codes(diagnostics).includes(DiagnosticCode.ConstructorOutOfScope));
 });
 
+test("a local class in the model's own namespace is always in scope", () => {
+  // A `class` declared alongside the model (namespace `app`) is a local
+  // constructor; the model's own namespace is bound implicitly, no `uses` needed.
+  const src = `namespace app {
+    import meta;
+    class server local-tier { }
+    model prod : meta {
+      server b instanceof local-tier { }
+    }
+  }`;
+  const { diagnostics } = checkAgainst(bases(), [{ uri: "app.todl", text: src }]);
+  assert.ok(!codes(diagnostics).includes(DiagnosticCode.ConstructorOutOfScope));
+});
+
 test("a class from a library the model does not bind is out of scope", () => {
   const src = `namespace app {
     import meta;
