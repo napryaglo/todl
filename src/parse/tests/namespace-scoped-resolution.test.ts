@@ -106,6 +106,34 @@ test("a prelude annotation applies from any namespace without importing `todl`",
   assert.deepEqual(errs(diagnostics), []);
 });
 
+test("every reference site is namespace-gated: qualified resolves, bare cross-ns needs import", () => {
+  // A base with a concept in namespace ea.
+  const b = toJSON(check([{ uri: "ea.todl", text:
+    `namespace ea { concept thing { label : string?; } }` }]).model);
+
+  // Qualified names at extends, field type, record concept, and model bindings —
+  // all resolve WITHOUT an import (explicit qualifier).
+  const ok = checkAgainst([b], [{ uri: "lib.todl", text:
+    `namespace lib {
+       concept special : ea.thing { other : ea.thing; }
+       model m : ea uses ea {
+         ea.thing w2 { }
+       }
+     }` }]);
+  assert.deepEqual(errs(ok.diagnostics), []);
+
+  // Bare cross-namespace field type WITHOUT an import → unreachable.
+  const bad = checkAgainst([b], [{ uri: "lib.todl", text:
+    `namespace lib { concept special { t : thing; } }` }]);
+  assert.ok(errs(bad.diagnostics).includes(DiagnosticCode.ReferenceUnreachable));
+});
+
+test("built-in scalar types resolve everywhere without a declaration", () => {
+  const { diagnostics } = check([{ uri: "n.todl", text:
+    `namespace faraway { concept x { a : string; b : boolean; c : integer; d : number; } }` }]);
+  assert.deepEqual(errs(diagnostics), []);
+});
+
 test("parser: `uses`/`represents` accept namespace-qualified targets", () => {
   const { namespace, diagnostics } = parse(
     `namespace lib {

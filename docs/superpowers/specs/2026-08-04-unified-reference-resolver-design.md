@@ -1,7 +1,7 @@
 # Unified Reference & Symbol Resolver — Design
 
 **Date:** 2026-08-04
-**Status:** Draft for review
+**Status:** Implemented (4 stages) + published 0.12.0
 **Package:** TODL (`@pragmatic-lab/todl`)
 
 ## Problem
