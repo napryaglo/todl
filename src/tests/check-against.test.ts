@@ -21,6 +21,7 @@ const META: SourceFile = {
 const LIB: SourceFile = {
   uri: "microsoft.todl",
   text: `namespace lib {
+    import ea;
     taxonomy microsoft : represents location, technology {
       location azure { label = "Azure"; }
       technology azure-openai { label = "Azure OpenAI"; applicable-to = component-category.platform-api; }
