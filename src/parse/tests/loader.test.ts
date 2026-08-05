@@ -88,7 +88,7 @@ test("edge-shorthand connector loads from/to as relationship edges", () => {
       concept connector { from : component; to : component; kind : string; }
       component business-agent { label = "x"; }
       component agent-orchestrator { label = "y"; }
-      connector &business-agent -> &agent-orchestrator { kind = enabled-by; }
+      connector business-agent -> agent-orchestrator { kind = enabled-by; }
     }`,
   ]);
   const conn = model.allNodes().find((n) => n.typeOf === "connector");

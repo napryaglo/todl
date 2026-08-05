@@ -770,10 +770,6 @@ function realizeValue(
       if (reference) builder.addRelationship(id, name, value.name);
       else builder.setField(id, name, value.name);
       break;
-    case ValueKind.Ref: // legacy `&ref`; the sigil is removed from the grammar in a later task
-      if (reference) builder.addRelationship(id, name, value.ref);
-      else builder.setField(id, name, value.ref);
-      break;
     case ValueKind.List:
       for (const item of value.items) realizeValue(builder, model, concept, id, name, item, diagnostics);
       break;

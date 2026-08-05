@@ -52,7 +52,7 @@ test("term relationship assignments (refs and lists) load as edges, scalars as a
     `concept location { parent : location?; } concept technology { available-in : location[]; }
      taxonomy microsoft : represents location, technology {
        location azure { label = "Azure"; }
-       location m365  { parent = &microsoft.azure; }
+       location m365  { parent = microsoft.azure; }
        technology graph { available-in = [microsoft.m365, microsoft.azure]; }
      }`,
   );

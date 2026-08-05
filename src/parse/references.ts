@@ -148,13 +148,8 @@ function visitValueRefs(
   visit: Visit,
 ): void {
   switch (value.kind) {
-    case ValueKind.Ref:
-      visit({ name: value.ref, span: value.span ?? memberSpan, role: RefRole.RefValue,
-        ownerNode, memberPath: memberName, rewrite: (r) => { (value as { ref: string }).ref = r; },
-        ...(scope ? { scope } : {}) });
-      break;
     case ValueKind.Name:
-      visit({ name: value.name, span: memberSpan, role: RefRole.RefValue,
+      visit({ name: value.name, span: value.span ?? memberSpan, role: RefRole.RefValue,
         ownerNode, memberPath: memberName, rewrite: (r) => { (value as { name: string }).name = r; },
         ...(scope ? { scope } : {}) });
       break;

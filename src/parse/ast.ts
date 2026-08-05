@@ -22,7 +22,6 @@ export enum DeclKind {
 export enum ValueKind {
   String,
   Name,
-  Ref,
   List,
   Composite,
   Boolean,
@@ -39,17 +38,13 @@ export interface BooleanValue {
   value: boolean;
 }
 
-/** A bare identifier value — an enum member (`service`). */
+/** A bare identifier value — an enum member (`service`) or, when the member's
+ * declared type is a concept/taxonomy, a reference. */
 export interface NameValue {
   kind: ValueKind.Name;
   name: string;
-}
-
-/** A `&`-prefixed record reference. */
-export interface RefValue {
-  kind: ValueKind.Ref;
-  ref: string;
-  /** Span of the `&name` reference occurrence (set by the parser). */
+  /** Span of the name occurrence (set by the parser) — used for reference
+   * resolution diagnostics and go-to-definition on reference values. */
   span?: SourceSpan;
 }
 
@@ -67,7 +62,6 @@ export interface CompositeValue {
 export type ValueNode =
   | StringValue
   | NameValue
-  | RefValue
   | ListValue
   | CompositeValue
   | BooleanValue;

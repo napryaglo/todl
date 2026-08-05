@@ -14,7 +14,7 @@ test("records extends, field-type, relationship-target and ref occurrences", () 
     "  concept animal { }",
     "  concept dog : animal { legs : number; relationship owner -> person []; }",
     "  dog rex { }",
-    "  person p { pet = &rex; }",
+    "  person p { pet = rex; }",
     "}",
   ].join("\n"));
   const animalRefs = idx.get("animal");

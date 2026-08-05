@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { parse } from "../parser.js";
-import { DeclKind, ValueKind, type InstanceDecl, type ModelDecl, type RefValue } from "../ast.js";
+import { DeclKind, ValueKind, type InstanceDecl, type ModelDecl, type NameValue } from "../ast.js";
 import { Cardinality } from "../../model/graph.js";
 import { DiagnosticCode } from "../../diagnostics/diagnostic.js";
 
@@ -108,16 +108,16 @@ test("rejects a `{ … }` object value literal — no anonymous records", () => 
 });
 
 test("parses concept-prefixed edge-shorthand with a body", () => {
-  const { namespace: ns } = parse(`namespace d { connector &business-agent -> &agent-orchestrator { type = enabled-by; } }`);
+  const { namespace: ns } = parse(`namespace d { connector business-agent -> agent-orchestrator { type = enabled-by; } }`);
   const edge = ns.declarations[0];
   assert.ok(edge && edge.kind === DeclKind.Instance);
   if (edge.kind === DeclKind.Instance) {
     assert.equal(edge.concept, "connector");
     const from = edge.assignments.find((a) => a.name === "from")?.value;
     const to = edge.assignments.find((a) => a.name === "to")?.value;
-    assert.equal(from?.kind, ValueKind.Ref);
-    assert.equal((from as RefValue).ref, "business-agent");
-    assert.equal((to as RefValue).ref, "agent-orchestrator");
+    assert.equal(from?.kind, ValueKind.Name);
+    assert.equal((from as NameValue).name, "business-agent");
+    assert.equal((to as NameValue).name, "agent-orchestrator");
     assert.ok(edge.assignments.find((a) => a.name === "type"));
   }
 });
@@ -125,7 +125,7 @@ test("parses concept-prefixed edge-shorthand with a body", () => {
 test("parses an application-connectors block of --> edges inside a model", () => {
   const { namespace: ns } = parse(`namespace d {
     model m : ea {
-      application-connectors { &external-agent-bridge --> &agent-service }
+      application-connectors { external-agent-bridge --> agent-service }
     }
   }`);
   const model = ns.declarations[0] as ModelDecl;
@@ -164,8 +164,8 @@ test("parses a string-keyed record id", () => {
 
 test("parses a class modifier and an instanceof leaf", () => {
   const { namespace: ns } = parse(`namespace d {
-    class component teams-chat { realised-by = &microsoft-teams; }
-    component chat-hq instanceof teams-chat { in = &hq; }
+    class component teams-chat { realised-by = microsoft-teams; }
+    component chat-hq instanceof teams-chat { in = hq; }
   }`);
   const cls = ns.declarations[0];
   assert.ok(cls && cls.kind === DeclKind.Instance);
