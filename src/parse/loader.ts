@@ -476,6 +476,24 @@ function recordInstanceSpans(model: Repository, decl: InstanceDecl): void {
 }
 
 
+/** A type is reference-like when it resolves to a concept or taxonomy node;
+ * primitives and unresolved ids are value-like. */
+function isReferenceType(model: Repository, type: string | undefined): boolean {
+  if (type === undefined) return false;
+  const kind = model.resolve(type)?.typeOf;
+  return kind === MetaKind.Concept || kind === MetaKind.Taxonomy;
+}
+
+/** A member is reference-like when it is a `->` relationship, or a `:` field
+ * whose declared type is reference-like. Reads the effective (inherited) schema
+ * of `concept`, so schemas must be committed before this is called. */
+function isReferenceMember(model: Repository, concept: string, name: string): boolean {
+  const schema = model.effectiveSchema(concept);
+  if (schema.relationships.some((r) => r.name === name)) return true;
+  const field = schema.fields.find((f) => f.name === name);
+  return field !== undefined && isReferenceType(model, field.type);
+}
+
 /** A term's scalar fixed-value fields (String/Name/Composite) as an attr map.
  * `Ref`/`List` assignments are domain relationships — see {@link termRelationships}. */
 function termAttrs(assignments: AssignmentNode[]): Map<string, Scalar> {
@@ -741,3 +759,6 @@ function applyValue(builder: Builder, id: string, name: string, value: ValueNode
       break;
   }
 }
+
+/** Test-only surface for the type-directed classification helpers. */
+export const __test__ = { isReferenceType, isReferenceMember };
