@@ -33,7 +33,7 @@ test("undefined concept extends target → ReferenceUndefined", () => {
 
 test("undefined value ref → ReferenceUndefined", () => {
   const { model, diagnostics } = load([
-    src(`namespace n { concept thing { relationship rel -> thing; } thing a { rel = &ghost; } }`),
+    src(`namespace n { concept thing { relationship rel -> thing; } thing a { rel = ghost; } }`),
   ]);
   assert.equal(undefinedRefs(diagnostics).length, 1);
   assert.equal(model.resolve("ghost"), undefined);
@@ -48,7 +48,7 @@ test("a reference to a defined symbol produces no diagnostic", () => {
 
 test("two references to the same undefined id → two diagnostics", () => {
   const { diagnostics } = load([
-    src(`namespace n { concept thing { relationship rel -> thing; } thing a { rel = &ghost; } thing b { rel = &ghost; } }`),
+    src(`namespace n { concept thing { relationship rel -> thing; } thing a { rel = ghost; } thing b { rel = ghost; } }`),
   ]);
   assert.equal(undefinedRefs(diagnostics).length, 2);
 });
