@@ -244,6 +244,10 @@ export function loadInto(
   // `technology` term) — deferred to pass 2b so they can bind to the term's
   // field once concept schemas are committed.
   const deferredCompositions: { ns: string; parentId: string; parentConcept: string; decl: InstanceDecl }[] = [];
+  // Term assignments whose realization (attr vs edge) depends on the represented
+  // concept's schema — deferred until schemas commit (Pass 2a), then applied in
+  // Pass 2b through the shared type-directed helper.
+  const deferredTermValues: { ns: string; concept: string; termId: string; name: string; value: ValueNode }[] = [];
 
   // Pass 1: bare type declarations. Any referenced id absent from both the new
   // sources and the existing model was flagged above and its edges are skipped
@@ -299,11 +303,20 @@ export function loadInto(
               });
             }
           }
+          // Literal scalars (String/Boolean) are unambiguously attrs; everything
+          // else (Name/List/Composite) is classified by the concept schema and
+          // deferred to Pass 2b.
+          for (const assignment of t.assignments) {
+            const v = assignment.value;
+            if (v.kind !== ValueKind.String && v.kind !== ValueKind.Boolean) {
+              deferredTermValues.push({ ns, concept: ownConcept, termId: `${decl.name}.${t.id}`, name: assignment.name, value: v });
+            }
+          }
           return {
             id: t.id,
             ...(t.concept !== null ? { concept: t.concept } : {}),
-            attrs: termAttrs(t.assignments),
-            relationships: termRelationships(t.assignments),
+            attrs: termLiteralAttrs(t.assignments),
+            relationships: [],
             children: hierarchy,
           };
         };
@@ -379,6 +392,11 @@ export function loadInto(
   for (const composition of deferredCompositions) {
     third.setNamespace(composition.ns);
     applyInstance(third, model, composition.decl, composition.parentId, composition.parentConcept, asserted, diagnostics);
+  }
+  // Term values classified by the now-committed concept schema (type-directed).
+  for (const d of deferredTermValues) {
+    third.setNamespace(d.ns);
+    realizeValue(third, model, d.concept, d.termId, d.name, d.value, diagnostics);
   }
   third.commit(undefinedIds);
 
@@ -494,36 +512,16 @@ function isReferenceMember(model: Repository, concept: string, name: string): bo
   return field !== undefined && isReferenceType(model, field.type);
 }
 
-/** A term's scalar fixed-value fields (String/Name/Composite) as an attr map.
- * `Ref`/`List` assignments are domain relationships — see {@link termRelationships}. */
-function termAttrs(assignments: AssignmentNode[]): Map<string, Scalar> {
+/** A term's literal scalar attrs only (String/Boolean). Name/List/Composite are
+ * deferred and classified by the represented concept's schema after it commits. */
+function termLiteralAttrs(assignments: AssignmentNode[]): Map<string, Scalar> {
   const attrs = new Map<string, Scalar>();
   for (const assignment of assignments) {
     const value = assignment.value;
     if (value.kind === ValueKind.String) attrs.set(assignment.name, value.text);
     else if (value.kind === ValueKind.Boolean) attrs.set(assignment.name, value.value);
-    else if (value.kind === ValueKind.Name) attrs.set(assignment.name, value.name);
-    else if (value.kind === ValueKind.Composite) attrs.set(assignment.name, value.parts.join(" | "));
   }
   return attrs;
-}
-
-/** A term's relationship-valued fixed fields (`&ref` and `[…]` lists), as
- * (name -> target) pairs. `List` items may be bare names or `&`-refs. */
-function termRelationships(assignments: AssignmentNode[]): { name: string; target: string }[] {
-  const rels: { name: string; target: string }[] = [];
-  for (const assignment of assignments) {
-    const value = assignment.value;
-    if (value.kind === ValueKind.Ref) {
-      rels.push({ name: assignment.name, target: value.ref });
-    } else if (value.kind === ValueKind.List) {
-      for (const item of value.items) {
-        if (item.kind === ValueKind.Name) rels.push({ name: assignment.name, target: item.name });
-        else if (item.kind === ValueKind.Ref) rels.push({ name: assignment.name, target: item.ref });
-      }
-    }
-  }
-  return rels;
 }
 
 /** Convert a composition term (a nested record of a *different* represented
@@ -773,7 +771,8 @@ function realizeValue(
       else builder.setField(id, name, value.name);
       break;
     case ValueKind.Ref: // legacy `&ref`; the sigil is removed from the grammar in a later task
-      builder.addRelationship(id, name, value.ref);
+      if (reference) builder.addRelationship(id, name, value.ref);
+      else builder.setField(id, name, value.ref);
       break;
     case ValueKind.List:
       for (const item of value.items) realizeValue(builder, model, concept, id, name, item, diagnostics);
