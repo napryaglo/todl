@@ -187,8 +187,12 @@ namespace acme.ea.model
 - **Booleans**: the reserved literals `true` / `false` (`visible = true;`). A bare
   `true` / `false` is always a boolean value; a `boolean`-typed field or param
   given a non-boolean is `type.boolean-invalid`.
-- **References**: `&name` or `&dotted.path` — the `&` sigil points at another
-  record. `@` and `$` are reserved for Mural and are errors in `.todl`.
+- **References**: a bare `name` or `dotted.path`. There is no sigil — whether a
+  value is a reference (an edge to another record) or a scalar is decided by the
+  member's declared **type**: a field typed by a `concept` or `taxonomy` is a
+  reference; a field typed by a primitive is a scalar value. A reference that
+  does not resolve is `reference.undefined`. `@` and `$` are reserved for Mural
+  and are errors in `.todl`.
 - **Terminators**: every statement ends in `;`. Blocks are `{ … }`, lists are
   `[ … ]`.
 
@@ -400,12 +404,13 @@ scalar field to a different value (`class.override`).
 
 ### 4.9 Edge shorthand
 
-Connectors and steps can be written as edges: `&from <op> &to` where `<op>` is
-`->` or `-->`. A trailing `{ … }` block adds attributes; otherwise end with `;`.
+Connectors and steps can be written as edges: `from <op> to` where `<op>` is
+`->` or `-->`. Endpoints are bare names. A trailing `{ … }` block adds
+attributes; otherwise end with `;`.
 
 ```todl
-connector &business-agent --> &crm-api;
-step &receive -> &validate;
+connector business-agent --> crm-api;
+step receive -> validate;
 ```
 
 ### 4.10 Modifiers
@@ -422,7 +427,7 @@ total expression language evaluated over the graph. Its AST (`predicate/ast.ts`)
 is built from these node kinds and operators:
 
 - **Atoms**: `this` (the instance under check), `none` (absence / the empty
-  set), a bare name (an enum member or `&record` reference), a bound variable.
+  set), a bare name (an enum member or a record reference), a bound variable.
 - **Member access**: `this.field`, `this.relationship` — walks attrs and edges.
 - **Binary operators** (`BinaryOp`): `&&` (And), `||` (Or), `implies` (Implies),
   `==` (Eq), `!=` (Neq), `in` (In).
@@ -506,8 +511,10 @@ the offending `node`, and a concept-qualified member `path`.
 
 - `instance.ambiguous-field-binding` — an assignment can't be matched to a
   single field.
-- `reference.undefined` — a `&reference` (or annotation name) resolves to
+- `reference.undefined` — a reference value (or annotation name) resolves to
   nothing.
+- `member.value-kind` — a value's shape doesn't match its member's type (e.g. a
+  reference member given a quoted string).
 - `instance.orphan` — a concrete instance is declared outside a `model` block.
 - `model.binding-undefined` — a `model`'s `: <meta-model>` or a `uses` entry
   names a namespace no loaded module provides.

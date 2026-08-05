@@ -56,7 +56,7 @@ test("a reference resolvable in neither base nor source is still flagged", () =>
   const base = toJSON(check([META]).model);
   const bad: SourceFile = {
     uri: "bad.todl",
-    text: `namespace lib { taxonomy m : represents location { location x { parent = &nonsense.ghost; } } }`,
+    text: `namespace lib { taxonomy m : represents location { location x { parent = nonsense.ghost; } } }`,
   };
   const { model, diagnostics } = checkAgainst([base], [bad]);
   assert.ok(diagnostics.some((d) => d.code === DiagnosticCode.ReferenceUndefined));

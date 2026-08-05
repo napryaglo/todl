@@ -244,6 +244,10 @@ export function loadInto(
   // `technology` term) — deferred to pass 2b so they can bind to the term's
   // field once concept schemas are committed.
   const deferredCompositions: { ns: string; parentId: string; parentConcept: string; decl: InstanceDecl }[] = [];
+  // Term assignments whose realization (attr vs edge) depends on the represented
+  // concept's schema — deferred until schemas commit (Pass 2a), then applied in
+  // Pass 2b through the shared type-directed helper.
+  const deferredTermValues: { ns: string; concept: string; termId: string; name: string; value: ValueNode }[] = [];
 
   // Pass 1: bare type declarations. Any referenced id absent from both the new
   // sources and the existing model was flagged above and its edges are skipped
@@ -299,11 +303,20 @@ export function loadInto(
               });
             }
           }
+          // Literal scalars (String/Boolean) are unambiguously attrs; everything
+          // else (Name/List/Composite) is classified by the concept schema and
+          // deferred to Pass 2b.
+          for (const assignment of t.assignments) {
+            const v = assignment.value;
+            if (v.kind !== ValueKind.String && v.kind !== ValueKind.Boolean) {
+              deferredTermValues.push({ ns, concept: ownConcept, termId: `${decl.name}.${t.id}`, name: assignment.name, value: v });
+            }
+          }
           return {
             id: t.id,
             ...(t.concept !== null ? { concept: t.concept } : {}),
-            attrs: termAttrs(t.assignments),
-            relationships: termRelationships(t.assignments),
+            attrs: termLiteralAttrs(t.assignments),
+            relationships: [],
             children: hierarchy,
           };
         };
@@ -379,6 +392,11 @@ export function loadInto(
   for (const composition of deferredCompositions) {
     third.setNamespace(composition.ns);
     applyInstance(third, model, composition.decl, composition.parentId, composition.parentConcept, asserted, diagnostics);
+  }
+  // Term values classified by the now-committed concept schema (type-directed).
+  for (const d of deferredTermValues) {
+    third.setNamespace(d.ns);
+    realizeValue(third, model, d.concept, d.termId, d.name, d.value, diagnostics);
   }
   third.commit(undefinedIds);
 
@@ -476,36 +494,34 @@ function recordInstanceSpans(model: Repository, decl: InstanceDecl): void {
 }
 
 
-/** A term's scalar fixed-value fields (String/Name/Composite) as an attr map.
- * `Ref`/`List` assignments are domain relationships — see {@link termRelationships}. */
-function termAttrs(assignments: AssignmentNode[]): Map<string, Scalar> {
+/** A type is reference-like when it resolves to a concept or taxonomy node;
+ * primitives and unresolved ids are value-like. */
+function isReferenceType(model: Repository, type: string | undefined): boolean {
+  if (type === undefined) return false;
+  const kind = model.resolve(type)?.typeOf;
+  return kind === MetaKind.Concept || kind === MetaKind.Taxonomy;
+}
+
+/** A member is reference-like when it is a `->` relationship, or a `:` field
+ * whose declared type is reference-like. Reads the effective (inherited) schema
+ * of `concept`, so schemas must be committed before this is called. */
+function isReferenceMember(model: Repository, concept: string, name: string): boolean {
+  const schema = model.effectiveSchema(concept);
+  if (schema.relationships.some((r) => r.name === name)) return true;
+  const field = schema.fields.find((f) => f.name === name);
+  return field !== undefined && isReferenceType(model, field.type);
+}
+
+/** A term's literal scalar attrs only (String/Boolean). Name/List/Composite are
+ * deferred and classified by the represented concept's schema after it commits. */
+function termLiteralAttrs(assignments: AssignmentNode[]): Map<string, Scalar> {
   const attrs = new Map<string, Scalar>();
   for (const assignment of assignments) {
     const value = assignment.value;
     if (value.kind === ValueKind.String) attrs.set(assignment.name, value.text);
     else if (value.kind === ValueKind.Boolean) attrs.set(assignment.name, value.value);
-    else if (value.kind === ValueKind.Name) attrs.set(assignment.name, value.name);
-    else if (value.kind === ValueKind.Composite) attrs.set(assignment.name, value.parts.join(" | "));
   }
   return attrs;
-}
-
-/** A term's relationship-valued fixed fields (`&ref` and `[…]` lists), as
- * (name -> target) pairs. `List` items may be bare names or `&`-refs. */
-function termRelationships(assignments: AssignmentNode[]): { name: string; target: string }[] {
-  const rels: { name: string; target: string }[] = [];
-  for (const assignment of assignments) {
-    const value = assignment.value;
-    if (value.kind === ValueKind.Ref) {
-      rels.push({ name: assignment.name, target: value.ref });
-    } else if (value.kind === ValueKind.List) {
-      for (const item of value.items) {
-        if (item.kind === ValueKind.Name) rels.push({ name: assignment.name, target: item.name });
-        else if (item.kind === ValueKind.Ref) rels.push({ name: assignment.name, target: item.ref });
-      }
-    }
-  }
-  return rels;
 }
 
 /** Convert a composition term (a nested record of a *different* represented
@@ -591,7 +607,7 @@ function stageApplications(
     seen.add(appId);
     builder.annotate(target, app.name);
     model.recordSpan(appId, app.span);
-    for (const a of app.assignments) applyValue(builder, appId, a.name, a.value);
+    for (const a of app.assignments) realizeValue(builder, model, app.name, appId, a.name, a.value, diagnostics);
   }
 }
 
@@ -677,7 +693,7 @@ function applyInstance(
     }
   }
   for (const assignment of decl.assignments) {
-    applyValue(builder, decl.id, assignment.name, assignment.value);
+    realizeValue(builder, model, decl.concept, decl.id, assignment.name, assignment.value, diagnostics);
   }
   for (const child of decl.children) {
     applyInstance(builder, model, child, decl.id, decl.concept, asserted, diagnostics);
@@ -717,27 +733,58 @@ function bindToField(
   builder.addRelationship(parent, only.name, decl.id);
 }
 
-function applyValue(builder: Builder, id: string, name: string, value: ValueNode): void {
+/** Realize one authored assignment onto `id`, choosing attr vs edge from the
+ * member's declared type (not the value's syntax). Shared by the instance pass
+ * and the deferred-term pass. */
+function realizeValue(
+  builder: Builder,
+  model: Repository,
+  concept: string,
+  id: string,
+  name: string,
+  value: ValueNode,
+  diagnostics: Diagnostic[],
+): void {
+  const reference = isReferenceMember(model, concept, name);
+  const mismatch = (msg: string): void => {
+    diagnostics.push({
+      code: DiagnosticCode.MemberValueKind,
+      severity: Severity.Error,
+      message: msg,
+      span: null,
+      node: id,
+      path: `${concept}.${name}`,
+    });
+  };
+
   switch (value.kind) {
     case ValueKind.String:
+      if (reference) return mismatch(`"${concept}.${name}" is a reference — expected a name, not a quoted string`);
       builder.setField(id, name, value.text);
       break;
     case ValueKind.Boolean:
+      if (reference) return mismatch(`"${concept}.${name}" is a reference — expected a name, not a boolean`);
       builder.setField(id, name, value.value);
       break;
     case ValueKind.Name:
-      builder.addRelationship(id, name, value.name);
-      break;
-    case ValueKind.Ref:
-      builder.addRelationship(id, name, value.ref);
+      if (reference) builder.addRelationship(id, name, value.name);
+      else builder.setField(id, name, value.name);
       break;
     case ValueKind.List:
-      for (const item of value.items) applyValue(builder, id, name, item);
+      for (const item of value.items) realizeValue(builder, model, concept, id, name, item, diagnostics);
       break;
     case ValueKind.Composite:
-      // `|`-composed enum flags are stored as the legacy scalar string
-      // (`"cloud | paas"`); the runtime enum table's has() splits on `|`.
-      builder.setField(id, name, value.parts.join(" | "));
+      if (reference) {
+        // A `|`-composed selection of taxonomy terms → one edge per part.
+        for (const part of value.parts) builder.addRelationship(id, name, part);
+      } else {
+        // Enum-flag scalar kept as the legacy `|`-joined string; the runtime
+        // enum table's has() splits on `|`.
+        builder.setField(id, name, value.parts.join(" | "));
+      }
       break;
   }
 }
+
+/** Test-only surface for the type-directed classification helpers. */
+export const __test__ = { isReferenceType, isReferenceMember };

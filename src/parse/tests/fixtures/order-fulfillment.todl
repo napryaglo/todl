@@ -11,22 +11,22 @@ namespace demo.order-fulfillment
         label      = "Order Placed";
         event-type = event-type.start;
         trigger    = message;
-        lives-in   = &sales;
-        outgoing   = [&order-to-validate];
+        lives-in   = sales;
+        outgoing   = [order-to-validate];
     }
 
     task validate-payment
     {
         label    = "Validate Payment";
         type     = task-type.service;
-        lives-in = &sales;
-        incoming = [&order-to-validate];
+        lives-in = sales;
+        incoming = [order-to-validate];
     }
 
     sequence-flow order-to-validate
     {
-        from = &order-placed;
-        to   = &validate-payment;
+        from = order-placed;
+        to   = validate-payment;
         type = sequence;
     }
 }

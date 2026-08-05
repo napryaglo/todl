@@ -31,7 +31,7 @@ test("imports and instance concept/instanceof and ref values carry spans", () =>
     "namespace demo {",
     "  import other.lib;",
     "  concept person { }",
-    "  person alice instanceof someone { friend = &bob; }",
+    "  person alice instanceof someone { friend = bob; }",
     "}",
   ].join("\n");
   const { namespace } = parse(src, "d.todl");
@@ -43,6 +43,6 @@ test("imports and instance concept/instanceof and ref values carry spans", () =>
   assert.deepEqual(alice.conceptSpan?.start, { line: 4, column: 3 });
   assert.deepEqual(alice.instanceOfSpan?.start, { line: 4, column: 27 });
   const ref = alice.assignments[0]!.value;
-  assert.equal(ref.kind, ValueKind.Ref);
+  assert.equal(ref.kind, ValueKind.Name);
   assert.deepEqual((ref as { span?: { start: unknown } }).span?.start, { line: 4, column: 46 });
 });

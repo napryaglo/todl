@@ -181,7 +181,7 @@ class Parser {
     if (this.check(TokenKind.Identifier)) {
       const cStart = this.current();
       const concept = this.parseDottedPath();           // record concept may be ns-qualified
-      if (this.check(TokenKind.Amp)) return this.parseEdgeRecord(concept, start);
+      if (this.edgeRecordAhead()) return this.parseEdgeRecord(concept, start);
       return this.parseInstanceFrom(concept, start, false, this.spanFrom(cStart));
     }
     throw this.error(`expected a declaration (primitive / enum / concept / instance)`);
@@ -225,7 +225,7 @@ class Parser {
         const value = this.parseValue();
         this.expect(TokenKind.Semicolon);
         assignments.push({ name: first, value, span: this.spanFrom(memberStart) });
-      } else if (this.check(TokenKind.Amp)) {
+      } else if (this.edgeRecordAhead()) {
         children.push(this.parseEdgeRecord(first, memberStart));
       } else {
         children.push(this.parseInstanceFrom(first, memberStart));
@@ -273,7 +273,7 @@ class Parser {
       }
       const cStart = this.current();
       const concept = this.parseDottedPath();           // record concept may be ns-qualified
-      if (this.check(TokenKind.Amp)) {
+      if (this.edgeRecordAhead()) {
         instances.push(this.parseEdgeRecord(concept, memberStart));
         continue;
       }
@@ -367,8 +367,8 @@ class Parser {
     // `step` names its endpoints src/dst; connectors use from/to.
     const [fromField, toField] = concept === "step" ? ["src", "dst"] : ["from", "to"];
     const assignments: AssignmentNode[] = [
-      { name: fromField, value: { kind: ValueKind.Ref, ref: from } },
-      { name: toField, value: { kind: ValueKind.Ref, ref: to } },
+      { name: fromField, value: { kind: ValueKind.Name, name: from } },
+      { name: toField, value: { kind: ValueKind.Name, name: to } },
       { name: "operator", value: { kind: ValueKind.String, text: operator } },
     ];
     if (this.match(TokenKind.LBrace)) {
@@ -402,8 +402,18 @@ class Parser {
   }
 
   private parseRef(): string {
-    this.expect(TokenKind.Amp);
     return this.parseDottedPath();
+  }
+
+  /** True when the tokens ahead form an edge-record endpoint: a (possibly
+   * dotted) name immediately followed by an edge operator (`->` / `-->`).
+   * Distinguishes `connector a -> b` from a normal `concept id { … }` record. */
+  private edgeRecordAhead(): boolean {
+    let i = 0;
+    if (this.peekKind(i) !== TokenKind.Identifier) return false;
+    i += 1;
+    while (this.peekKind(i) === TokenKind.Dot && this.peekKind(i + 1) === TokenKind.Identifier) i += 2;
+    return this.peekKind(i) === TokenKind.Arrow || this.peekKind(i) === TokenKind.DoubleArrow;
   }
 
   private consumeEdgeOperator(): string {
@@ -418,16 +428,6 @@ class Parser {
     }
     if (this.check(TokenKind.Number)) {
       return { kind: ValueKind.String, text: this.advance().value };
-    }
-    if (this.check(TokenKind.Amp)) {
-      const ampTok = this.advance();
-      const ref = this.parseDottedPath();
-      const endTok = this.tokens[this.pos > 0 ? this.pos - 1 : 0] ?? ampTok;
-      return { kind: ValueKind.Ref, ref, span: {
-        uri: this.uri,
-        start: { line: ampTok.line, column: ampTok.column },
-        end: { line: endTok.endLine, column: endTok.endColumn },
-      } };
     }
     if (this.match(TokenKind.LBracket)) {
       const items: ValueNode[] = [];
@@ -451,6 +451,7 @@ class Parser {
         this.advance();
         return { kind: ValueKind.Boolean, value: word === "true" };
       }
+      const startTok = this.current();
       const first = this.advance().value;
       if (this.check(TokenKind.Pipe)) {
         const parts = [first];
@@ -461,9 +462,9 @@ class Parser {
         // A dotted bare name — a taxonomy-qualified term ref (`taxonomy.term`).
         const parts = [first];
         while (this.match(TokenKind.Dot)) parts.push(this.expectIdentifier());
-        return { kind: ValueKind.Name, name: parts.join(".") };
+        return { kind: ValueKind.Name, name: parts.join("."), span: this.spanFrom(startTok) };
       }
-      return { kind: ValueKind.Name, name: first };
+      return { kind: ValueKind.Name, name: first, span: this.spanFrom(startTok) };
     }
     throw this.error(`expected a value`);
   }

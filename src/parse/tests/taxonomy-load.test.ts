@@ -49,10 +49,10 @@ test("a multi-representation taxonomy types each term by its own concept", () =>
 
 test("term relationship assignments (refs and lists) load as edges, scalars as attrs", () => {
   const m = repo(
-    `concept location { parent : identifier?; } concept technology { available-in : identifier[]; }
+    `concept location { parent : location?; } concept technology { available-in : location[]; }
      taxonomy microsoft : represents location, technology {
        location azure { label = "Azure"; }
-       location m365  { parent = &microsoft.azure; }
+       location m365  { parent = microsoft.azure; }
        technology graph { available-in = [microsoft.m365, microsoft.azure]; }
      }`,
   );
