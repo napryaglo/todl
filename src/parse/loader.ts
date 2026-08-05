@@ -609,7 +609,7 @@ function stageApplications(
     seen.add(appId);
     builder.annotate(target, app.name);
     model.recordSpan(appId, app.span);
-    for (const a of app.assignments) applyValue(builder, appId, a.name, a.value);
+    for (const a of app.assignments) realizeValue(builder, model, app.name, appId, a.name, a.value, diagnostics);
   }
 }
 
@@ -695,7 +695,7 @@ function applyInstance(
     }
   }
   for (const assignment of decl.assignments) {
-    applyValue(builder, decl.id, assignment.name, assignment.value);
+    realizeValue(builder, model, decl.concept, decl.id, assignment.name, assignment.value, diagnostics);
   }
   for (const child of decl.children) {
     applyInstance(builder, model, child, decl.id, decl.concept, asserted, diagnostics);
@@ -735,27 +735,58 @@ function bindToField(
   builder.addRelationship(parent, only.name, decl.id);
 }
 
-function applyValue(builder: Builder, id: string, name: string, value: ValueNode): void {
+/** Realize one authored assignment onto `id`, choosing attr vs edge from the
+ * member's declared type (not the value's syntax). Shared by the instance pass
+ * and the deferred-term pass. */
+function realizeValue(
+  builder: Builder,
+  model: Repository,
+  concept: string,
+  id: string,
+  name: string,
+  value: ValueNode,
+  diagnostics: Diagnostic[],
+): void {
+  const reference = isReferenceMember(model, concept, name);
+  const mismatch = (msg: string): void => {
+    diagnostics.push({
+      code: DiagnosticCode.MemberValueKind,
+      severity: Severity.Error,
+      message: msg,
+      span: null,
+      node: id,
+      path: `${concept}.${name}`,
+    });
+  };
+
   switch (value.kind) {
     case ValueKind.String:
+      if (reference) return mismatch(`"${concept}.${name}" is a reference — expected a name, not a quoted string`);
       builder.setField(id, name, value.text);
       break;
     case ValueKind.Boolean:
+      if (reference) return mismatch(`"${concept}.${name}" is a reference — expected a name, not a boolean`);
       builder.setField(id, name, value.value);
       break;
     case ValueKind.Name:
-      builder.addRelationship(id, name, value.name);
+      if (reference) builder.addRelationship(id, name, value.name);
+      else builder.setField(id, name, value.name);
       break;
-    case ValueKind.Ref:
+    case ValueKind.Ref: // legacy `&ref`; the sigil is removed from the grammar in a later task
       builder.addRelationship(id, name, value.ref);
       break;
     case ValueKind.List:
-      for (const item of value.items) applyValue(builder, id, name, item);
+      for (const item of value.items) realizeValue(builder, model, concept, id, name, item, diagnostics);
       break;
     case ValueKind.Composite:
-      // `|`-composed enum flags are stored as the legacy scalar string
-      // (`"cloud | paas"`); the runtime enum table's has() splits on `|`.
-      builder.setField(id, name, value.parts.join(" | "));
+      if (reference) {
+        // A `|`-composed selection of taxonomy terms → one edge per part.
+        for (const part of value.parts) builder.addRelationship(id, name, part);
+      } else {
+        // Enum-flag scalar kept as the legacy `|`-joined string; the runtime
+        // enum table's has() splits on `|`.
+        builder.setField(id, name, value.parts.join(" | "));
+      }
       break;
   }
 }

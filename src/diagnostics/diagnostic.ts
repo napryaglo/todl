@@ -28,6 +28,9 @@ export enum DiagnosticCode {
   TaxonomyTermConceptAmbiguous = "taxonomy.term-concept-ambiguous",
   // Instance-loading phase.
   AmbiguousFieldBinding = "instance.ambiguous-field-binding",
+  // A member's value shape does not match its declared type (e.g. a reference
+  // member given a quoted string, or a value member given a list).
+  MemberValueKind = "member.value-kind",
   // Reference-resolution phase.
   ReferenceUndefined = "reference.undefined",
   // A symbol exists but lives in a namespace this reference's home namespace
