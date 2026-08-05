@@ -3,7 +3,7 @@
  * transform over one legacy `.todl` / `.architecture.model` source, applying
  * only the mechanical token swaps the parser cannot absorb on its own:
  *
- *   1. `@ref` → `&ref`         — reference sigil (legacy `@`, new `&`)
+ *   1. `@ref` / `&ref` → `ref`  — reference sigil stripped (type-directed refs)
  *   2. `list<T>` → `T[]`       — retired generic; innermost-first, fixpoint
  *   3. `[0..1]`/`[*]`/`[1..*]`/`[1]` → `?`/`[]`/`[+]`/removed  — cardinality
  *
@@ -29,9 +29,10 @@ function rewriteEnumToTaxonomy(source: string): string {
   return source.replace(/\benum\b/g, "taxonomy").replace(/\bvalues\b/g, "terms");
 }
 
-/** `@m365` → `&m365`. Only before a lowercase identifier start. */
+/** `@m365` / `&m365` → `m365`. Strip the reference sigil before a lowercase
+ * identifier start; the type-directed loader resolves bare names as references. */
 function rewriteReferences(source: string): string {
-  return source.replace(/@(?=[a-z])/g, "&");
+  return source.replace(/[@&](?=[a-z])/g, "");
 }
 
 /**

@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 
 import { rewrite } from "../rewriter.js";
 
-test("rewrites @ref to &ref", () => {
-  assert.equal(rewrite("in = @m365;"), "in = &m365;");
+test("strips legacy @ and current & reference sigils to bare names", () => {
+  assert.equal(rewrite("implemented-by = @m365;"), "implemented-by = m365;");
+  assert.equal(rewrite("implemented-by = &m365;"), "implemented-by = m365;");
+  assert.equal(rewrite("realised-by = [ @a, &b ];"), "realised-by = [ a, b ];");
 });
 
 test("rewrites [0..1] cardinality to ?", () => {
