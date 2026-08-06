@@ -27,7 +27,7 @@ function corpus() {
 
 test("loads concept schemas from the corpus", () => {
   const model = corpus();
-  const task = model.schemaOf("task");
+  const task = model.schemaOf("Task");
   assert.equal(task.fields.find((field) => field.name === "assignee")?.cardinality, Cardinality.Optional);
   assert.equal(task.fields.find((field) => field.name === "label")?.type, "string");
   assert.equal(task.relationships.find((r) => r.name === "incoming")?.cardinality, Cardinality.Many);
@@ -37,13 +37,13 @@ test("loads concept schemas from the corpus", () => {
 test("loads taxonomy terms as class members of the represented concept", () => {
   const model = corpus();
   assert.ok(model.termsOf("TaskType").includes("TaskType.Service"));
-  assert.equal(model.resolve("TaskType.Service")?.typeOf, "task");
+  assert.equal(model.resolve("TaskType.Service")?.typeOf, "Task");
   assert.ok(model.termsOf("EventType").includes("EventType.Start"));
 });
 
 test("loads instances with scalar attrs and relationship edges", () => {
   const model = corpus();
-  assert.equal(model.resolve("validatePayment")?.typeOf, "task");
+  assert.equal(model.resolve("validatePayment")?.typeOf, "Task");
   assert.equal(model.resolve("validatePayment")?.attrs.get("label"), "Validate Payment");
   assert.deepEqual(
     model.related("validatePayment", EdgeKind.Relationship, Direction.Out, "type"),
@@ -66,11 +66,11 @@ test("an undefined reference is reported, not stubbed", () => {
 test("loads a meta-model descriptor with numeric and list members", () => {
   const model = load([
     `namespace d {
-      MetaModel enterpriseArchitecture {
+      MetaModel EnterpriseArchitecture {
         name = "EA";
         version = 5;
         rootConcept = model;
-        topLevelConcepts = [ component, location ];
+        topLevelConcepts = [ Component, Location ];
       }
       concept model { label : string; }
       concept Component { label : string; }
@@ -88,24 +88,24 @@ test("edge-shorthand connector loads from/to as relationship edges", () => {
       concept Connector { from : Component; to : Component; kind : string; }
       Component businessAgent { label = "x"; }
       Component agentOrchestrator { label = "y"; }
-      Connector business-agent -> AgentOrchestrator { kind = enabledBy; }
+      Connector businessAgent -> agentOrchestrator { kind = enabledBy; }
     }`,
   ]);
   const conn = model.allNodes().find((n) => n.typeOf === "connector");
   assert.ok(conn);
   assert.deepEqual(model.related(conn!.id, EdgeKind.Relationship, Direction.Out, "from"), ["businessAgent"]);
-  assert.deepEqual(model.related(conn!.id, EdgeKind.Relationship, Direction.Out, "to"), ["AgentOrchestrator"]);
+  assert.deepEqual(model.related(conn!.id, EdgeKind.Relationship, Direction.Out, "to"), ["agentOrchestrator"]);
 });
 
 test("nested instances load with contains edges and a meta-model binding", () => {
   const model = load([
     `namespace d {
-      model m : enterpriseArchitecture {
+      model m : EnterpriseArchitecture {
         Location saas3p { label = "x"; }
       }
     }`,
   ]);
-  assert.equal(model.resolve("saas3p")?.typeOf, "location");
+  assert.equal(model.resolve("saas3p")?.typeOf, "Location");
   assert.deepEqual(model.related("m", EdgeKind.Contains, Direction.Out), ["saas3p"]);
   assert.equal(model.resolve("m")?.attrs.get("MetaModel"), "EnterpriseArchitecture");
 });

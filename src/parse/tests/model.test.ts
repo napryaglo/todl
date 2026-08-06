@@ -11,7 +11,7 @@ function firstDecl(text: string) {
 
 test("model parses to a ModelDecl with meta-model, uses, and object body", () => {
   const decl = firstDecl(`namespace acme {
-    model prod : enterpriseArchitecture uses AwsCatalog, EaPatterns {
+    model prod : EnterpriseArchitecture uses AwsCatalog, EaPatterns {
       Component checkout { name = "Checkout"; }
       Component payments instanceof paymentService { name = "Payments"; }
     }
@@ -19,9 +19,9 @@ test("model parses to a ModelDecl with meta-model, uses, and object body", () =>
   assert.equal(decl.kind, DeclKind.Model);
   assert.equal(decl.id, "prod");
   assert.equal(decl.metaModel, "EnterpriseArchitecture");
-  assert.deepEqual(decl.libraries, ["AwsCatalog", "eaPatterns"]);
+  assert.deepEqual(decl.libraries, ["AwsCatalog", "EaPatterns"]);
   assert.equal(decl.instances.length, 2);
-  assert.equal(decl.instances[0]!.concept, "component");
+  assert.equal(decl.instances[0]!.concept, "Component");
   assert.equal(decl.instances[1]!.instanceOf, "paymentService");
   assert.ok(decl.idSpan && decl.metaModelSpan && decl.librarySpans?.length === 2);
 });

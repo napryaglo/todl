@@ -13,8 +13,8 @@ function taxonomy(src: string): TaxonomyDecl {
 test("flat taxonomy parses represents + terms as classes of the concept", () => {
   const t = taxonomy(`taxonomy Color : represents Hue { term Red { label = "Red"; } term Blue { label = "Blue"; } }`);
   assert.equal(t.name, "Color");
-  assert.deepEqual(t.represents, ["hue"]);
-  assert.deepEqual(t.terms.map((x) => x.id), ["red", "blue"]);
+  assert.deepEqual(t.represents, ["Hue"]);
+  assert.deepEqual(t.terms.map((x) => x.id), ["Red", "Blue"]);
   const red = t.terms[0];
   assert.ok(red);
   assert.equal(red.concept, null); // bare `term` alias — concept inferred
@@ -55,7 +55,7 @@ test("nested taxonomy parses child terms mixed with assignments", () => {
     term DataStore {}
   }`);
   assert.deepEqual(t.represents, ["Category"]);
-  assert.deepEqual(t.terms.map((x) => x.id), ["surface", "DataStore"]);
+  assert.deepEqual(t.terms.map((x) => x.id), ["Surface", "DataStore"]);
   const surface = t.terms[0];
   const dataStore = t.terms[1];
   assert.ok(surface);
