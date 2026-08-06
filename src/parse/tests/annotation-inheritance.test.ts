@@ -1,0 +1,27 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { check } from "../../api.js";
+import { Severity } from "../../diagnostics/diagnostic.js";
+
+function errors(src: string) {
+  return check([{ uri: "n.todl", text: src }]).diagnostics.filter((d) => d.severity === Severity.Error);
+}
+
+test("a sub-annotation inherits its base params via effectiveSchema", () => {
+  const { model, diagnostics } = check([{ uri: "n.todl", text:
+    `namespace n { annotation visual { icon : string; } annotation detailed : visual { badge : string; } }` }]);
+  assert.deepEqual(diagnostics.filter((d) => d.severity === Severity.Error), []);
+  const names = model.effectiveSchema("detailed").fields.map((f) => f.name).sort();
+  assert.deepEqual(names, ["badge", "icon"]);
+});
+
+test("applying a sub-annotation requires an inherited required param", () => {
+  // `detailed` inherits required `icon`; omitting it must error — proving app
+  // validation flows through inheritance with no validator change.
+  const src = `namespace n {
+    annotation visual { icon : string; }
+    annotation detailed : visual { badge : string; }
+    concept thing { annotate detailed { badge = "b"; } }
+  }`;
+  assert.ok(errors(src).some((d) => d.message.includes('requires parameter "icon"')));
+});

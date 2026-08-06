@@ -72,8 +72,11 @@ export class Builder {
   }
 
   /** Stage an annotation-type declaration node (Ontology-tier). */
-  defineAnnotation(id: NodeId): this {
+  defineAnnotation(id: NodeId, extendsId: NodeId | null = null): this {
     this.stageNode(id, Tier.Ontology, MetaKind.Annotation);
+    if (extendsId !== null) {
+      this.stagedEdges.push({ kind: EdgeKind.Extends, via: null, from: id, to: extendsId });
+    }
     return this;
   }
 

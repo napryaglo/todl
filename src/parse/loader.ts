@@ -335,7 +335,7 @@ export function loadInto(
         break;
       }
       case DeclKind.Annotation:
-        first.defineAnnotation(declaration.name);
+        first.defineAnnotation(declaration.name, declaration.extends ?? null);
         break;
       case DeclKind.Instance:
       case DeclKind.Model:
