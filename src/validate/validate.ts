@@ -48,6 +48,10 @@ export function validate(model: Repository): Diagnostic[] {
       continue;
     }
     if (node.tier === Tier.Ontology) {
+      if (node.typeOf === MetaKind.Annotation) {
+        validateAnnotationDecl(diagnostics, model, node);
+        continue;
+      }
       const def = model.resolve(node.typeOf);
       if (def !== undefined && def.typeOf === MetaKind.Annotation) {
         validateAnnotationApplication(diagnostics, model, node);
@@ -139,6 +143,40 @@ function checkConstructor(
     node: obj.id,
     path: null,
   });
+}
+
+/** Validate an annotation DECLARATION: its base must be an annotation, and it
+ * may not redeclare an inherited param name (annotations disallow override,
+ * unlike concept fields). */
+function validateAnnotationDecl(out: Diagnostic[], model: Repository, node: Node): void {
+  for (const baseId of model.related(node.id, EdgeKind.Extends, Direction.Out)) {
+    const base = model.resolve(baseId);
+    if (base !== undefined && base.typeOf !== MetaKind.Annotation) {
+      out.push({
+        code: DiagnosticCode.AnnotationBaseNotAnnotation,
+        severity: Severity.Error,
+        message: `annotation "${node.id}" may only extend an annotation, not "${baseId}"`,
+        span: model.spanOf(node.id),
+        node: node.id,
+        path: null,
+      });
+    }
+  }
+  const inherited = new Set(
+    model.supertypesOf(node.id).flatMap((s) => model.schemaOf(s).fields.map((f) => f.name)),
+  );
+  for (const f of model.schemaOf(node.id).fields) {
+    if (inherited.has(f.name)) {
+      out.push({
+        code: DiagnosticCode.AnnotationParamRedeclared,
+        severity: Severity.Error,
+        message: `annotation "${node.id}" redeclares inherited parameter "${f.name}"`,
+        span: model.spanOf(node.id),
+        node: node.id,
+        path: null,
+      });
+    }
+  }
 }
 
 /** Validate an annotation application against its annotation's declared params. */

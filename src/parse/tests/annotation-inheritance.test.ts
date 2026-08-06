@@ -25,3 +25,20 @@ test("applying a sub-annotation requires an inherited required param", () => {
   }`;
   assert.ok(errors(src).some((d) => d.message.includes('requires parameter "icon"')));
 });
+
+test("annotation extending a non-annotation errors (base-not-annotation)", () => {
+  const src = `namespace n { concept c {} annotation bad : c { p : string; } }`;
+  assert.ok(errors(src).some((d) => d.code === "annotation.base-not-annotation"));
+});
+
+test("redeclaring an inherited param errors (param-redeclared)", () => {
+  const src = `namespace n {
+    annotation visual { icon : string; }
+    annotation detailed : visual { icon : string; badge : string; }
+  }`;
+  assert.ok(errors(src).some((d) => d.code === "annotation.param-redeclared"));
+});
+
+test("a no-base annotation raises neither new error", () => {
+  assert.deepEqual(errors(`namespace n { annotation icon { path : string; } }`), []);
+});

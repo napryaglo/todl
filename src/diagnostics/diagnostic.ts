@@ -51,6 +51,8 @@ export enum DiagnosticCode {
   AnnotationDuplicate = "annotation.duplicate",
   AnnotationUnknownParam = "annotation.unknown-param",
   AnnotationInvalidTarget = "annotation.invalid-target",
+  AnnotationBaseNotAnnotation = "annotation.base-not-annotation",
+  AnnotationParamRedeclared = "annotation.param-redeclared",
 }
 
 export interface Diagnostic {
