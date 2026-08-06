@@ -23,7 +23,7 @@ test("mutations record the mapped Cypher ops (applied to the working copy first)
   const s = new CypherGraphStore();
   s.addNode(node("copilot", "technology", { label: "Copilot" }));
   s.addNode(node("gw", "component"));
-  s.addEdge(edge("gw", "copilot", "implemented-by"));
+  s.addEdge(edge("gw", "copilot", "implementedBy"));
   s.setAttr("gw", "label", "Gateway");
   s.remove("copilot");
 
@@ -38,7 +38,7 @@ test("mutations record the mapped Cypher ops (applied to the working copy first)
   });
   assert.deepEqual(ops[2], {
     cypher: "MATCH (a:Node {id: $from}), (b:Node {id: $to}) CREATE (a)-[:REL {kind: $kind, via: $via}]->(b)",
-    params: { from: "gw", to: "copilot", kind: "Relationship", via: "implemented-by" },
+    params: { from: "gw", to: "copilot", kind: "Relationship", via: "implementedBy" },
   });
   assert.deepEqual(ops[3], {
     cypher: "MATCH (n:Node {id: $id}) SET n += $delta",
@@ -89,7 +89,7 @@ test("load rebuilds the working copy from DB rows", async () => {
       { id: "copilot", tier: "Instance", typeOf: "technology", props: { id: "copilot", tier: "Instance", typeOf: "technology", label: "Copilot" } },
       { id: "gw", tier: "Instance", typeOf: "component", props: { id: "gw", tier: "Instance", typeOf: "component" } },
     ],
-    [{ from: "gw", to: "copilot", kind: "Relationship", via: "implemented-by" }],
+    [{ from: "gw", to: "copilot", kind: "Relationship", via: "implementedBy" }],
   );
   const store = await CypherGraphStore.load(session);
   assert.equal(store.getNode("copilot")?.attrs.get("label"), "Copilot");

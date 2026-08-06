@@ -119,7 +119,7 @@ function emitAuthoringConstructor(concept: NodeId, repo: Repository): string {
     .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   for (const f of scalarFields) {
     if (isMany(f.cardinality)) {
-      throw new Error(`authoring codegen: many-valued scalar field "${concept}.${f.name}" is unsupported`);
+      throw new Error(`Authoring codegen: ManyValued scalar field "${concept}.${f.name}" is unsupported`);
     }
   }
 

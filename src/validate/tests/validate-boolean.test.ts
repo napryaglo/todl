@@ -9,31 +9,31 @@ function codes(text: string): DiagnosticCode[] {
 
 test("a boolean annotation param accepting true/false compiles clean", () => {
   assert.deepEqual(codes(`namespace tech {
-    concept actor { label : string; }
-    annotation shelf { visible : boolean; }
-    taxonomy actors : represents actor {
-      annotate shelf { visible = true; }
-      term internal { label = "Internal"; }
+    concept Actor { label : string; }
+    annotation Shelf { visible : boolean; }
+    taxonomy Actors : represents Actor {
+      annotate Shelf { visible = true; }
+      term Internal { label = "Internal"; }
     }
   }`), []);
 });
 
 test("a string on a boolean param is type.boolean-invalid", () => {
   assert.ok(codes(`namespace tech {
-    concept actor { label : string; }
-    annotation shelf { visible : boolean; }
-    taxonomy actors : represents actor {
-      annotate shelf { visible = "yes"; }
-      term internal { label = "Internal"; }
+    concept Actor { label : string; }
+    annotation Shelf { visible : boolean; }
+    taxonomy Actors : represents Actor {
+      annotate Shelf { visible = "yes"; }
+      term Internal { label = "Internal"; }
     }
   }`).includes(DiagnosticCode.BooleanValueInvalid));
 });
 
 test("a string on a boolean concept field is type.boolean-invalid", () => {
   assert.ok(codes(`namespace tech {
-    concept flag { on : boolean; }
-    taxonomy flags : represents flag {
-      flag bad { on = "nope"; }
+    concept Flag { on : boolean; }
+    taxonomy Flags : represents Flag {
+      Flag bad { on = "nope"; }
     }
   }`).includes(DiagnosticCode.BooleanValueInvalid));
 });

@@ -18,7 +18,7 @@ function predicate(source: string) {
 function serviceTask(assignee: string | null): Repository {
   const model = new Repository();
   const builder = model.builder();
-  builder.assertInstance("task-type", "service");
+  builder.assertInstance("TaskType", "service");
   builder.assertInstance("task", "t1").addRelationship("t1", "type", "service");
   if (assignee !== null) builder.setField("t1", "assignee", assignee);
   builder.commit();
@@ -36,27 +36,27 @@ test("assignee invariant fails for a service task that has an assignee", () => {
 });
 
 test("start-event invariant desugars .empty and holds with no incoming flows", () => {
-  const expr = predicate("this.event-type == start implies this.incoming.empty");
+  const expr = predicate("this.eventType == start implies this.incoming.empty");
   const model = new Repository();
   model
     .builder()
-    .assertInstance("event-type", "start")
+    .assertInstance("EventType", "start")
     .assertInstance("event", "e1")
-    .addRelationship("e1", "event-type", "start")
+    .addRelationship("e1", "eventType", "start")
     .commit();
 
   assert.equal(satisfies(model, expr, "e1"), true);
 });
 
 test("start-event invariant fails when a start event has an incoming flow", () => {
-  const expr = predicate("this.event-type == start implies this.incoming.empty");
+  const expr = predicate("this.eventType == start implies this.incoming.empty");
   const model = new Repository();
   model
     .builder()
-    .assertInstance("event-type", "start")
-    .assertInstance("sequence-flow", "f1")
+    .assertInstance("EventType", "start")
+    .assertInstance("SequenceFlow", "f1")
     .assertInstance("event", "e1")
-    .addRelationship("e1", "event-type", "start")
+    .addRelationship("e1", "eventType", "start")
     .addRelationship("e1", "incoming", "f1")
     .commit();
 
@@ -68,7 +68,7 @@ test("parses the predicate captured from the concept fixture and evaluates it", 
     readFileSync(fileURLToPath(new URL("./fixtures/concepts.todl", import.meta.url)), "utf8"),
   );
   const task = namespace.declarations.find(
-    (declaration) => declaration.kind === DeclKind.Concept && declaration.name === "task",
+    (declaration) => declaration.kind === DeclKind.Concept && declaration.name === "Task",
   );
   assert.ok(task && task.kind === DeclKind.Concept);
 

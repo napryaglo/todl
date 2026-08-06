@@ -36,9 +36,9 @@ test("raises propertyChanged for a single relationship with no schema entry", ()
   const seen: PropertyChangedArgs[] = [];
   view.propertyChanged.subscribe((args) => seen.push(args));
 
-  graph.addEdge({ kind: EdgeKind.Relationship, via: "implemented-by", from: "shop-web", to: "react" });
+  graph.addEdge({ kind: EdgeKind.Relationship, via: "implementedBy", from: "shop-web", to: "react" });
 
-  assert.deepEqual(seen, [{ property: "implemented-by", kind: PropertyChangeKind.Set }]);
+  assert.deepEqual(seen, [{ property: "implementedBy", kind: PropertyChangeKind.Set }]);
 });
 
 test("routes a multi-valued relationship to collectionChanged with the item", () => {
@@ -47,7 +47,7 @@ test("routes a multi-valued relationship to collectionChanged with the item", ()
     .builder()
     .defineConcept("location")
     .defineConcept("technology")
-    .addConceptRelationship("technology", "available-in", "location", Cardinality.Many)
+    .addConceptRelationship("technology", "availableIn", "location", Cardinality.Many)
     .commit();
   model.builder().assertInstance("location", "m365").assertInstance("technology", "react").commit();
 
@@ -57,10 +57,10 @@ test("routes a multi-valued relationship to collectionChanged with the item", ()
   view.collectionChanged.subscribe((args) => collectionSeen.push(args));
   view.propertyChanged.subscribe((args) => propertySeen.push(args));
 
-  model.builder().addRelationship("react", "available-in", "m365").commit();
+  model.builder().addRelationship("react", "availableIn", "m365").commit();
 
   assert.deepEqual(collectionSeen, [
-    { property: "available-in", kind: CollectionChangeKind.Added, item: "m365" },
+    { property: "availableIn", kind: CollectionChangeKind.Added, item: "m365" },
   ]);
   assert.deepEqual(propertySeen, []);
 });
@@ -120,11 +120,11 @@ test("get reads a scalar attr and forward relationship targets by name", () => {
   graph.addNode(instance("shop-web", "frontend"));
   graph.addNode(instance("react", "technology"));
   graph.setAttr("shop-web", "label", "Shop Web");
-  graph.addEdge({ kind: EdgeKind.Relationship, via: "implemented-by", from: "shop-web", to: "react" });
+  graph.addEdge({ kind: EdgeKind.Relationship, via: "implementedBy", from: "shop-web", to: "react" });
   const model = new Repository(graph);
   const view = model.view("shop-web");
 
   assert.equal(view.get("label"), "Shop Web");
-  assert.deepEqual(view.get("implemented-by"), ["react"]);
+  assert.deepEqual(view.get("implementedBy"), ["react"]);
   assert.equal(view.get("missing"), undefined);
 });

@@ -49,7 +49,7 @@ function cursorIndex(tokens: Token[], tp: { line: number; column: number }): num
 
 // The concept of the record enclosing the cursor: brace-match backwards to the
 // opening `{`, then take the leftmost identifier of the record header
-// (`<concept> <id> [instanceof X] [: bind] {`).
+// (`<concept> <id> [instanceof X] [: Bind] {`).
 function enclosingConcept(tokens: Token[], tp: { line: number; column: number }): string | null {
   const start = cursorIndex(tokens, tp);
   let depth = 0;

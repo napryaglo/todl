@@ -5,7 +5,7 @@ import { check, checkAgainst } from "../api.js";
 import { DiagnosticCode } from "../diagnostics/diagnostic.js";
 
 test("a standalone source resolves the prelude primitive `identifier` unqualified", () => {
-  const { diagnostics } = check([{ uri: "a.todl", text: `namespace a { concept thing { key : identifier; } }` }]);
+  const { diagnostics } = check([{ uri: "a.todl", text: `namespace a { concept Thing { key : Identifier; } }` }]);
   assert.ok(
     !diagnostics.some((d) => d.code === DiagnosticCode.ReferenceUndefined),
     "identifier should resolve via the injected prelude",
@@ -13,11 +13,11 @@ test("a standalone source resolves the prelude primitive `identifier` unqualifie
 });
 
 test("the prelude concept `element` is present in a plain check", () => {
-  const { model } = check([{ uri: "a.todl", text: `namespace a { concept thing { } }` }]);
-  assert.ok(model.has("element"));
+  const { model } = check([{ uri: "a.todl", text: `namespace a { concept Thing { } }` }]);
+  assert.ok(model.has("Element"));
 });
 
 test("checkAgainst composes explicit bases with the prelude underneath", () => {
-  const { diagnostics } = checkAgainst([], [{ uri: "a.todl", text: `namespace a { concept t { n : slug; } }` }]);
+  const { diagnostics } = checkAgainst([], [{ uri: "a.todl", text: `namespace a { concept T { n : Slug; } }` }]);
   assert.ok(!diagnostics.some((d) => d.code === DiagnosticCode.ReferenceUndefined));
 });

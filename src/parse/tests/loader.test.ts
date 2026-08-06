@@ -27,37 +27,37 @@ function corpus() {
 
 test("loads concept schemas from the corpus", () => {
   const model = corpus();
-  const task = model.schemaOf("task");
+  const task = model.schemaOf("Task");
   assert.equal(task.fields.find((field) => field.name === "assignee")?.cardinality, Cardinality.Optional);
   assert.equal(task.fields.find((field) => field.name === "label")?.type, "string");
   assert.equal(task.relationships.find((r) => r.name === "incoming")?.cardinality, Cardinality.Many);
-  assert.equal(task.relationships.find((r) => r.name === "lives-in")?.cardinality, Cardinality.One);
+  assert.equal(task.relationships.find((r) => r.name === "livesIn")?.cardinality, Cardinality.One);
 });
 
 test("loads taxonomy terms as class members of the represented concept", () => {
   const model = corpus();
-  assert.ok(model.termsOf("task-type").includes("task-type.service"));
-  assert.equal(model.resolve("task-type.service")?.typeOf, "task");
-  assert.ok(model.termsOf("event-type").includes("event-type.start"));
+  assert.ok(model.termsOf("TaskType").includes("TaskType.Service"));
+  assert.equal(model.resolve("TaskType.Service")?.typeOf, "Task");
+  assert.ok(model.termsOf("EventType").includes("EventType.Start"));
 });
 
 test("loads instances with scalar attrs and relationship edges", () => {
   const model = corpus();
-  assert.equal(model.resolve("validate-payment")?.typeOf, "task");
-  assert.equal(model.resolve("validate-payment")?.attrs.get("label"), "Validate Payment");
+  assert.equal(model.resolve("validatePayment")?.typeOf, "Task");
+  assert.equal(model.resolve("validatePayment")?.attrs.get("label"), "Validate Payment");
   assert.deepEqual(
-    model.related("validate-payment", EdgeKind.Relationship, Direction.Out, "type"),
-    ["task-type.service"],
+    model.related("validatePayment", EdgeKind.Relationship, Direction.Out, "type"),
+    ["TaskType.Service"],
   );
   assert.deepEqual(
-    model.related("order-placed", EdgeKind.Relationship, Direction.Out, "outgoing"),
-    ["order-to-validate"],
+    model.related("orderPlaced", EdgeKind.Relationship, Direction.Out, "outgoing"),
+    ["orderToValidate"],
   );
 });
 
 test("an undefined reference is reported, not stubbed", () => {
   const { model, diagnostics } = loadFiles([
-    { uri: "t.todl", text: `namespace n { concept thing {} thing a instanceof ghost { } }` },
+    { uri: "t.todl", text: `namespace n { concept Thing {} Thing a instanceof ghost { } }` },
   ]);
   assert.ok(diagnostics.some((d) => d.code === DiagnosticCode.ReferenceUndefined && /ghost/.test(d.message)));
   assert.equal(model.resolve("ghost"), undefined);
@@ -66,57 +66,57 @@ test("an undefined reference is reported, not stubbed", () => {
 test("loads a meta-model descriptor with numeric and list members", () => {
   const model = load([
     `namespace d {
-      meta-model enterprise-architecture {
+      MetaModel EnterpriseArchitecture {
         name = "EA";
         version = 5;
-        root-concept = model;
-        top-level-concepts = [ component, location ];
+        rootConcept = model;
+        topLevelConcepts = [ Component, Location ];
       }
       concept model { label : string; }
-      concept component { label : string; }
-      concept location { label : string; }
+      concept Component { label : string; }
+      concept Location { label : string; }
     }`,
   ]);
-  assert.ok(model.has("enterprise-architecture"));
-  assert.equal(model.resolve("enterprise-architecture")?.attrs.get("version"), "5");
+  assert.ok(model.has("EnterpriseArchitecture"));
+  assert.equal(model.resolve("EnterpriseArchitecture")?.attrs.get("version"), "5");
 });
 
 test("edge-shorthand connector loads from/to as relationship edges", () => {
   const model = load([
     `namespace d {
-      concept component { label : string; }
-      concept connector { from : component; to : component; kind : string; }
-      component business-agent { label = "x"; }
-      component agent-orchestrator { label = "y"; }
-      connector business-agent -> agent-orchestrator { kind = enabled-by; }
+      concept Component { label : string; }
+      concept Connector { from : Component; to : Component; kind : string; }
+      Component businessAgent { label = "x"; }
+      Component agentOrchestrator { label = "y"; }
+      Connector businessAgent -> agentOrchestrator { kind = enabledBy; }
     }`,
   ]);
-  const conn = model.allNodes().find((n) => n.typeOf === "connector");
+  const conn = model.allNodes().find((n) => n.typeOf === "Connector");
   assert.ok(conn);
-  assert.deepEqual(model.related(conn!.id, EdgeKind.Relationship, Direction.Out, "from"), ["business-agent"]);
-  assert.deepEqual(model.related(conn!.id, EdgeKind.Relationship, Direction.Out, "to"), ["agent-orchestrator"]);
+  assert.deepEqual(model.related(conn!.id, EdgeKind.Relationship, Direction.Out, "from"), ["businessAgent"]);
+  assert.deepEqual(model.related(conn!.id, EdgeKind.Relationship, Direction.Out, "to"), ["agentOrchestrator"]);
 });
 
 test("nested instances load with contains edges and a meta-model binding", () => {
   const model = load([
     `namespace d {
-      model m : enterprise-architecture {
-        location saas-3p { label = "x"; }
+      model m : EnterpriseArchitecture {
+        Location saas3p { label = "x"; }
       }
     }`,
   ]);
-  assert.equal(model.resolve("saas-3p")?.typeOf, "location");
-  assert.deepEqual(model.related("m", EdgeKind.Contains, Direction.Out), ["saas-3p"]);
-  assert.equal(model.resolve("m")?.attrs.get("meta-model"), "enterprise-architecture");
+  assert.equal(model.resolve("saas3p")?.typeOf, "Location");
+  assert.deepEqual(model.related("m", EdgeKind.Contains, Direction.Out), ["saas3p"]);
+  assert.equal(model.resolve("m")?.attrs.get("MetaModel"), "EnterpriseArchitecture");
 });
 
 test("a nested record binds to the parent field typed by its concept", () => {
   const model = load([
     `namespace d {
-      concept host { id : identifier; slots : slot[]; }
-      concept slot { id : identifier; label : string; }
-      host h1 {
-        slot s1 { label = "S1"; }
+      concept Host { id : Identifier; slots : Slot[]; }
+      concept Slot { id : Identifier; label : string; }
+      Host h1 {
+        Slot s1 { label = "S1"; }
       }
     }`,
   ]);
@@ -129,9 +129,9 @@ test("a nested record binds to the parent field typed by its concept", () => {
 test("a nested record with no matching parent field is contains-only", () => {
   const model = load([
     `namespace d {
-      concept host { id : identifier; }
-      concept slot { id : identifier; }
-      host h1 { slot s1 { } }
+      concept Host { id : Identifier; }
+      concept Slot { id : Identifier; }
+      Host h1 { Slot s1 { } }
     }`,
   ]);
   assert.deepEqual(model.related("h1", EdgeKind.Contains, Direction.Out), ["s1"]);
@@ -143,9 +143,9 @@ test("ambiguous field binding (two fields of the same type) diagnoses and falls 
     {
       uri: "s.todl",
       text: `namespace d {
-        concept host { id : identifier; a : slot[]; b : slot[]; }
-        concept slot { id : identifier; }
-        host h1 { slot s1 { } }
+        concept Host { id : Identifier; a : Slot[]; b : Slot[]; }
+        concept Slot { id : Identifier; }
+        Host h1 { Slot s1 { } }
       }`,
     },
   ]);
@@ -156,9 +156,9 @@ test("ambiguous field binding (two fields of the same type) diagnoses and falls 
 
 test("a |-composed enum-flag value loads as the legacy scalar string", () => {
   const model = load([
-    `namespace d { location on-prem { type = physical | on-premises | logical-grouping; } }`,
+    `namespace d { Location onPrem { type = physical | onPremises | logicalGrouping; } }`,
   ]);
-  assert.equal(model.resolve("on-prem")?.attrs.get("type"), "physical | on-premises | logical-grouping");
+  assert.equal(model.resolve("onPrem")?.attrs.get("type"), "physical | onPremises | logicalGrouping");
 });
 
 test("the loaded process satisfies its invariants and target types", () => {

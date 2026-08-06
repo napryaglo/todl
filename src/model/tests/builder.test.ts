@@ -26,13 +26,13 @@ test("addRelationship resolves a forward reference on commit", () => {
   const graph = new Graph();
   const builder = new Builder(graph);
   // relationship declared BEFORE its target is asserted
-  builder.addRelationship("shop-web", "implemented-by", "react");
+  builder.addRelationship("shop-web", "implementedBy", "react");
   builder.assertInstance("frontend", "shop-web");
   builder.assertInstance("technology", "react");
   builder.commit();
 
   assert.deepEqual(
-    graph.related("shop-web", EdgeKind.Relationship, Direction.Out, "implemented-by"),
+    graph.related("shop-web", EdgeKind.Relationship, Direction.Out, "implementedBy"),
     ["react"],
   );
 });
@@ -41,7 +41,7 @@ test("commit is atomic: an unresolved relationship target aborts without mutatin
   const graph = new Graph();
   const builder = new Builder(graph);
   builder.assertInstance("frontend", "shop-web");
-  builder.addRelationship("shop-web", "implemented-by", "ghost"); // never asserted
+  builder.addRelationship("shop-web", "implementedBy", "ghost"); // never asserted
 
   assert.throws(() => builder.commit(), /does not exist/i);
   assert.equal(graph.hasNode("shop-web"), false, "no partial mutation");
@@ -78,48 +78,48 @@ test("committed mutations flow through the change bus in order", () => {
 
 test("assertInstance asClass marks the node with class = true", () => {
   const graph = new Graph();
-  new Builder(graph).assertInstance("component", "teams-chat", true).commit();
-  assert.equal(graph.getNode("teams-chat")?.attrs.get("class"), true);
+  new Builder(graph).assertInstance("component", "teamsChat", true).commit();
+  assert.equal(graph.getNode("teamsChat")?.attrs.get("class"), true);
 });
 
 test("addInstanceOf links a leaf to its class", () => {
   const graph = new Graph();
   const b = new Builder(graph);
-  b.assertInstance("component", "teams-chat", true);
+  b.assertInstance("component", "teamsChat", true);
   b.assertInstance("component", "chat-hq");
-  b.addInstanceOf("chat-hq", "teams-chat");
+  b.addInstanceOf("chat-hq", "teamsChat");
   b.commit();
-  assert.deepEqual(graph.related("chat-hq", EdgeKind.InstanceOf, Direction.Out), ["teams-chat"]);
+  assert.deepEqual(graph.related("chat-hq", EdgeKind.InstanceOf, Direction.Out), ["teamsChat"]);
 });
 
 test("defineTaxonomy stages the represented concept plus class terms", () => {
   const graph = new Graph();
   const b = new Builder(graph);
   b.defineConcept("category");
-  b.defineTaxonomy("component-category", ["category"], [
-    { id: "conversational-interface", attrs: new Map([["icon", "chat.svg"]]) },
-    { id: "surface", children: [{ id: "web-portal" }] },
+  b.defineTaxonomy("ComponentCategory", ["category"], [
+    { id: "ConversationalInterface", attrs: new Map([["icon", "Chat.svg"]]) },
+    { id: "Surface", children: [{ id: "WebPortal" }] },
   ]);
   b.commit();
 
-  const term = graph.getNode("component-category.conversational-interface");
+  const term = graph.getNode("ComponentCategory.ConversationalInterface");
   assert.equal(term?.tier, Tier.Instance);
   assert.equal(term?.typeOf, "category");
   assert.equal(term?.attrs.get("class"), true);
-  assert.equal(term?.attrs.get("icon"), "chat.svg");
+  assert.equal(term?.attrs.get("icon"), "Chat.svg");
 
-  assert.deepEqual(graph.related("component-category", EdgeKind.Represents, Direction.Out), ["category"]);
+  assert.deepEqual(graph.related("ComponentCategory", EdgeKind.Represents, Direction.Out), ["category"]);
   assert.deepEqual(
-    graph.related("component-category", EdgeKind.Contains, Direction.Out).sort(),
+    graph.related("ComponentCategory", EdgeKind.Contains, Direction.Out).sort(),
     [
-      "component-category.conversational-interface",
-      "component-category.surface",
-      "component-category.web-portal",
+      "ComponentCategory.ConversationalInterface",
+      "ComponentCategory.Surface",
+      "ComponentCategory.WebPortal",
     ],
   );
   assert.deepEqual(
-    graph.related("component-category.surface", EdgeKind.Narrower, Direction.Out),
-    ["component-category.web-portal"],
+    graph.related("ComponentCategory.Surface", EdgeKind.Narrower, Direction.Out),
+    ["ComponentCategory.WebPortal"],
   );
 });
 

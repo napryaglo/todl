@@ -107,7 +107,7 @@ class Parser {
           this.checkKeyword("concept") ||
           this.checkKeyword("internal") ||
           this.checkKeyword("sealed") ||
-          this.checkKeyword("application-connectors") ||
+          this.checkKeyword("connectors") ||
           kind === TokenKind.Identifier)
       ) {
         return;
@@ -177,7 +177,7 @@ class Parser {
       this.advance(); // class modifier
       return this.parseInstanceFrom(this.expectIdentifier(), start, true);
     }
-    if (this.checkKeyword("application-connectors")) return this.parseApplicationConnectors(start);
+    if (this.checkKeyword("connectors")) return this.parseApplicationConnectors(start);
     if (this.check(TokenKind.Identifier)) {
       const cStart = this.current();
       const concept = this.parseDottedPath();           // record concept may be ns-qualified
@@ -216,7 +216,7 @@ class Parser {
         annotations.push(this.parseAnnotationApplication(memberStart));
         continue;
       }
-      if (this.checkKeyword("application-connectors")) {
+      if (this.checkKeyword("connectors")) {
         children.push(this.parseApplicationConnectors(memberStart));
         continue;
       }
@@ -267,7 +267,7 @@ class Parser {
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
       const memberStart = this.startToken();
-      if (this.checkKeyword("application-connectors")) {
+      if (this.checkKeyword("connectors")) {
         instances.push(this.parseApplicationConnectors(memberStart));
         continue;
       }
@@ -399,7 +399,7 @@ class Parser {
 
   /** Parse an `application-connectors { &a --> &b … }` block into a container of connectors. */
   private parseApplicationConnectors(start: Token): InstanceDecl {
-    this.expectKeyword("application-connectors");
+    this.expectKeyword("connectors");
     this.expect(TokenKind.LBrace);
     const children: InstanceDecl[] = [];
     while (!this.check(TokenKind.RBrace)) {
@@ -408,7 +408,7 @@ class Parser {
     }
     this.expect(TokenKind.RBrace);
     const id = `application-connectors#${(this.edgeSeq += 1)}`;
-    return { kind: DeclKind.Instance, concept: "application-connectors", id, binds: null, isClass: false, instanceOf: null, assignments: [], children, annotations: [], span: this.spanFrom(start) };
+    return { kind: DeclKind.Instance, concept: "connectors", id, binds: null, isClass: false, instanceOf: null, assignments: [], children, annotations: [], span: this.spanFrom(start) };
   }
 
   private parseRef(): string {

@@ -10,8 +10,8 @@ function spyStore() {
   return { store, seen };
 }
 
-const GOOD = `namespace ea { concept technology { label : string; } }`;
-const BAD = `namespace x { concept c { f : nonexistent-type; } }`;
+const GOOD = `namespace ea { concept Technology { label : string; } }`;
+const BAD = `namespace x { concept C { f : NonexistentType; } }`;
 
 test("publish persists on a clean compile", async () => {
   const { store, seen } = spyStore();

@@ -53,7 +53,7 @@ test("a multi-valued field defaults and records its cardinality", () => {
     .builder()
     .definePrimitive("location")
     .defineConcept("technology")
-    .addField("technology", "available-in", "location", Cardinality.Many)
+    .addField("technology", "availableIn", "location", Cardinality.Many)
     .commit();
 
   assert.equal(model.schemaOf("technology").fields[0]?.cardinality, Cardinality.Many);

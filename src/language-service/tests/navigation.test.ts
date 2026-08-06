@@ -16,7 +16,7 @@ test("definitionAt jumps from a reference to the defining span", () => {
   const { analysis, positions, uri } = fixture("d.todl", SRC);
   const loc = definitionAt(analysis, uri, positions[0]!);
   assert.equal(loc?.uri, "d.todl");
-  assert.equal(loc?.range.start.line, 1);   // the `concept animal` line (0-based)
+  assert.equal(loc?.range.start.line, 1);   // the `concept Animal` line (0-based)
 });
 
 test("referencesAt lists every occurrence, optionally including the definition", () => {
@@ -31,10 +31,10 @@ test("definitionAt jumps from a taxonomy `represents` target to the concept (cro
   const concepts = "namespace demo.concepts {\n  concept actor { }\n}";
   //                012345678901234567890123456789012345
   //                          1111111111222222222233333
-  // `taxonomy actors : represents actor` — the reference `actor` starts at col 31.
+  // `taxonomy Actors : represents Actor` — the reference `actor` starts at col 31.
   const enums = "namespace demo.enums {\n  taxonomy actors : represents actor { }\n}";
   const analysis = analyze([{ uri: "concepts.todl", text: concepts }, { uri: "enums.todl", text: enums }]);
   const loc = definitionAt(analysis, "enums.todl", { line: 1, character: 33 });
   assert.equal(loc?.uri, "concepts.todl");
-  assert.equal(loc?.range.start.line, 1);   // the `concept actor` line (0-based)
+  assert.equal(loc?.range.start.line, 1);   // the `concept Actor` line (0-based)
 });

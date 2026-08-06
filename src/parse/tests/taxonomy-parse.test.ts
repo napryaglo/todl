@@ -11,10 +11,10 @@ function taxonomy(src: string): TaxonomyDecl {
 }
 
 test("flat taxonomy parses represents + terms as classes of the concept", () => {
-  const t = taxonomy(`taxonomy color : represents hue { term red { label = "Red"; } term blue { label = "Blue"; } }`);
-  assert.equal(t.name, "color");
-  assert.deepEqual(t.represents, ["hue"]);
-  assert.deepEqual(t.terms.map((x) => x.id), ["red", "blue"]);
+  const t = taxonomy(`taxonomy Color : represents Hue { term Red { label = "Red"; } term Blue { label = "Blue"; } }`);
+  assert.equal(t.name, "Color");
+  assert.deepEqual(t.represents, ["Hue"]);
+  assert.deepEqual(t.terms.map((x) => x.id), ["Red", "Blue"]);
   const red = t.terms[0];
   assert.ok(red);
   assert.equal(red.concept, null); // bare `term` alias — concept inferred
@@ -25,37 +25,37 @@ test("flat taxonomy parses represents + terms as classes of the concept", () => 
 });
 
 test("multi-representation taxonomy parses a represents list and concept-led terms", () => {
-  const t = taxonomy(`taxonomy microsoft : represents location, technology {
-    location azure          { label = "Azure"; }
-    technology azure-openai { label = "Azure OpenAI"; }
+  const t = taxonomy(`taxonomy Microsoft : represents Location, Technology {
+    Location azure          { label = "Azure"; }
+    Technology azureOpenai { label = "Azure OpenAI"; }
   }`);
-  assert.equal(t.name, "microsoft");
-  assert.deepEqual(t.represents, ["location", "technology"]);
-  assert.deepEqual(t.terms.map((x) => x.id), ["azure", "azure-openai"]);
-  assert.equal(t.terms[0]?.concept, "location");
-  assert.equal(t.terms[1]?.concept, "technology");
+  assert.equal(t.name, "Microsoft");
+  assert.deepEqual(t.represents, ["Location", "Technology"]);
+  assert.deepEqual(t.terms.map((x) => x.id), ["azure", "azureOpenai"]);
+  assert.equal(t.terms[0]?.concept, "Location");
+  assert.equal(t.terms[1]?.concept, "Technology");
   const label = t.terms[1]?.assignments.find((a) => a.name === "label");
   assert.ok(label && label.value.kind === ValueKind.String);
   assert.equal(label.value.text, "Azure OpenAI");
 });
 
 test("concept-led terms nest and carry their concept at each depth", () => {
-  const t = taxonomy(`taxonomy cloud : represents location {
-    location region { label = "Region"; location zone { label = "Zone"; } }
+  const t = taxonomy(`taxonomy Cloud : represents Location {
+    Location region { label = "Region"; Location zone { label = "Zone"; } }
   }`);
-  assert.deepEqual(t.represents, ["location"]);
-  assert.equal(t.terms[0]?.concept, "location");
+  assert.deepEqual(t.represents, ["Location"]);
+  assert.equal(t.terms[0]?.concept, "Location");
   assert.deepEqual(t.terms[0]?.children.map((c) => c.id), ["zone"]);
-  assert.equal(t.terms[0]?.children[0]?.concept, "location");
+  assert.equal(t.terms[0]?.children[0]?.concept, "Location");
 });
 
 test("nested taxonomy parses child terms mixed with assignments", () => {
-  const t = taxonomy(`taxonomy cc : represents category {
-    term surface { label = "Surface"; term api-service { label = "API"; } term web-portal {} }
-    term data-store {}
+  const t = taxonomy(`taxonomy Cc : represents Category {
+    term Surface { label = "Surface"; term ApiService { label = "API"; } term WebPortal {} }
+    term DataStore {}
   }`);
-  assert.deepEqual(t.represents, ["category"]);
-  assert.deepEqual(t.terms.map((x) => x.id), ["surface", "data-store"]);
+  assert.deepEqual(t.represents, ["Category"]);
+  assert.deepEqual(t.terms.map((x) => x.id), ["Surface", "DataStore"]);
   const surface = t.terms[0];
   const dataStore = t.terms[1];
   assert.ok(surface);
@@ -63,6 +63,6 @@ test("nested taxonomy parses child terms mixed with assignments", () => {
   const label = surface.assignments.find((a) => a.name === "label");
   assert.ok(label && label.value.kind === ValueKind.String);
   assert.equal(label.value.text, "Surface");
-  assert.deepEqual(surface.children.map((c) => c.id), ["api-service", "web-portal"]);
+  assert.deepEqual(surface.children.map((c) => c.id), ["ApiService", "WebPortal"]);
   assert.deepEqual(dataStore.children, []);
 });

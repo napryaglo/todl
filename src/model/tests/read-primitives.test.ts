@@ -14,11 +14,11 @@ function fixture(): Repository {
   b.setField("copilot", "label", "Copilot");
   b.assertInstance("component", "gw");
   b.setField("gw", "label", "Gateway");
-  b.addRelationship("gw", "implemented-by", "copilot");
-  b.assertInstance("component", "web-app", true); // asClass
-  b.setField("web-app", "label", "Web App default");
+  b.addRelationship("gw", "implementedBy", "copilot");
+  b.assertInstance("component", "webApp", true); // asClass
+  b.setField("webApp", "label", "Web App default");
   b.assertInstance("component", "portal");
-  b.addInstanceOf("portal", "web-app");
+  b.addInstanceOf("portal", "webApp");
   b.commit();
   return repo;
 }
@@ -37,15 +37,15 @@ test("attr is class-merged: a class's fixed value wins for an instanceof leaf", 
 
 test("ref returns the single relationship target; refs returns all; absent is undefined/[]", () => {
   const repo = fixture();
-  assert.equal(repo.ref("gw", "implemented-by"), "copilot");
-  assert.deepEqual(repo.refs("gw", "implemented-by"), ["copilot"]);
+  assert.equal(repo.ref("gw", "implementedBy"), "copilot");
+  assert.deepEqual(repo.refs("gw", "implementedBy"), ["copilot"]);
   assert.equal(repo.ref("gw", "none"), undefined);
   assert.deepEqual(repo.refs("gw", "none"), []);
 });
 
 test("referrers returns inbound relationship sources, optionally filtered by member", () => {
   const repo = fixture();
-  assert.deepEqual(repo.referrers("copilot", "implemented-by"), ["gw"]);
+  assert.deepEqual(repo.referrers("copilot", "implementedBy"), ["gw"]);
   assert.deepEqual(repo.referrers("copilot"), ["gw"]);
   assert.deepEqual(repo.referrers("copilot", "other"), []);
 });

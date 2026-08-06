@@ -32,30 +32,30 @@ test("emits ModelElement subclasses for each concept", () => {
   assert.match(js, /import \{ ModelElement \} from "todl-runtime\/model-element\.js";/);
   assert.match(js, /export class Task extends ModelElement \{/);
   assert.match(js, /export class Event extends ModelElement \{/);
-  assert.match(js, /kind: "task",/);
+  assert.match(js, /kind: "Task",/);
 });
 
 test("emits a taxonomy table (terms with parent) and a taxonomies registry key", () => {
   const model = load([
-    `namespace n { concept thing {} taxonomy cc : represents thing { term surface { label = "Surface"; term api-service { label = "API"; } } } }`,
+    `namespace n { concept Thing {} taxonomy Cc : represents Thing { term Surface { label = "Surface"; term ApiService { label = "API"; } } } }`,
   ]);
   const js = toMetaModule(model, { slug: "n" });
   assert.match(js, /export const Cc = \{/);
-  assert.match(js, /represents: \["thing"\],/);
+  assert.match(js, /represents: \["Thing"\],/);
   assert.match(js, /terms: \{/);
-  assert.match(js, /"api-service": \{[^}]*parent: "surface"/);
+  assert.match(js, /ApiService: \{[^}]*parent: "Surface"/);
   assert.match(js, /taxonomies: \{/);
 });
 
 test("emits a multi-representation taxonomy's represents as a list", () => {
   const model = load([
-    `namespace n { concept location {} concept technology {}
-      taxonomy microsoft : represents location, technology {
-        location azure {} technology azure-openai {}
+    `namespace n { concept Location {} concept Technology {}
+      taxonomy Microsoft : represents Location, Technology {
+        Location azure {} Technology azureOpenai {}
       } }`,
   ]);
   const js = toMetaModule(model, { slug: "n" });
-  assert.match(js, /represents: \["location", "technology"\],/);
+  assert.match(js, /represents: \["Location", "Technology"\],/);
 });
 
 test("emits field schema with cardinality text, omitting required-single", () => {
@@ -68,15 +68,15 @@ test("emits field schema with cardinality text, omitting required-single", () =>
 
 test("emits relationship schema with target and cardinality", () => {
   const js = toMetaModule(corpus(), { slug: "bpmn" });
-  assert.match(js, /"lives-in": \{ target: "lane", cardinality: "1\.\.1" \},/);
-  assert.match(js, /incoming: \{ target: "sequence-flow", cardinality: "\*" \},/);
+  assert.match(js, /livesIn: \{ target: "Lane", cardinality: "1\.\.1" \},/);
+  assert.match(js, /incoming: \{ target: "SequenceFlow", cardinality: "\*" \},/);
 });
 
 test("emits taxonomy tables with labels and a has() helper", () => {
   const js = toMetaModule(corpus(), { slug: "bpmn" });
   assert.match(js, /export const TaskType = \{/);
-  assert.match(js, /slug: "task-type",/);
-  assert.match(js, /service: \{ id: "service", label: "Service Task", parent: null, children: \[\] \},/);
+  assert.match(js, /slug: "TaskType",/);
+  assert.match(js, /Service: \{ id: "Service", label: "Service Task", parent: null, children: \[\] \},/);
   assert.match(js, /has\(value, member\) \{/);
 });
 
@@ -85,9 +85,9 @@ test("emits the registry aggregating concepts, constructors, and enums", () => {
   assert.match(js, /export const bpmn = \{/);
   assert.match(js, /slug: "bpmn",/);
   assert.match(js, /rootConcept: "process",/);
-  assert.match(js, /task: Task\.schema,/);
-  assert.match(js, /task: data => \{ const o = new Task\(\);/);
-  assert.match(js, /"task-type": TaskType,/);
+  assert.match(js, /Task: Task\.schema,/);
+  assert.match(js, /Task: data => \{ const o = new Task\(\);/);
+  assert.match(js, /TaskType: TaskType,/);
 });
 
 test("concepts and enums are emitted in a deterministic (sorted) order", () => {

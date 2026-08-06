@@ -20,7 +20,7 @@ function catalogRepo(): Repository {
   b.defineConcept("technology");
   b.addField("technology", "label", "string");
   b.addField("technology", "billing", "billing", Cardinality.Optional);
-  b.addField("technology", "available-in", "location", Cardinality.Many);
+  b.addField("technology", "availableIn", "location", Cardinality.Many);
   b.defineTaxonomy("stack", ["technology"], [{ id: "m365", attrs: new Map([["label", "M365"]]) }]);
   b.assertInstance("billing", "subscription");
   b.setField("subscription", "label", "Subscription");
@@ -29,7 +29,7 @@ function catalogRepo(): Repository {
   b.assertInstance("technology", "copilot");
   b.setField("copilot", "label", "Copilot");
   b.addRelationship("copilot", "billing", "subscription");
-  b.addRelationship("copilot", "available-in", "westeurope");
+  b.addRelationship("copilot", "availableIn", "westeurope");
   b.commit();
   return r;
 }

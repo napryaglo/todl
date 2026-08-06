@@ -7,8 +7,8 @@ const codes = (text: string) => check([{ uri: "a.todl", text }]).diagnostics.map
 
 test("a valid application produces no annotation diagnostics", () => {
   const c = codes(`namespace a {
-    annotation badge { path : string; }
-    concept actor { annotate badge { path = "a.svg"; } }
+    annotation Badge { path : string; }
+    concept Actor { annotate Badge { path = "a.svg"; } }
   }`);
   assert.ok(!c.includes(DiagnosticCode.AnnotationUnknownParam));
   assert.ok(!c.includes(DiagnosticCode.RequiredMissing));
@@ -16,24 +16,24 @@ test("a valid application produces no annotation diagnostics", () => {
 
 test("an undeclared param is annotation.unknown-param", () => {
   const c = codes(`namespace a {
-    annotation badge { path : string; }
-    concept actor { annotate badge { path = "a.svg"; bogus = "x"; } }
+    annotation Badge { path : string; }
+    concept Actor { annotate Badge { path = "a.svg"; bogus = "x"; } }
   }`);
   assert.ok(c.includes(DiagnosticCode.AnnotationUnknownParam));
 });
 
 test("a missing required param is cardinality.required-missing", () => {
   const c = codes(`namespace a {
-    annotation badge { path : string; }
-    concept actor { annotate badge { } }
+    annotation Badge { path : string; }
+    concept Actor { annotate Badge { } }
   }`);
   assert.ok(c.includes(DiagnosticCode.RequiredMissing));
 });
 
 test("an optional param may be omitted", () => {
   const c = codes(`namespace a {
-    annotation category { name : string; order : number?; }
-    concept actor { annotate category { name = "actors"; } }
+    annotation Category { name : string; order : number?; }
+    concept Actor { annotate Category { name = "actors"; } }
   }`);
   assert.ok(!c.includes(DiagnosticCode.RequiredMissing));
   assert.ok(!c.includes(DiagnosticCode.AnnotationUnknownParam));

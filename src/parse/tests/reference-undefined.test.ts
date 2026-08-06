@@ -10,7 +10,7 @@ function undefinedRefs(diags: Diagnostic[]): Diagnostic[] {
 
 test("undefined instanceOf target → ReferenceUndefined, node kept, no stub", () => {
   const { model, diagnostics } = load([
-    src(`namespace n { concept thing {} thing a instanceof ghost {} }`),
+    src(`namespace n { concept Thing {} Thing a instanceof ghost {} }`),
   ]);
   const refs = undefinedRefs(diagnostics);
   assert.equal(refs.length, 1);
@@ -23,17 +23,17 @@ test("undefined instanceOf target → ReferenceUndefined, node kept, no stub", (
 });
 
 test("undefined concept extends target → ReferenceUndefined", () => {
-  const { diagnostics } = load([src(`namespace n { concept c : missing {} }`)]);
+  const { diagnostics } = load([src(`namespace n { concept C : Missing {} }`)]);
   const refs = undefinedRefs(diagnostics);
   assert.equal(refs.length, 1);
   const ref = refs[0];
   assert.ok(ref);
-  assert.match(ref.message, /missing/);
+  assert.match(ref.message, /Missing/);
 });
 
 test("undefined value ref → ReferenceUndefined", () => {
   const { model, diagnostics } = load([
-    src(`namespace n { concept thing { relationship rel -> thing; } thing a { rel = ghost; } }`),
+    src(`namespace n { concept Thing { relationship rel -> Thing; } Thing a { rel = ghost; } }`),
   ]);
   assert.equal(undefinedRefs(diagnostics).length, 1);
   assert.equal(model.resolve("ghost"), undefined);
@@ -41,32 +41,32 @@ test("undefined value ref → ReferenceUndefined", () => {
 
 test("a reference to a defined symbol produces no diagnostic", () => {
   const { diagnostics } = load([
-    src(`namespace n { concept thing {} thing a {} thing b instanceof a {} }`),
+    src(`namespace n { concept Thing {} Thing a {} Thing b instanceof a {} }`),
   ]);
   assert.equal(undefinedRefs(diagnostics).length, 0);
 });
 
 test("two references to the same undefined id → two diagnostics", () => {
   const { diagnostics } = load([
-    src(`namespace n { concept thing { relationship rel -> thing; } thing a { rel = ghost; } thing b { rel = ghost; } }`),
+    src(`namespace n { concept Thing { relationship rel -> Thing; } Thing a { rel = ghost; } Thing b { rel = ghost; } }`),
   ]);
   assert.equal(undefinedRefs(diagnostics).length, 2);
 });
 
 test("undefined taxonomy represents target → ReferenceUndefined", () => {
   const { diagnostics } = load([
-    src(`namespace n { taxonomy t : represents ghostconcept { } }`),
+    src(`namespace n { taxonomy T : represents Ghostconcept { } }`),
   ]);
   const refs = undefinedRefs(diagnostics);
   assert.equal(refs.length, 1);
   const ref = refs[0];
   assert.ok(ref);
-  assert.match(ref.message, /ghostconcept/);
+  assert.match(ref.message, /Ghostconcept/);
 });
 
 test("undefined bare Name value → ReferenceUndefined, referencing node kept", () => {
   const { model, diagnostics } = load([
-    src(`namespace n { concept thing { relationship rel -> thing; } thing a { rel = ghostname; } }`),
+    src(`namespace n { concept Thing { relationship rel -> Thing; } Thing a { rel = ghostname; } }`),
   ]);
   const refs = undefinedRefs(diagnostics);
   assert.equal(refs.length, 1);

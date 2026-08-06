@@ -14,7 +14,7 @@ function schemaModel(): Repository {
     .defineConcept("location")
     .defineConcept("technology")
     .addField("technology", "label", "string", Cardinality.One)
-    .addConceptRelationship("technology", "available-in", "location", Cardinality.NonEmpty)
+    .addConceptRelationship("technology", "availableIn", "location", Cardinality.NonEmpty)
     .commit();
   return model;
 }
@@ -26,7 +26,7 @@ test("a fully-populated instance produces no diagnostics", () => {
     .assertInstance("location", "browser")
     .assertInstance("technology", "react")
     .setField("react", "label", "React")
-    .addRelationship("react", "available-in", "browser")
+    .addRelationship("react", "availableIn", "browser")
     .commit();
 
   assert.deepEqual(model.validate(), []);
@@ -38,7 +38,7 @@ test("a missing required scalar field is reported", () => {
     .builder()
     .assertInstance("location", "browser")
     .assertInstance("technology", "react")
-    .addRelationship("react", "available-in", "browser")
+    .addRelationship("react", "availableIn", "browser")
     .commit();
 
   const diagnostics = model.validate();
@@ -55,7 +55,7 @@ test("an empty non-empty relationship is reported", () => {
   const diagnostics = model.validate();
   assert.equal(diagnostics.length, 1);
   assert.equal(diagnostics[0]?.code, DiagnosticCode.EmptyNotAllowed);
-  assert.equal(diagnostics[0]?.path, "technology.available-in");
+  assert.equal(diagnostics[0]?.path, "technology.availableIn");
 });
 
 test("inherited fields are validated on subtype instances", () => {

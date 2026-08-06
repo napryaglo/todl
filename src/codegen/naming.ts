@@ -1,7 +1,14 @@
 /** Identifier-shaping + collision detection for read-client codegen (spec §6, §13). */
 
-function segments(kebab: string): string[] {
-  return kebab.split("-").filter((s) => s.length > 0);
+function segments(id: string): string[] {
+  // Split on -, _, and case boundaries so pascalCase/camelCase are idempotent on
+  // the C-like identifiers (and still handle kebab during migration).
+  return id
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .split(/[-_\s]+/)
+    .filter((s) => s.length > 0)
+    .map((s) => s.toLowerCase());
 }
 
 function cap(s: string): string {
@@ -13,7 +20,7 @@ export function pascalCase(kebab: string): string {
   return segments(kebab).map(cap).join("");
 }
 
-/** kebab → camelCase: "implemented-by" → "implementedBy". */
+/** kebab → camelCase: "implementedBy" → "implementedBy". */
 export function camelCase(kebab: string): string {
   const parts = segments(kebab);
   if (parts.length === 0) return "";

@@ -12,13 +12,13 @@ function taxonomy(text: string): TaxonomyDecl {
 }
 
 test("a taxonomy `uses` list parses after `represents`", () => {
-  const t = taxonomy(`namespace n { taxonomy mtech : represents location, technology uses categories, roles { location a { label = "A"; } } }`);
-  assert.deepEqual(t.represents, ["location", "technology"]);
-  assert.deepEqual(t.uses, ["categories", "roles"]);
+  const t = taxonomy(`namespace n { taxonomy Mtech : represents Location, Technology uses Categories, Roles { Location a { label = "A"; } } }`);
+  assert.deepEqual(t.represents, ["Location", "Technology"]);
+  assert.deepEqual(t.uses, ["Categories", "Roles"]);
   assert.equal(t.terms[0]!.id, "a");
 });
 
 test("a taxonomy with no `uses` has an empty list", () => {
-  const t = taxonomy(`namespace n { taxonomy roles : represents actor { actor u { label = "U"; } } }`);
+  const t = taxonomy(`namespace n { taxonomy Roles : represents Actor { Actor u { label = "U"; } } }`);
   assert.deepEqual(t.uses, []);
 });

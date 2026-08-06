@@ -4,7 +4,7 @@ import { Repository } from "../../model/model.js";
 import { toJSON, type TodlDocument } from "../json.js";
 import { deriveBindings, emitModelTodl } from "../todl.js";
 
-// A namespaced meta-model base: concept `component` { label; implemented-by : technology }.
+// A namespaced meta-model base : concept `component` { label; implemented-by : technology }.
 function base(): Repository {
   const r = new Repository();
   const b = r.builder().setNamespace("acme.ea");
@@ -12,7 +12,7 @@ function base(): Repository {
   b.defineConcept("technology");
   b.defineConcept("component");
   b.addField("component", "label", "string");
-  b.addField("component", "implemented-by", "technology");
+  b.addField("component", "implementedBy", "technology");
   b.commit();
   return r;
 }
@@ -25,7 +25,7 @@ function ownDoc(): { own: TodlDocument; model: Repository; baseIds: Set<string> 
   b.assertInstance("technology", "copilot"); // pretend a library instance
   b.assertInstance("component", "gw");
   b.setField("gw", "label", "Gateway");
-  b.addRelationship("gw", "implemented-by", "copilot");
+  b.addRelationship("gw", "implementedBy", "copilot");
   b.commit();
   const own: TodlDocument = { nodes: [], edges: [] };
   const full = toJSON(model);
@@ -47,10 +47,10 @@ test("emitModelTodl emits a namespace + model block with instances and reference
   const src = emitModelTodl(own, "acme.app", bindings);
   assert.match(src, /namespace acme\.app/);
   assert.match(src, /import acme\.ea;/);
-  assert.match(src, /model acme-app-model : acme\.ea \{/);
+  assert.match(src, /model acmeAppModel : acme\.ea \{/);
   assert.match(src, /component gw \{/);
   assert.match(src, /label = "Gateway";/);
-  assert.match(src, /implemented-by = copilot;/);
+  assert.match(src, /implementedBy = copilot;/);
 });
 
 test("emitModelTodl degrades without base namespaces (fallback meta-model)", () => {
@@ -64,6 +64,6 @@ test("emitModelTodl degrades without base namespaces (fallback meta-model)", () 
   const bindings = deriveBindings(model, baseIds, "app", own);
   assert.equal(bindings.metaModel, "app"); // fallback to draft namespace
   const src = emitModelTodl(own, "app", bindings);
-  assert.match(src, /model app-model : app \{/);
+  assert.match(src, /model appModel : app \{/);
   assert.match(src, /component gw \{\}/);
 });

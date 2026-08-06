@@ -19,7 +19,7 @@ test("tokenizes a field declaration with optional cardinality", () => {
 });
 
 test("tokenizes a relationship with a list-cardinality target", () => {
-  assert.deepEqual(kinds("relationship incoming -> sequence-flow[];"), [
+  assert.deepEqual(kinds("relationship incoming -> sequenceFlow[];"), [
     TokenKind.Identifier,
     TokenKind.Identifier,
     TokenKind.Arrow,
@@ -32,7 +32,7 @@ test("tokenizes a relationship with a list-cardinality target", () => {
 });
 
 test("tokenizes a reference value with the & sigil", () => {
-  const tokens = tokenize("lives-in = &sales;");
+  const tokens = tokenize("livesIn = &sales;");
   assert.deepEqual(tokens.map((token) => token.kind), [
     TokenKind.Identifier,
     TokenKind.Equals,
@@ -41,19 +41,21 @@ test("tokenizes a reference value with the & sigil", () => {
     TokenKind.Semicolon,
     TokenKind.EOF,
   ]);
-  assert.equal(tokens[0]?.value, "lives-in");
+  assert.equal(tokens[0]?.value, "livesIn");
   assert.equal(tokens[3]?.value, "sales");
 });
 
-test("keeps hyphenated identifiers whole and distinguishes the arrow", () => {
-  const tokens = tokenize("sequence-flow -> lane");
-  assert.deepEqual(tokens.map((token) => token.kind), [
-    TokenKind.Identifier,
-    TokenKind.Arrow,
-    TokenKind.Identifier,
-    TokenKind.EOF,
-  ]);
-  assert.equal(tokens[0]?.value, "sequence-flow");
+test("lexes C-like identifiers whole (upper + underscore); a hyphen no longer joins", () => {
+  const whole = tokenize("AppComponent a_b9");
+  assert.deepEqual(whole.map((t) => t.kind), [TokenKind.Identifier, TokenKind.Identifier, TokenKind.EOF]);
+  assert.equal(whole[0]?.value, "AppComponent");
+  assert.equal(whole[1]?.value, "a_b9");
+  // a hyphen is no longer an identifier character: `a-b` splits, `-` is unexpected
+  const { tokens, diagnostics } = lex("a-b -> c", "x.todl");
+  assert.equal(tokens[0]?.value, "a");
+  assert.equal(tokens[1]?.value, "b");
+  assert.equal(tokens[2]?.kind, TokenKind.Arrow); // `->` still tokenizes
+  assert.ok(diagnostics.some((d) => /unexpected character/i.test(d.message)));
 });
 
 test("tokenizes string literals", () => {

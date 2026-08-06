@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 
 import { check } from "../api.js";
 
-const CONCEPTS = `namespace ea { concept component { label : string; } }`;
+const CONCEPTS = `namespace ea { concept Component { label : string; } }`;
 // One syntax error (in bad.todl) + one semantic error (missing required label).
-const BAD = `namespace app { component teams-chat { } component @@@ { } }`;
+const BAD = `namespace app { Component teamsChat { } component @@@ { } }`;
 
 test("check returns syntax + semantic diagnostics, partitionable by uri", () => {
   const { diagnostics } = check([

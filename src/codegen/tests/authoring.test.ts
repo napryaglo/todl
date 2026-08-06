@@ -18,7 +18,7 @@ function catalogRepo(): Repository {
   b.defineConcept("technology");
   b.addField("technology", "label", "string");
   b.addField("technology", "billing", "billing", Cardinality.Optional);
-  b.addField("technology", "available-in", "location", Cardinality.Many);
+  b.addField("technology", "availableIn", "location", Cardinality.Many);
   b.assertInstance("billing", "subscription");
   b.setField("subscription", "label", "Subscription");
   b.assertInstance("location", "westeurope");
@@ -41,7 +41,7 @@ test("a typed authoring constructor produces a descriptor ModelDraft.add consume
 
   assert.equal(copilot.field("label"), "Copilot");
   assert.equal(copilot.ref("billing")!.id, "subscription");
-  assert.deepEqual(copilot.refs("available-in").map((e) => e.id), ["westeurope"]);
+  assert.deepEqual(copilot.refs("availableIn").map((e) => e.id), ["westeurope"]);
 });
 
 test("the descriptor shape matches InstanceDescriptor (scalars + refs by id)", () => {
@@ -50,6 +50,6 @@ test("the descriptor shape matches InstanceDescriptor (scalars + refs by id)", (
   assert.equal(d.concept, "technology");
   assert.equal(d.id, "x");
   assert.equal(d.scalars!.get("label"), "X");
-  assert.deepEqual(d.refs!.get("available-in"), ["westeurope"]);
+  assert.deepEqual(d.refs!.get("availableIn"), ["westeurope"]);
   assert.equal(d.refs!.has("billing"), false); // omitted optional stays absent
 });

@@ -1,22 +1,22 @@
-namespace adl.meta-models.bpmn.enums
+namespace adl.metaModels.bpmn.enums
 {
-    taxonomy task-type : represents task
+    taxonomy TaskType : represents Task
     {
         description = "Classifies a BPMN task by what kind of work performs it.";
-        term none    { label = "Unspecialised"; }
-        term user    { label = "User Task"; }
-        term service { label = "Service Task"; }
-        term manual  { label = "Manual Task"; }
-        term script  { label = "Script Task"; }
-        term send    { label = "Send Task"; }
-        term receive { label = "Receive Task"; }
+        term None    { label = "Unspecialised"; }
+        term User    { label = "User Task"; }
+        term Service { label = "Service Task"; }
+        term Manual  { label = "Manual Task"; }
+        term Script  { label = "Script Task"; }
+        term Send    { label = "Send Task"; }
+        term Receive { label = "Receive Task"; }
     }
 
-    taxonomy event-type : represents event
+    taxonomy EventType : represents Event
     {
         description = "Position of an event in the flow.";
-        term start        { label = "Start"; }
-        term intermediate { label = "Intermediate"; }
-        term end          { label = "End"; }
+        term Start        { label = "Start"; }
+        term Intermediate { label = "Intermediate"; }
+        term End          { label = "End"; }
     }
 }

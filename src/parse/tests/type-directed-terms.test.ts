@@ -8,24 +8,24 @@ function model(text: string) {
 }
 
 const SRC = `namespace d {
-  concept technology { label : string; }
-  concept component { label : string; implemented-by : technology?; }
-  taxonomy techs : represents technology { term copilot { label = "Copilot"; } }
-  taxonomy kinds : represents component {
-    term chat { label = "Chat"; implemented-by = techs.copilot; }
+  concept Technology { label : string; }
+  concept Component { label : string; implementedBy : Technology?; }
+  taxonomy Techs : represents Technology { term Copilot { label = "Copilot"; } }
+  taxonomy Kinds : represents Component {
+    term Chat { label = "Chat"; implementedBy = Techs.Copilot; }
   }
 }`;
 
 test("a term's concept-typed field is realized as an edge, not a string attr", () => {
   const m = model(SRC);
   assert.deepEqual(
-    m.related("kinds.chat", EdgeKind.Relationship, Direction.Out, "implemented-by"),
-    ["techs.copilot"],
+    m.related("Kinds.Chat", EdgeKind.Relationship, Direction.Out, "implementedBy"),
+    ["Techs.Copilot"],
   );
-  assert.equal(m.resolve("kinds.chat")?.attrs.has("implemented-by"), false);
+  assert.equal(m.resolve("Kinds.Chat")?.attrs.has("implementedBy"), false);
 });
 
 test("a term's primitive-typed field stays a scalar attr", () => {
   const m = model(SRC);
-  assert.equal(m.resolve("kinds.chat")?.attrs.get("label"), "Chat");
+  assert.equal(m.resolve("Kinds.Chat")?.attrs.get("label"), "Chat");
 });
