@@ -115,10 +115,10 @@ function analyze(text: string): { toks: Tok[]; roles: Role[] } {
     const before = toks[i - 1];
     const head = toks[i]!.text;
     let roleAt: (pos: number, last: boolean) => Role;
-    if (inNs[i]) roleAt = () => Role.NamespaceLower;
+    if (head === "this" || head === "This") roleAt = (pos) => (pos === 0 ? Role.Unchanged : Role.MemberCamel); // this.member (even in value position)
+    else if (inNs[i]) roleAt = () => Role.NamespaceLower;
     else if (before !== undefined && VALUE_PREV.has(before.text)) roleAt = () => Role.TypePascal;         // taxonomy.term value
     else if (before !== undefined && (TYPE_REF_PREV.has(before.text) || before.text === "import")) roleAt = (_p, last) => (last ? Role.TypePascal : Role.NamespaceLower); // ns.Type / import ns.Symbol
-    else if (head === "this") roleAt = (pos) => (pos === 0 ? Role.Unchanged : Role.MemberCamel);          // this.member
     else roleAt = () => Role.Unchanged;
     seg.forEach((idx, pos) => { roles[idx] = roleAt(pos, pos === seg.length - 1); handled[idx] = true; });
   }

@@ -51,6 +51,8 @@ test("recases bare reference values (camel) and dotted taxonomy.term values (Pas
 
 test("predicate member access (this.member) stays camel; keywords untouched", () => {
   assert.equal(recaseSource(`this.type == service`), `this.type == service`);
+  // `this.member` stays camel even in value position (`predicate = this.event-type`)
+  assert.equal(recaseSource(`predicate = this.event-type == start`), `predicate = this.eventType == start`);
 });
 
 test("comma-separated represents/uses items are all types (Pascal); [] list items are values (camel)", () => {
