@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Tier, EdgeKind, type Node, type Edge, type NodeId } from "../graph.js";
 import { CypherGraphStore, type CypherSession, type CypherRow, type CypherOp } from "../cypher-store.js";
+import { describeGraphStore } from "./graph-store-conformance.js";
 
 function node(id: NodeId, typeOf = "thing", attrs: Record<string, string> = {}): Node {
   return { id, tier: Tier.Instance, typeOf, attrs: new Map(Object.entries(attrs)) };
@@ -68,3 +69,35 @@ test("flush runs every pending op through the session in order, then clears", as
   assert.equal(session.calls.length, 3);
   assert.equal(s.pendingCypher().length, 0); // cleared after flush
 });
+
+// A fake session that returns canned node/edge rows for the load queries.
+class DataSession implements CypherSession {
+  constructor(
+    private readonly nodes: CypherRow[],
+    private readonly edges: CypherRow[],
+  ) {}
+  async run(cypher: string): Promise<CypherRow[]> {
+    if (cypher.includes("properties(n)")) return this.nodes;
+    if (cypher.includes("-[r:REL]->")) return this.edges;
+    return [];
+  }
+}
+
+test("load rebuilds the working copy from DB rows", async () => {
+  const session = new DataSession(
+    [
+      { id: "copilot", tier: "Instance", typeOf: "technology", props: { id: "copilot", tier: "Instance", typeOf: "technology", label: "Copilot" } },
+      { id: "gw", tier: "Instance", typeOf: "component", props: { id: "gw", tier: "Instance", typeOf: "component" } },
+    ],
+    [{ from: "gw", to: "copilot", kind: "Relationship", via: "implemented-by" }],
+  );
+  const store = await CypherGraphStore.load(session);
+  assert.equal(store.getNode("copilot")?.attrs.get("label"), "Copilot");
+  assert.equal(store.getNode("copilot")?.attrs.has("typeOf"), false); // structural props stripped
+  assert.deepEqual(store.instancesOf("component"), ["gw"]);
+  assert.deepEqual(store.outEdges("gw").map((e) => e.to), ["copilot"]);
+  assert.equal(store.pendingCypher().length, 0); // loaded data is not a pending write
+});
+
+// Same contract as InMemoryGraphStore — the seam is proven against both back-ends.
+describeGraphStore("CypherGraphStore", () => new CypherGraphStore());
