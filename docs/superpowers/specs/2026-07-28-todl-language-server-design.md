@@ -7,7 +7,18 @@ rename, semantic tokens, folding, workspace symbols, code actions, formatting, s
 help) in Plexus's Monaco editors, with a reusable core and server that an external editor
 could later consume.
 
-**Status:** ⬜ Unfinished — umbrella design; Specs 1 & 2 (analysis core, LSP server) landed in TODL, but Spec 3 (Plexus client) is not merged into this repo. Architecture approved 2026-07-28. This is the **umbrella design** — the full
+**Status:** ✅ Finished — all three sub-specs delivered and merged (verified 2026-08-06).
+Spec 1 (analysis core, `src/language-service`) and Spec 2 (LSP server,
+`src/language-server` + `bin`) are on TODL `main` and shipped in the published
+`@pragmatic-lab/todl@0.14.0` (subpath exports `/language-service`, `/language-server`);
+64/64 language tests green. Spec 3 (Plexus client) is merged to **Plexus `main`**
+(`TodlLanguageClient`, `TodlServerHost`, provider adapters, preload channel), wired at
+startup (`main/index.ts` forks the vendored `todl-language-server.cjs` via `child_process` —
+`utilityProcess` could not carry an stdio LSP child — and `renderer/main.js` registers the
+Monaco providers); Plexus todl tests 22/22 green and the server bundle builds. The **sole
+residual is the manual smoke checklist** (`Plexus/docs/superpowers/todl-lsp-smoke-checklist.md`),
+which is irreducibly visual and must be run by a human via `npm run dev`. Architecture
+approved 2026-07-28. This is the **umbrella design** — the full
 picture and the decisions that bind all layers. Implementation is decomposed into three
 sequential sub-specs (below); each gets its own detailed spec → plan → build cycle.
 

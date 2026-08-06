@@ -1,6 +1,6 @@
 # TODL Taxonomy Kind — Design (SP-Tax1)
 
-**Status:** ⬜ Unfinished — superseded/reframed by the 2026-07-20 class & taxonomy model (the enum→taxonomy meta-kind was unpublished and replaced)
+**Status:** ⛔ Superseded — replaced by the 2026-07-20 class & taxonomy model (the enum→taxonomy meta-kind was unpublished and replaced). Terminal; no work pending.
 
 **Goal:** Replace TODL's `enum` meta-kind with a first-class `taxonomy` meta-kind — a
 named tree of terms — with behavior-preserving migration of all existing enums to
