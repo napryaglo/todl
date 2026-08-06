@@ -14,7 +14,7 @@ test("a required-missing diagnostic carries the instance's span", () => {
     { uri: "app.todl", text: MODEL },
   ]);
   const diagnostics = validate(model);
-  const missing = diagnostics.find((d) => d.path === "Component.Label");
+  const missing = diagnostics.find((d) => d.path === "Component.label");
   assert.ok(missing);
   assert.equal(missing!.span?.uri, "app.todl"); // resolved to the instance declaration
 });

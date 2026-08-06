@@ -44,7 +44,7 @@ test("a missing required scalar field is reported", () => {
   const diagnostics = model.validate();
   assert.equal(diagnostics.length, 1);
   assert.equal(diagnostics[0]?.code, DiagnosticCode.RequiredMissing);
-  assert.equal(diagnostics[0]?.path, "Technology.Label");
+  assert.equal(diagnostics[0]?.path, "technology.label");
   assert.equal(diagnostics[0]?.node, "react");
 });
 
@@ -55,7 +55,7 @@ test("an empty non-empty relationship is reported", () => {
   const diagnostics = model.validate();
   assert.equal(diagnostics.length, 1);
   assert.equal(diagnostics[0]?.code, DiagnosticCode.EmptyNotAllowed);
-  assert.equal(diagnostics[0]?.path, "Technology.availableIn");
+  assert.equal(diagnostics[0]?.path, "technology.availableIn");
 });
 
 test("inherited fields are validated on subtype instances", () => {
@@ -72,5 +72,5 @@ test("inherited fields are validated on subtype instances", () => {
   const diagnostics = model.validate();
   assert.equal(diagnostics.length, 1);
   assert.equal(diagnostics[0]?.code, DiagnosticCode.RequiredMissing);
-  assert.equal(diagnostics[0]?.path, "frontend.Label");
+  assert.equal(diagnostics[0]?.path, "frontend.label");
 });
