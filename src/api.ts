@@ -39,7 +39,7 @@ export function checkAgainst(
  * or double-counted edges. All nodes are added before any edges, since an edge
  * requires both endpoints to exist.
  */
-function mergeBases(bases: TodlDocument[]): Graph {
+export function mergeBases(bases: TodlDocument[]): Graph {
   const graph = new Graph();
   for (const base of bases) {
     for (const node of base.nodes) {
