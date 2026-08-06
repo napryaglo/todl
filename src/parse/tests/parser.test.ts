@@ -19,7 +19,7 @@ test("parses a primitive declaration with base and regex", () => {
   const primitive = namespace.declarations[0];
   assert.equal(primitive?.kind, DeclKind.Primitive);
   if (primitive?.kind === DeclKind.Primitive) {
-    assert.equal(primitive.name, "identifier");
+    assert.equal(primitive.name, "Identifier");
     assert.equal(primitive.base, "string");
     assert.match(primitive.regex ?? "", /\^\[a-z\]/);
   }
@@ -32,9 +32,9 @@ test("parses taxonomy declarations with their terms", () => {
   );
   assert.ok(taskType && taskType.kind === DeclKind.Taxonomy);
   if (taskType.kind === DeclKind.Taxonomy) {
-    assert.deepEqual(taskType.represents, ["task"]);
+    assert.deepEqual(taskType.represents, ["Task"]);
     assert.equal(taskType.terms.length, 7);
-    assert.equal(taskType.terms[1]?.id, "user");
+    assert.equal(taskType.terms[1]?.id, "User");
     const label = taskType.terms[1]?.assignments.find((a) => a.name === "label");
     assert.ok(label && label.value.kind === ValueKind.String);
     assert.equal(label.value.text, "User Task");
@@ -49,7 +49,7 @@ test("parses concept imports, fields with cardinality, relationships, and invari
   ]);
 
   const task = namespace.declarations.find(
-    (declaration) => declaration.kind === DeclKind.Concept && declaration.name === "task",
+    (declaration) => declaration.kind === DeclKind.Concept && declaration.name === "Task",
   );
   assert.ok(task && task.kind === DeclKind.Concept);
   if (task.kind === DeclKind.Concept) {
@@ -77,7 +77,7 @@ test("tolerates doc-only concept members (authoring blocks, references, formal i
       description = "A thing.";
       label : string;
       invariant { description = "Ids unique."; formal = "for all c in C"; }
-      Authoring listForm { description = "Primary."; example = "components: …"; }
+      authoring listForm { description = "Primary."; example = "components: …"; }
       references = [ "docs/a.md", "docs/b.md" ];
     }
   }`);
@@ -108,16 +108,16 @@ test("rejects a `{ … }` object value literal — no anonymous records", () => 
 });
 
 test("parses concept-prefixed edge-shorthand with a body", () => {
-  const { namespace: ns } = parse(`namespace d { Connector business-agent -> AgentOrchestrator { type = enabledBy; } }`);
+  const { namespace: ns } = parse(`namespace d { Connector businessAgent -> agentOrchestrator { type = enabledBy; } }`);
   const edge = ns.declarations[0];
   assert.ok(edge && edge.kind === DeclKind.Instance);
   if (edge.kind === DeclKind.Instance) {
-    assert.equal(edge.concept, "connector");
+    assert.equal(edge.concept, "Connector");
     const from = edge.assignments.find((a) => a.name === "from")?.value;
     const to = edge.assignments.find((a) => a.name === "to")?.value;
     assert.equal(from?.kind, ValueKind.Name);
     assert.equal((from as NameValue).name, "businessAgent");
-    assert.equal((to as NameValue).name, "AgentOrchestrator");
+    assert.equal((to as NameValue).name, "agentOrchestrator");
     assert.ok(edge.assignments.find((a) => a.name === "type"));
   }
 });
@@ -125,11 +125,11 @@ test("parses concept-prefixed edge-shorthand with a body", () => {
 test("parses an application-connectors block of --> edges inside a model", () => {
   const { namespace: ns } = parse(`namespace d {
     model m : ea {
-      application-connectors { external-agent-bridge --> AgentService }
+      connectors { externalAgentBridge --> agentService }
     }
   }`);
   const model = ns.declarations[0] as ModelDecl;
-  const block = model.instances.find((c) => c.concept === "application-connectors");
+  const block = model.instances.find((c) => c.concept === "connectors");
   assert.ok(block);
   assert.equal(block?.children.length, 1);
   assert.equal(block?.children[0]?.concept, "connector");
@@ -137,7 +137,7 @@ test("parses an application-connectors block of --> edges inside a model", () =>
 
 test("parses a model with a meta-model binding and nested instances", () => {
   const { namespace: ns } = parse(`namespace d {
-    model m : enterpriseArchitecture {
+    model m : EnterpriseArchitecture {
       Location saas3p { label = "3rd-Party SaaS"; type = logicalGrouping; }
     }
   }`);
@@ -147,7 +147,7 @@ test("parses a model with a meta-model binding and nested instances", () => {
     assert.equal(model.id, "m");
     assert.equal(model.metaModel, "EnterpriseArchitecture");
     assert.equal(model.instances.length, 1);
-    assert.equal(model.instances[0]?.concept, "location");
+    assert.equal(model.instances[0]?.concept, "Location");
     assert.equal(model.instances[0]?.id, "saas3p");
   }
 });
@@ -165,12 +165,12 @@ test("parses a string-keyed record id", () => {
 test("parses a class modifier and an instanceof leaf", () => {
   const { namespace: ns } = parse(`namespace d {
     class Component teamsChat { realisedBy = microsoftTeams; }
-    Component chat-hq instanceof teamsChat { in = hq; }
+    Component chatHq instanceof teamsChat { in = hq; }
   }`);
   const cls = ns.declarations[0];
   assert.ok(cls && cls.kind === DeclKind.Instance);
   if (cls.kind === DeclKind.Instance) {
-    assert.equal(cls.concept, "component");
+    assert.equal(cls.concept, "Component");
     assert.equal(cls.id, "teamsChat");
     assert.equal(cls.isClass, true);
     assert.equal(cls.instanceOf, null);
@@ -178,21 +178,21 @@ test("parses a class modifier and an instanceof leaf", () => {
   const leaf = ns.declarations[1];
   assert.ok(leaf && leaf.kind === DeclKind.Instance);
   if (leaf.kind === DeclKind.Instance) {
-    assert.equal(leaf.id, "chat-hq");
+    assert.equal(leaf.id, "chatHq");
     assert.equal(leaf.isClass, false);
     assert.equal(leaf.instanceOf, "teamsChat");
   }
 });
 
 test("parses a |-composed enum-flag value", () => {
-  const { namespace: ns } = parse(`namespace d { Location onPrem { type = physical | on-premises | logical-grouping; } }`);
+  const { namespace: ns } = parse(`namespace d { Location onPrem { type = physical | onPremises | logicalGrouping; } }`);
   const inst = ns.declarations[0];
   assert.ok(inst && inst.kind === DeclKind.Instance);
   if (inst.kind === DeclKind.Instance) {
     const value = inst.assignments[0]?.value;
     assert.equal(value?.kind, ValueKind.Composite);
     if (value?.kind === ValueKind.Composite) {
-      assert.deepEqual(value.parts, ["physical", "on-premises", "logicalGrouping"]);
+      assert.deepEqual(value.parts, ["physical", "onPremises", "logicalGrouping"]);
     }
   }
 });

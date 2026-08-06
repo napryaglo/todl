@@ -43,12 +43,12 @@ namespace adl.metaModels.bpmn.concepts
         invariant
         {
             description = "Start events have no incoming sequence flows.";
-            predicate   = This.EventType == start implies this.incoming.empty;
+            predicate   = this.eventType == start implies this.incoming.empty;
         }
         invariant
         {
             description = "End events have no outgoing sequence flows.";
-            predicate   = This.EventType == end implies this.outgoing.empty;
+            predicate   = this.eventType == end implies this.outgoing.empty;
         }
     }
 }

@@ -73,7 +73,7 @@ const MEMBER_DECL_KW = new Set(["relationship"]); // `relationship <name>` — n
 const TYPE_REF_PREV = new Set([":", "represents", "uses", "annotate", "class", "->", "-->"]);
 const NS_KW = new Set(["namespace", "package"]);
 const BUILTIN = new Set(["string", "number", "boolean"]);
-const VALUE_PREV = new Set(["=", "[", ","]); // reference-value positions
+const VALUE_PREV = new Set(["=", "[", ",", "|"]); // reference-value positions (incl. |-flag combos)
 const ID_VALUE_KEYS = new Set(["concept", "via"]); // params whose string value denotes an identifier
 const KEBAB_ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/;
 // Every reserved word — TODL keywords are ALL lowercase and are never recased,
