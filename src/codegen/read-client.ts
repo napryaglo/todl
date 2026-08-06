@@ -211,5 +211,5 @@ function emitEntityClass(concept: NodeId, repo: Repository): string {
   );
 
   const getters = [...scalarGetters, ...refGetters].join("\n");
-  return `Export class ${pascalCase(concept)} Extends entityBase {\n${getters}\n}`;
+  return `export class ${pascalCase(concept)} extends EntityBase {\n${getters}\n}`;
 }

@@ -189,7 +189,7 @@ function emitRegistry(
   for (const concept of concepts) {
     const cls = pascalCase(concept);
     lines.push(
-      `${i}${i}${jsKey(concept)}: Data => { Const o = new ${cls}(); ` +
+      `${i}${i}${jsKey(concept)}: data => { const o = new ${cls}(); ` +
         `if (data) for (const [k, v] of Object.entries(data)) o.set(k, v); return o; },`,
     );
   }
