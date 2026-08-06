@@ -38,6 +38,10 @@ export {
 
 export { EntityBase, type Entity } from "./model/entity.js";
 
+export { FrozenRepository } from "./model/frozen.js";
+
+export { generateReadClient, isReferenceType, type ReadClientOptions } from "./codegen/read-client.js";
+
 export {
   ExprKind,
   BinaryOp,
@@ -70,6 +74,7 @@ export { check, checkAgainst } from "./api.js";
 export {
   toJSON,
   fromJSON,
+  graphFromJSON,
   type TodlDocument,
   type JsonNode,
   type JsonEdge,

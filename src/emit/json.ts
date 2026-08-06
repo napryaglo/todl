@@ -46,7 +46,7 @@ export function toJSON(model: Repository): TodlDocument {
   return { nodes, edges };
 }
 
-export function fromJSON(doc: TodlDocument): Repository {
+export function graphFromJSON(doc: TodlDocument): Graph {
   const graph = new Graph();
 
   for (const node of doc.nodes) {
@@ -66,5 +66,9 @@ export function fromJSON(doc: TodlDocument): Repository {
     });
   }
 
-  return new Repository(graph);
+  return graph;
+}
+
+export function fromJSON(doc: TodlDocument): Repository {
+  return new Repository(graphFromJSON(doc));
 }
