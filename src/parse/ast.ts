@@ -126,6 +126,9 @@ export interface AnnotationApplication {
 export interface AnnotationDecl {
   kind: DeclKind.Annotation;
   name: string;
+  /** The base annotation this one extends (`annotation Sub : Base`), or null. */
+  extends: string | null;
+  extendsSpan?: SourceSpan;
   /** Typed params, reusing FieldDecl (name / type / cardinality). */
   params: FieldDecl[];
   span: SourceSpan;

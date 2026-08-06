@@ -19,6 +19,18 @@ test("annotation declaration parses to an AnnotationDecl with typed params", () 
   assert.ok(d.nameSpan);
 });
 
+test("annotation with a base parses its extends (annotation Sub : Base)", () => {
+  const d = decls(`namespace a { annotation detailed : visual { badge : string; } }`)[0] as AnnotationDecl;
+  assert.equal(d.kind, DeclKind.Annotation);
+  assert.equal(d.extends, "visual");
+  assert.ok(d.extendsSpan);
+});
+
+test("annotation without a base has null extends", () => {
+  const d = decls(`namespace a { annotation icon { path : string; } }`)[0] as AnnotationDecl;
+  assert.equal(d.extends, null);
+});
+
 test("annotate inside a concept attaches an application to the concept", () => {
   const d = decls(`namespace a {
     concept actor {

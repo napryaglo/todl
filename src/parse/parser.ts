@@ -298,6 +298,15 @@ class Parser {
   private parseAnnotation(start: Token): AnnotationDecl {
     this.expectKeyword("annotation");
     const nameTok = this.expect(TokenKind.Identifier);
+    // Optional base annotation (`annotation Sub : Base`), same `:` supertyping
+    // syntax concepts use. The base may be namespace-qualified.
+    let extendsName: string | null = null;
+    let extendsSpan: SourceSpan | undefined;
+    if (this.match(TokenKind.Colon)) {
+      const startTok = this.current();
+      extendsName = this.parseDottedPath();
+      extendsSpan = this.spanFrom(startTok);
+    }
     const params: FieldDecl[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
@@ -314,8 +323,9 @@ class Parser {
       });
     }
     this.expect(TokenKind.RBrace);
-    const decl: AnnotationDecl = { kind: DeclKind.Annotation, name: nameTok.value, params, span: this.spanFrom(start) };
+    const decl: AnnotationDecl = { kind: DeclKind.Annotation, name: nameTok.value, extends: extendsName, params, span: this.spanFrom(start) };
     decl.nameSpan = tokenSpan(nameTok, this.uri);
+    if (extendsSpan !== undefined) decl.extendsSpan = extendsSpan;
     return decl;
   }
 
