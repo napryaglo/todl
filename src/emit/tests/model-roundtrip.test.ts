@@ -9,7 +9,7 @@ test("a model node and namespace provenance survive toJSON/fromJSON", () => {
   const { model } = check([{ uri: "a.todl", text:
     `namespace acme {
       concept Component { name : string; }
-      model prod : acme uses Lib { Component checkout { name = "C"; } }
+      model prod : acme uses lib { Component checkout { name = "C"; } }
     }` }]);
   const restored = fromJSON(toJSON(model));
 

@@ -98,7 +98,7 @@ test("defineTaxonomy stages the represented concept plus class terms", () => {
   b.defineConcept("category");
   b.defineTaxonomy("ComponentCategory", ["category"], [
     { id: "ConversationalInterface", attrs: new Map([["icon", "Chat.svg"]]) },
-    { id: "surface", children: [{ id: "WebPortal" }] },
+    { id: "Surface", children: [{ id: "WebPortal" }] },
   ]);
   b.commit();
 
