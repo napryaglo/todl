@@ -68,47 +68,82 @@ function scan(src: string): Tok[] {
 }
 
 // ── classification + rewrite ─────────────────────────────────────────────────
-const TYPE_DECL_KW = new Set(["concept", "primitive", "taxonomy", "annotation", "relationship", "model", "enum", "term"]);
+const TYPE_DECL_KW = new Set(["concept", "primitive", "taxonomy", "annotation", "model", "enum", "term"]);
+const MEMBER_DECL_KW = new Set(["relationship"]); // `relationship <name>` — name is a MEMBER
 const TYPE_REF_PREV = new Set([":", "represents", "uses", "annotate", "->", "-->"]);
 const NS_KW = new Set(["namespace", "package"]);
 const BUILTIN = new Set(["string", "number", "boolean"]);
+const VALUE_PREV = new Set(["=", "[", ","]); // reference-value positions
 const ID_VALUE_KEYS = new Set(["concept", "via"]); // params whose string value denotes an identifier
 const KEBAB_ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/;
 // Every reserved word — never recased, even in type/member position (`represents`
-// after `:`, a param literally named `concept`, etc.). A `term`/`concept` token
-// here is the keyword; the NAME after it still classifies via its `prev`.
-const KEYWORDS = new Set([...TYPE_DECL_KW, ...NS_KW, ...BUILTIN, "represents", "uses", "annotate", "true", "false"]);
+// after `:`, a param literally named `concept`, etc.).
+const KEYWORDS = new Set([...TYPE_DECL_KW, ...MEMBER_DECL_KW, ...NS_KW, ...BUILTIN, "import", "represents", "uses", "annotate", "true", "false"]);
 
-enum Role { TypePascal, MemberCamel, NamespaceLower, Unchanged }
+enum Role { TypePascal, MemberCamel, NamespaceLower, InstanceCamel, Unchanged }
 
-export function recaseSource(text: string): string {
+function isStmtBoundary(t: Tok | undefined): boolean {
+  return t === undefined || (t.kind === K.Punct && (t.text === "{" || t.text === "}" || t.text === ";"));
+}
+
+// Classify every token of `text`, returning the token stream and each token's Role.
+function analyze(text: string): { toks: Tok[]; roles: Role[] } {
   const toks = scan(text);
-  // mark which idents are inside a `namespace <dotted>` header (until the next `{`)
-  const inNs = new Array<boolean>(toks.length).fill(false);
-  for (let i = 0; i < toks.length; i++) {
+  const n = toks.length;
+  const roles = new Array<Role>(n).fill(Role.Unchanged);
+  const handled = new Array<boolean>(n).fill(false);
+
+  // 1. idents inside a `namespace <dotted>` header (until the next `{`).
+  const inNs = new Array<boolean>(n).fill(false);
+  for (let i = 0; i < n; i++) {
     if (toks[i]!.kind === K.Ident && toks[i]!.text === "namespace") {
-      for (let j = i + 1; j < toks.length; j++) {
-        if (toks[j]!.kind === K.Punct && toks[j]!.text === "{") break;
-        inNs[j] = true;
-      }
+      for (let j = i + 1; j < n; j++) { if (toks[j]!.kind === K.Punct && toks[j]!.text === "{") break; inNs[j] = true; }
     }
   }
+
+  // 2. dotted runs `ident ('.' ident)+` — role depends on the head's context.
+  for (let i = 0; i < n; i++) {
+    if (toks[i]!.kind !== K.Ident || handled[i]) continue;
+    if (!(toks[i + 1]?.text === "." && toks[i + 2]?.kind === K.Ident)) continue;
+    const seg: number[] = [i];
+    let j = i + 1;
+    while (toks[j]?.text === "." && toks[j + 1]?.kind === K.Ident) { seg.push(j + 1); j += 2; }
+    const before = toks[i - 1];
+    const head = toks[i]!.text;
+    let roleAt: (pos: number, last: boolean) => Role;
+    if (inNs[i]) roleAt = () => Role.NamespaceLower;
+    else if (before !== undefined && VALUE_PREV.has(before.text)) roleAt = () => Role.TypePascal;         // taxonomy.term value
+    else if (before !== undefined && (TYPE_REF_PREV.has(before.text) || before.text === "import")) roleAt = (_p, last) => (last ? Role.TypePascal : Role.NamespaceLower); // ns.Type / import ns.Symbol
+    else if (head === "this") roleAt = (pos) => (pos === 0 ? Role.Unchanged : Role.MemberCamel);          // this.member
+    else roleAt = () => Role.Unchanged;
+    seg.forEach((idx, pos) => { roles[idx] = roleAt(pos, pos === seg.length - 1); handled[idx] = true; });
+  }
+
+  // 3. single (non-dotted) idents.
+  for (let i = 0; i < n; i++) {
+    if (toks[i]!.kind !== K.Ident || handled[i]) continue;
+    roles[i] = classifySingle(toks[i]!, toks[i - 1], toks[i + 1], inNs[i] === true);
+    handled[i] = true;
+  }
+  return { toks, roles };
+}
+
+export function recaseSource(text: string): string {
+  const { toks, roles } = analyze(text);
+  // build replacements (idents by role + identifier-valued string attrs).
   const repl: Array<{ start: number; end: number; text: string }> = [];
   for (let i = 0; i < toks.length; i++) {
     const t = toks[i]!;
-    const prev = toks[i - 1];
-    const next = toks[i + 1];
     if (t.kind === K.String) {
-      // identifier-valued string: `<key> = "kebab"` with key in the allowlist
-      if (prev?.text === "=" && toks[i - 2]?.kind === K.Ident && ID_VALUE_KEYS.has((toks[i - 2]!.text).toLowerCase())) {
+      const prev = toks[i - 1]; const pp = toks[i - 2];
+      if (prev?.text === "=" && pp?.kind === K.Ident && ID_VALUE_KEYS.has(pp.text.toLowerCase())) {
         const inner = t.text.slice(1, -1);
         if (KEBAB_ID.test(inner)) repl.push({ start: t.start, end: t.end, text: `"${toPascal(inner)}"` });
       }
       continue;
     }
     if (t.kind !== K.Ident) continue;
-    const role = classify(t, prev, next, inNs[i] === true);
-    const cased = apply(t.text, role);
+    const cased = apply(t.text, roles[i]!);
     if (cased !== t.text) repl.push({ start: t.start, end: t.end, text: cased });
   }
   let out = ""; let pos = 0;
@@ -116,12 +151,29 @@ export function recaseSource(text: string): string {
   return out + text.slice(pos);
 }
 
-function classify(t: Tok, prev: Tok | undefined, next: Tok | undefined, inNamespace: boolean): Role {
-  if (KEYWORDS.has(t.text)) return Role.Unchanged;                    // reserved word — never recased
-  if (inNamespace) return Role.NamespaceLower;                        // segment of a namespace header
-  if (prev !== undefined && prev.kind === K.Ident && TYPE_DECL_KW.has(prev.text)) return Role.TypePascal;
-  if (prev !== undefined && TYPE_REF_PREV.has(prev.text)) return Role.TypePascal;
-  if (next !== undefined && (next.text === ":" || next.text === "=")) return Role.MemberCamel;
+// Record every identifier rename (kebab → new casing) the recaser makes over
+// `text` into `into`, keyed by the original token. Feeds a global map for fixing
+// TS assertion-string literals that hold ids the recaser can't see in context.
+export function collectRenames(text: string, into: Map<string, string>): void {
+  const { toks, roles } = analyze(text);
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i]!;
+    if (t.kind !== K.Ident) continue;
+    const cased = apply(t.text, roles[i]!);
+    if (cased !== t.text) into.set(t.text, cased);
+  }
+}
+
+function classifySingle(t: Tok, prev: Tok | undefined, next: Tok | undefined, inNamespace: boolean): Role {
+  if (KEYWORDS.has(t.text)) return Role.Unchanged;                                          // reserved word
+  if (inNamespace) return Role.NamespaceLower;
+  if (prev?.kind === K.Ident && MEMBER_DECL_KW.has(prev.text)) return Role.MemberCamel;      // `relationship <name>`
+  if (prev?.kind === K.Ident && TYPE_DECL_KW.has(prev.text)) return Role.TypePascal;         // decl name
+  if (prev !== undefined && TYPE_REF_PREV.has(prev.text)) return Role.TypePascal;            // type reference
+  if (isStmtBoundary(prev) && next?.kind === K.Ident) return Role.TypePascal;                // `Type id {` — the TYPE
+  if (prev?.kind === K.Ident && next?.text === "{") return Role.InstanceCamel;               // `Type id {` — the ID
+  if (next !== undefined && (next.text === ":" || next.text === "=")) return Role.MemberCamel; // member/attr key
+  if (prev !== undefined && VALUE_PREV.has(prev.text)) return Role.InstanceCamel;            // bare reference value
   return Role.Unchanged;
 }
 
@@ -129,6 +181,7 @@ function apply(id: string, role: Role): string {
   switch (role) {
     case Role.TypePascal: return toPascal(id);
     case Role.MemberCamel: return toCamel(id);
+    case Role.InstanceCamel: return toCamel(id);
     case Role.NamespaceLower: return id.includes("-") ? toLowerCamel(id) : id;
     default: return id;
   }

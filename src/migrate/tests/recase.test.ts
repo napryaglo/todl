@@ -32,6 +32,23 @@ test("recases annotation decl + application; identifier-valued string follows re
   assert.equal(recaseSource(`annotate instance { concept = "app-component"; }`), `annotate Instance { concept = "AppComponent"; }`);
 });
 
-test("recases relationship declaration and arrow target", () => {
-  assert.equal(recaseSource(`relationship depends-on -> app-component;`), `relationship DependsOn -> AppComponent;`);
+test("relationship name is a member (camel); target is a type (Pascal)", () => {
+  assert.equal(recaseSource(`relationship lives-in -> sequence-flow[];`), `relationship livesIn -> SequenceFlow[];`);
+});
+
+test("recases instance declarations: type ref Pascal, instance id camel", () => {
+  assert.equal(recaseSource(`event-trigger message { }`), `EventTrigger message { }`);
+  assert.equal(
+    recaseSource(`event order-placed { label = "Order Placed"; outgoing = [order-to-validate]; }`),
+    `Event orderPlaced { label = "Order Placed"; outgoing = [orderToValidate]; }`,
+  );
+});
+
+test("recases bare reference values (camel) and dotted taxonomy.term values (Pascal.Pascal)", () => {
+  assert.equal(recaseSource(`from = order-placed;`), `from = orderPlaced;`);
+  assert.equal(recaseSource(`type = task-type.service;`), `type = TaskType.Service;`);
+});
+
+test("predicate member access (this.member) stays camel; keywords untouched", () => {
+  assert.equal(recaseSource(`this.type == service`), `this.type == service`);
 });
