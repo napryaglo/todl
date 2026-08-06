@@ -28,7 +28,7 @@ test("undefined concept extends target → ReferenceUndefined", () => {
   assert.equal(refs.length, 1);
   const ref = refs[0];
   assert.ok(ref);
-  assert.match(ref.message, /missing/);
+  assert.match(ref.message, /Missing/);
 });
 
 test("undefined value ref → ReferenceUndefined", () => {
@@ -61,7 +61,7 @@ test("undefined taxonomy represents target → ReferenceUndefined", () => {
   assert.equal(refs.length, 1);
   const ref = refs[0];
   assert.ok(ref);
-  assert.match(ref.message, /ghostconcept/);
+  assert.match(ref.message, /Ghostconcept/);
 });
 
 test("undefined bare Name value → ReferenceUndefined, referencing node kept", () => {
