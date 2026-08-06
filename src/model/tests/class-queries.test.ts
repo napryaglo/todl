@@ -22,7 +22,7 @@ test("represents / representedBy / termsOf over a taxonomy", () => {
     `concept Category { icon : string; } taxonomy ComponentCategory : represents Category { term ConversationalInterface { icon = "chat.svg"; } term WebPortal {} }`,
   );
   assert.deepEqual(m.represents("ComponentCategory"), ["Category"]);
-  assert.deepEqual(m.representedBy("category"), ["ComponentCategory"]);
+  assert.deepEqual(m.representedBy("Category"), ["ComponentCategory"]);
   assert.deepEqual(m.termsOf("ComponentCategory").sort(), [
     "ComponentCategory.ConversationalInterface",
     "ComponentCategory.WebPortal",

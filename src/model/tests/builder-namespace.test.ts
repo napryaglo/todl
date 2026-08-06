@@ -25,5 +25,5 @@ test("a field member node is stamped with the namespace too", () => {
   const b = new Builder(graph).setNamespace("acme").defineConcept("thing");
   b.addField("thing", "label", "string");
   b.commit();
-  assert.equal(graph.getNode("Thing.label")!.attrs.get("namespace"), "acme");
+  assert.equal(graph.getNode("thing.label")!.attrs.get("namespace"), "acme");
 });

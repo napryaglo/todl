@@ -14,7 +14,7 @@ test("a boolean annotation param stages as a boolean scalar", () => {
     }
   }` }]);
   assert.deepEqual(diagnostics, [], "clean load — visible=true is not an undefined reference");
-  const app = model.resolve("actors@toolbox");
+  const app = model.resolve("Actors@Toolbox");
   assert.equal(app!.attrs.get("visible"), true);
   assert.equal(typeof app!.attrs.get("visible"), "boolean");
 });

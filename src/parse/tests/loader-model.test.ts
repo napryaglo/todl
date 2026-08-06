@@ -32,5 +32,5 @@ test("every loaded node carries its source namespace as provenance", () => {
   const { model } = load([{ uri: "a.todl", text: SRC }]);
   assert.equal(model.resolve("prod")!.attrs.get("namespace"), "acme");
   assert.equal(model.resolve("checkout")!.attrs.get("namespace"), "acme");
-  assert.equal(model.resolve("component")!.attrs.get("namespace"), "acme");
+  assert.equal(model.resolve("Component")!.attrs.get("namespace"), "acme");
 });
