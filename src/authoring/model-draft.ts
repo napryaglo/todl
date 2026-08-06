@@ -14,6 +14,7 @@ import { type Entity } from "../model/entity.js";
 import { toJSON, type TodlDocument } from "../emit/json.js";
 import { mergeBases } from "../api.js";
 import { preludeDocument } from "../stdlib/prelude.js";
+import { deriveBindings, emitModelTodl } from "../emit/todl.js";
 import type { Diagnostic } from "../diagnostics/diagnostic.js";
 
 /** A plain instance record; Phase 5 codegen emits these, Phase 4 accepts them. */
@@ -95,6 +96,13 @@ export class ModelDraft {
       }
     }
     return { nodes, edges };
+  }
+
+  /** Serialize the overlay as round-trippable `.todl` model source (own delta + bindings). */
+  toTodl(): string {
+    const own = this.toJSON();
+    const bindings = deriveBindings(this.model, this.baseIds, this.namespace, own);
+    return emitModelTodl(own, this.namespace, bindings);
   }
 
   /** True when `id` is base (frozen), false when it is an own overlay instance. */
