@@ -21,6 +21,31 @@ test("projectAnnotations keys applications by annotation name, strips namespace"
   assert.deepEqual(projectAnnotations(doc(), "ms.missing"), {});
 });
 
+// Richer cases (ported from Plexus annotation-projection.test.ts when that copy
+// was retired): multiple annotations on one target, dangling edge skipped, and a
+// non-Annotated edge ignored.
+test("projectAnnotations: multi-annotation, dangling edge skipped, non-annotation edge ignored", () => {
+  const doc2: TodlDocument = {
+    nodes: [
+      { id: "actor", tier: "Ontology", typeOf: "concept", attrs: { label: "Human Actor" } },
+      { id: "actor@icon", tier: "Ontology", typeOf: "icon", attrs: { path: "icons/actor.svg", namespace: "acme" } },
+      { id: "actor@category", tier: "Ontology", typeOf: "category", attrs: { name: "actors", order: 1, namespace: "acme" } },
+      { id: "bare", tier: "Ontology", typeOf: "concept", attrs: {} },
+    ],
+    edges: [
+      { kind: "Annotated", via: null, from: "actor", to: "actor@icon" },
+      { kind: "Annotated", via: null, from: "actor", to: "actor@category" },
+      { kind: "Annotated", via: null, from: "actor", to: "missing@ghost" }, // dangling → skipped
+      { kind: "HasField", via: null, from: "actor", to: "actor.name" }, // non-annotation edge ignored
+    ],
+  };
+  assert.deepEqual(projectAnnotations(doc2, "actor"), {
+    icon: { path: "icons/actor.svg" },
+    category: { name: "actors", order: 1 },
+  });
+  assert.deepEqual(projectAnnotations(doc2, "bare"), {});
+});
+
 test("deriveClasses returns only class=true Instance clabjects with label + annotation icon", () => {
   assert.deepEqual(deriveClasses(doc()), [
     { id: "ms.az", concept: "location", localId: "az", label: "Azure", icon: "resources/az.svg" },
