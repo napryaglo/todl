@@ -46,6 +46,25 @@ test("projectAnnotations: multi-annotation, dangling edge skipped, non-annotatio
   assert.deepEqual(projectAnnotations(doc2, "bare"), {});
 });
 
+test("projectAnnotations indexes an application under its annotation's ancestors (polymorphism)", () => {
+  // detailed : visual ; X carries @detailed → queryable as detailed AND visual.
+  const doc2: TodlDocument = {
+    nodes: [
+      { id: "visual", tier: "Ontology", typeOf: "annotation", attrs: {} },
+      { id: "detailed", tier: "Ontology", typeOf: "annotation", attrs: {} },
+      { id: "X", tier: "Ontology", typeOf: "concept", attrs: {} },
+      { id: "X@detailed", tier: "Ontology", typeOf: "detailed", attrs: { icon: "a.svg", badge: "new", namespace: "n" } },
+    ],
+    edges: [
+      { kind: "Extends", via: null, from: "detailed", to: "visual" },
+      { kind: "Annotated", via: null, from: "X", to: "X@detailed" },
+    ],
+  };
+  const got = projectAnnotations(doc2, "X");
+  assert.deepEqual(got.detailed, { icon: "a.svg", badge: "new" });
+  assert.deepEqual(got.visual, { icon: "a.svg", badge: "new" }); // is-a base
+});
+
 test("deriveClasses returns only class=true Instance clabjects with label + annotation icon", () => {
   assert.deepEqual(deriveClasses(doc()), [
     { id: "ms.az", concept: "location", localId: "az", label: "Azure", icon: "resources/az.svg" },

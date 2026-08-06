@@ -4,9 +4,11 @@
  * traversal over a compiled `TodlDocument`; no I/O.
  */
 
+import { MetaKind } from "../model/kinds.js";
 import type { TodlDocument } from "../emit/json.js";
 
 const ANNOTATED = "Annotated";
+const EXTENDS = "Extends";
 const NAMESPACE_ATTR = "namespace";
 
 /** One instantiable class a package provides — a palette item. */
@@ -23,8 +25,31 @@ export interface PublishedClass {
  * `Annotated` edges out of `targetId` to its application nodes, key each by the
  * application's `typeOf` (the annotation name), value = the application's scalar
  * attrs with the `namespace` provenance stamp removed. No annotations → `{}`.
+ *
+ * Polymorphic (annotation inheritance): an application of a sub-annotation IS-A
+ * its base, so it is also indexed under every ancestor annotation name up the
+ * `Extends` chain — a consumer reading the base name finds specialized
+ * applications. Two sub-annotations of one base on a target: last-wins.
  */
 export function projectAnnotations(model: TodlDocument, targetId: string): Record<string, Record<string, unknown>> {
+  // Annotation-declaration nodes and their direct base, to walk the is-a chain.
+  const annIds = new Set(model.nodes.filter((n) => n.typeOf === MetaKind.Annotation).map((n) => n.id));
+  const baseOf = new Map<string, string>();
+  for (const e of model.edges) {
+    if (e.kind === EXTENDS && annIds.has(String(e.from))) baseOf.set(String(e.from), String(e.to));
+  }
+  const chain = (name: string): string[] => {
+    const names = [name];
+    const seen = new Set([name]);
+    let cur = baseOf.get(name);
+    while (cur !== undefined && !seen.has(cur)) {
+      names.push(cur);
+      seen.add(cur);
+      cur = baseOf.get(cur);
+    }
+    return names;
+  };
+
   const out: Record<string, Record<string, unknown>> = {};
   for (const edge of model.edges) {
     if (edge.kind !== ANNOTATED || edge.from !== targetId) continue;
@@ -35,7 +60,7 @@ export function projectAnnotations(model: TodlDocument, targetId: string): Recor
       if (k === NAMESPACE_ATTR) continue;
       params[k] = v;
     }
-    out[appNode.typeOf] = params;
+    for (const name of chain(appNode.typeOf)) out[name] = params;
   }
   return out;
 }
