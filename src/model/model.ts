@@ -20,6 +20,7 @@ import {
 } from "./graph.js";
 import { Builder } from "./builder.js";
 import { ReactiveNode } from "./reactive.js";
+import { EntityBase, type Entity } from "./entity.js";
 import { Derivations } from "../predicate/derivations.js";
 import { Invariants, type InvariantDef } from "../predicate/invariants.js";
 import type { Expr } from "../predicate/ast.js";
@@ -51,6 +52,7 @@ export class Repository {
   private readonly derivations: Derivations;
   private readonly invariants: Invariants;
   private readonly spans = new Map<string, SourceSpan>();
+  private readonly entityCache = new Map<NodeId, EntityBase>();
 
   constructor(graph: Graph = new Graph()) {
     this.graph = graph;
@@ -91,6 +93,21 @@ export class Repository {
   /** A live reactive view of one node. */
   view(id: NodeId): ReactiveNode {
     return new ReactiveNode(this, id);
+  }
+
+  /**
+   * A memoized read lens for `id` (spec §4). Same id → same instance (identity
+   * map), so references resolve to shared handles and cycles are safe. Undefined
+   * when the node does not exist.
+   */
+  entity<T extends Entity = Entity>(id: NodeId): T | undefined {
+    if (!this.has(id)) return undefined;
+    let handle = this.entityCache.get(id);
+    if (handle === undefined) {
+      handle = new EntityBase(this, id);
+      this.entityCache.set(id, handle);
+    }
+    return handle as unknown as T;
   }
 
   resolve(id: NodeId): Node | undefined {
@@ -226,6 +243,41 @@ export class Repository {
     const cls = this.classOf(leaf);
     if (cls !== null) collect(cls);
     collect(leaf);
+    return result;
+  }
+
+  // ── Read primitives (typed-client foundation, spec §4) ────────────────────
+
+  /** A node's effective scalar field value (class-merged), or undefined. */
+  attr(id: NodeId, name: string): Scalar | undefined {
+    return this.effectiveFields(id).get(name);
+  }
+
+  /** The single target of reference member `member` (class-merged), or undefined. */
+  ref(id: NodeId, member: string): NodeId | undefined {
+    return this.refs(id, member)[0];
+  }
+
+  /** All targets of reference member `member` (class-merged); [] if none. */
+  refs(id: NodeId, member: string): NodeId[] {
+    return this.effectiveRelationships(id).get(member) ?? [];
+  }
+
+  /** Inbound reference sources (reverse adjacency), optionally filtered by member. */
+  referrers(id: NodeId, member?: string): NodeId[] {
+    return this.related(id, EdgeKind.Relationship, Direction.In, member ?? null);
+  }
+
+  /** Every relationship edge whose target node is absent (bulk dangling report). */
+  danglingRefs(): { from: NodeId; member: string; to: NodeId }[] {
+    const result: { from: NodeId; member: string; to: NodeId }[] = [];
+    for (const node of this.allNodes()) {
+      for (const edge of this.outEdges(node.id)) {
+        if (edge.kind === EdgeKind.Relationship && edge.via !== null && !this.has(edge.to)) {
+          result.push({ from: node.id, member: edge.via, to: edge.to });
+        }
+      }
+    }
     return result;
   }
 

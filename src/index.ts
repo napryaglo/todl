@@ -36,6 +36,8 @@ export {
   type ConceptSchema,
 } from "./model/model.js";
 
+export { EntityBase, type Entity } from "./model/entity.js";
+
 export {
   ExprKind,
   BinaryOp,
