@@ -58,7 +58,7 @@ test("a bare name defined by two used taxonomies is ambiguous", () => {
        concept C { label : string; ref : A; }
        taxonomy A : represents C { term Dup { label = "1"; } }
        taxonomy B : represents C { term Dup { label = "2"; } }
-       taxonomy User : represents C uses A, b {
+       taxonomy User : represents C uses A, B {
          C x { label = "X"; ref = dup; }
        }
      }` }]);

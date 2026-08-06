@@ -50,7 +50,7 @@ test("emits a taxonomy table (terms with parent) and a taxonomies registry key",
 test("emits a multi-representation taxonomy's represents as a list", () => {
   const model = load([
     `namespace n { concept Location {} concept Technology {}
-      taxonomy Microsoft : represents Location, technology {
+      taxonomy Microsoft : represents Location, Technology {
         Location azure {} Technology azureOpenai {}
       } }`,
   ]);

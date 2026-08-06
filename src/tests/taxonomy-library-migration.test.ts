@@ -17,7 +17,7 @@ test("a migrated-style library compiles clean: bare siblings + uses cross-refs",
 
   const lib = `namespace libraries.microsoft {
     import tech-architecture;
-    taxonomy MicrosoftTech : represents Location, technology uses Categories {
+    taxonomy MicrosoftTech : represents Location, Technology uses Categories {
       Location azure { label = "Azure"; }
       Location m365  { label = "Microsoft 365"; parent = azure; }
       Technology graph {

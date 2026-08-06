@@ -31,7 +31,7 @@ test("model `uses <taxonomy>` brings its terms into bare scope", () => {
   const { diagnostics } = checkAgainst([base()], [{ uri: "app.todl", text:
     `namespace app {
        import ea;
-       model m : ea uses Stack, kinds {
+       model m : ea uses Stack, Kinds {
          Component gw { label = "GW"; realisedBy = azureOpenai; kind = service; }
        }
      }` }]);
@@ -108,7 +108,7 @@ test("a bare id defined by two used taxonomies is ambiguous", () => {
   const { diagnostics } = checkAgainst([b], [{ uri: "app.todl", text:
     `namespace app {
        import ea;
-       model m : ea uses A, b {
+       model m : ea uses A, B {
          Component gw { label = "GW"; realisedBy = dup; }
        }
      }` }]);

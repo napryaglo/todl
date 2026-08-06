@@ -22,7 +22,7 @@ const LIB: SourceFile = {
   uri: "microsoft.todl",
   text: `namespace lib {
     import ea;
-    taxonomy Microsoft : represents Location, technology {
+    taxonomy Microsoft : represents Location, Technology {
       Location azure { label = "Azure"; }
       Technology azureOpenai { label = "Azure OpenAI"; applicableTo = ComponentCategory.PlatformApi; }
     }

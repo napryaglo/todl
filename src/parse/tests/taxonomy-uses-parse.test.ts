@@ -12,7 +12,7 @@ function taxonomy(text: string): TaxonomyDecl {
 }
 
 test("a taxonomy `uses` list parses after `represents`", () => {
-  const t = taxonomy(`namespace n { taxonomy Mtech : represents Location, technology uses Categories, roles { Location a { label = "A"; } } }`);
+  const t = taxonomy(`namespace n { taxonomy Mtech : represents Location, Technology uses Categories, Roles { Location a { label = "A"; } } }`);
   assert.deepEqual(t.represents, ["location", "technology"]);
   assert.deepEqual(t.uses, ["categories", "roles"]);
   assert.equal(t.terms[0]!.id, "a");

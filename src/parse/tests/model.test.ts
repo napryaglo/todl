@@ -11,7 +11,7 @@ function firstDecl(text: string) {
 
 test("model parses to a ModelDecl with meta-model, uses, and object body", () => {
   const decl = firstDecl(`namespace acme {
-    model prod : enterpriseArchitecture uses AwsCatalog, eaPatterns {
+    model prod : enterpriseArchitecture uses AwsCatalog, EaPatterns {
       Component checkout { name = "Checkout"; }
       Component payments instanceof paymentService { name = "Payments"; }
     }

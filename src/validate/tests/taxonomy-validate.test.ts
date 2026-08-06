@@ -50,7 +50,7 @@ test("a term whose concept is not represented is flagged", () => {
 
 test("a multi-representation taxonomy with matching term concepts is clean", () => {
   const c = codes(`concept Location {} concept Technology {}
-    taxonomy Microsoft : represents Location, technology {
+    taxonomy Microsoft : represents Location, Technology {
       Location azure          {}
       Technology azureOpenai {}
     }`);
