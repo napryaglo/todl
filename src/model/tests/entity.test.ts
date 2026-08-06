@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { Repository } from "../model.js";
 import { Tier } from "../graph.js";
 
-// component/technology instances plus an `app-component : component` subtype and
+// component/technology instances plus an `appComponent : Component` subtype and
 // a `web-app` class, and a mutual reference cycle a <-> b via member `peer`.
 function fixture(): Repository {
   const repo = new Repository();
