@@ -14,7 +14,7 @@ test("a standalone source resolves the prelude primitive `identifier` unqualifie
 
 test("the prelude concept `element` is present in a plain check", () => {
   const { model } = check([{ uri: "a.todl", text: `namespace a { concept Thing { } }` }]);
-  assert.ok(model.has("element"));
+  assert.ok(model.has("Element"));
 });
 
 test("checkAgainst composes explicit bases with the prelude underneath", () => {

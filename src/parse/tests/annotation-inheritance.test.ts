@@ -11,7 +11,7 @@ test("a sub-annotation inherits its base params via effectiveSchema", () => {
   const { model, diagnostics } = check([{ uri: "n.todl", text:
     `namespace n { annotation Visual { icon : string; } annotation Detailed : Visual { badge : string; } }` }]);
   assert.deepEqual(diagnostics.filter((d) => d.severity === Severity.Error), []);
-  const names = model.effectiveSchema("detailed").fields.map((f) => f.name).sort();
+  const names = model.effectiveSchema("Detailed").fields.map((f) => f.name).sort();
   assert.deepEqual(names, ["badge", "icon"]);
 });
 
