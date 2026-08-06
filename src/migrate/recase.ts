@@ -70,15 +70,19 @@ function scan(src: string): Tok[] {
 // ── classification + rewrite ─────────────────────────────────────────────────
 const TYPE_DECL_KW = new Set(["concept", "primitive", "taxonomy", "annotation", "model", "enum", "term"]);
 const MEMBER_DECL_KW = new Set(["relationship"]); // `relationship <name>` — name is a MEMBER
-const TYPE_REF_PREV = new Set([":", "represents", "uses", "annotate", "->", "-->"]);
+const TYPE_REF_PREV = new Set([":", "represents", "uses", "annotate", "class", "->", "-->"]);
 const NS_KW = new Set(["namespace", "package"]);
 const BUILTIN = new Set(["string", "number", "boolean"]);
 const VALUE_PREV = new Set(["=", "[", ","]); // reference-value positions
 const ID_VALUE_KEYS = new Set(["concept", "via"]); // params whose string value denotes an identifier
 const KEBAB_ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/;
-// Every reserved word — never recased, even in type/member position (`represents`
-// after `:`, a param literally named `concept`, etc.).
-const KEYWORDS = new Set([...TYPE_DECL_KW, ...MEMBER_DECL_KW, ...NS_KW, ...BUILTIN, "import", "represents", "uses", "annotate", "true", "false"]);
+// Every reserved word — TODL keywords are ALL lowercase and are never recased,
+// even in type/member position (`represents` after `:`, a param literally named
+// `concept`, `class`/`import` at statement start, etc.).
+const KEYWORDS = new Set([
+  ...TYPE_DECL_KW, ...MEMBER_DECL_KW, ...NS_KW, ...BUILTIN,
+  "import", "class", "instanceof", "represents", "uses", "annotate", "extends", "implies", "true", "false",
+]);
 
 enum Role { TypePascal, MemberCamel, NamespaceLower, InstanceCamel, Unchanged }
 
