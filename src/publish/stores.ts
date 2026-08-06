@@ -48,11 +48,10 @@ export class GraphPackageStore implements PackageStore {
 
   async persist(pkg: CompiledPackage): Promise<void> {
     const graph = graphFromJSON(pkg.document);
-    for (const node of graph.allNodes()) {
-      this.store.addNode(node.id, node.tier, node.typeOf);
-      for (const [k, v] of node.attrs) this.store.setAttr(node.id, k, v);
-      for (const e of graph.outEdges(node.id)) this.store.addEdge(e);
-    }
+    // All nodes first — addEdge requires both endpoints to already exist. Each
+    // Node already carries its attrs, so no separate setAttr pass is needed.
+    for (const node of graph.allNodes()) this.store.addNode(node);
+    for (const node of graph.allNodes()) for (const e of graph.outEdges(node.id)) this.store.addEdge(e);
     this.store.commit();
   }
 }
