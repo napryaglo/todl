@@ -16,6 +16,8 @@ export {
   type GraphChangeArgs,
 } from "./model/graph.js";
 
+export { InMemoryGraphStore, type GraphStore } from "./model/graph-store.js";
+
 export {
   ReactiveNode,
   PropertyChangeKind,
