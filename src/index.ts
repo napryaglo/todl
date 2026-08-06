@@ -57,6 +57,22 @@ export { TodlFileStore, type FileIO } from "./authoring/file-store.js";
 export { deriveBindings, emitModelTodl, type ModelBindings } from "./emit/todl.js";
 
 export {
+  compilePackage,
+  publish,
+  type PackageIdentity,
+  type CompiledPackage,
+  type CompileOutcome,
+  type PublishOutcome,
+} from "./publish/publish.js";
+export {
+  BlobPackageStore,
+  GraphPackageStore,
+  type PackageStore,
+  type PackageSink,
+} from "./publish/stores.js";
+export { deriveClasses, projectAnnotations, type PublishedClass } from "./publish/reflect.js";
+
+export {
   ExprKind,
   BinaryOp,
   UnaryOp,
