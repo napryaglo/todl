@@ -47,7 +47,7 @@ test("emitModelTodl emits a namespace + model block with instances and reference
   const src = emitModelTodl(own, "acme.app", bindings);
   assert.match(src, /namespace acme\.app/);
   assert.match(src, /import acme\.ea;/);
-  assert.match(src, /model acme\.app-model : acme\.ea \{/);
+  assert.match(src, /model acme-app-model : acme\.ea \{/);
   assert.match(src, /component gw \{/);
   assert.match(src, /label = "Gateway";/);
   assert.match(src, /implemented-by = copilot;/);

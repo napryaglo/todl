@@ -53,6 +53,9 @@ export { generateReadClient, isReferenceType, type ReadClientOptions } from "./c
 
 export { ModelDraft, type InstanceDescriptor } from "./authoring/model-draft.js";
 
+export { TodlFileStore, type FileIO } from "./authoring/file-store.js";
+export { deriveBindings, emitModelTodl, type ModelBindings } from "./emit/todl.js";
+
 export {
   ExprKind,
   BinaryOp,
