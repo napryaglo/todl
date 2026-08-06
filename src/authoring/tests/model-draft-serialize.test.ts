@@ -6,10 +6,11 @@ import { Cardinality } from "../../model/graph.js";
 import { toJSON } from "../../emit/json.js";
 import { mergeBases } from "../../api.js";
 import { ModelDraft, type InstanceDescriptor } from "../../index.js";
+import { checkAgainst } from "../../api.js";
 
 function baseClient(): FrozenRepository {
   const repo = new Repository();
-  const b = repo.builder();
+  const b = repo.builder().setNamespace("acme.ea");
   b.definePrimitive("string");
   b.defineConcept("technology");
   b.addField("technology", "label", "string");
@@ -54,6 +55,15 @@ test("delta + base recompose into the full model", () => {
   const recomposed = new Repository(mergeBases([toJSON(base), draft.toJSON()]));
   assert.equal(recomposed.entity("gw")!.field("label"), "Gateway");
   assert.equal(recomposed.entity("gw")!.ref("implemented-by")!.id, "copilot");
+});
+
+test("toTodl emits .todl that round-trips through checkAgainst", () => {
+  const { base, draft } = draftWithGw();
+  const todl = draft.toTodl();
+  const { model, diagnostics } = checkAgainst([toJSON(base)], [{ uri: "app.todl", text: todl }]);
+  assert.deepEqual(diagnostics, []); // valid, no new diagnostics
+  assert.equal(model.entity("gw")!.field("label"), "Gateway");
+  assert.equal(model.entity("gw")!.ref("implemented-by")!.id, "copilot");
 });
 
 // InstanceDescriptor is usable as a type from the package root.
