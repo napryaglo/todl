@@ -25,12 +25,12 @@ test("an annotation loads as an Ontology-tier node with HasField params", () => 
 
 test("an application loads as an Annotated node typed by the annotation", () => {
   const { model } = load([{ uri: "a.todl", text: SRC }]);
-  const app = model.resolve("actor@Icon");
+  const app = model.resolve("Actor@Icon");
   assert.equal(app!.tier, Tier.Ontology);
   assert.equal(app!.typeOf, "Icon");
   assert.equal(app!.attrs.get("path"), "icons/actor.svg");
   assert.equal(app!.attrs.get("namespace"), "acme");
-  assert.deepEqual(model.related("actor", EdgeKind.Annotated, Direction.Out), ["actor@Icon"]);
+  assert.deepEqual(model.related("Actor", EdgeKind.Annotated, Direction.Out), ["Actor@Icon"]);
 });
 
 test("package annotations attach to the singleton package node", () => {

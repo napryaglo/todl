@@ -91,7 +91,7 @@ test("edge-shorthand connector loads from/to as relationship edges", () => {
       Connector businessAgent -> agentOrchestrator { kind = enabledBy; }
     }`,
   ]);
-  const conn = model.allNodes().find((n) => n.typeOf === "connector");
+  const conn = model.allNodes().find((n) => n.typeOf === "Connector");
   assert.ok(conn);
   assert.deepEqual(model.related(conn!.id, EdgeKind.Relationship, Direction.Out, "from"), ["businessAgent"]);
   assert.deepEqual(model.related(conn!.id, EdgeKind.Relationship, Direction.Out, "to"), ["agentOrchestrator"]);
@@ -156,9 +156,9 @@ test("ambiguous field binding (two fields of the same type) diagnoses and falls 
 
 test("a |-composed enum-flag value loads as the legacy scalar string", () => {
   const model = load([
-    `namespace d { Location onPrem { type = physical | on-premises | logical-grouping; } }`,
+    `namespace d { Location onPrem { type = physical | onPremises | logicalGrouping; } }`,
   ]);
-  assert.equal(model.resolve("onPrem")?.attrs.get("type"), "physical | on-premises | logical-grouping");
+  assert.equal(model.resolve("onPrem")?.attrs.get("type"), "physical | onPremises | logicalGrouping");
 });
 
 test("the loaded process satisfies its invariants and target types", () => {
