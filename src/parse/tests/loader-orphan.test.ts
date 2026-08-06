@@ -25,7 +25,7 @@ test("an object inside a model is not an orphan", () => {
 test("a top-level class is not an orphan", () => {
   const c = codes(`namespace acme {
     concept Component { }
-    Class component base { }
+    class Component base { }
   }`);
   assert.ok(!c.includes(DiagnosticCode.InstanceOrphan));
 });

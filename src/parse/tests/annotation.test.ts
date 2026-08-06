@@ -12,7 +12,7 @@ function decls(text: string) {
 test("annotation declaration parses to an AnnotationDecl with typed params", () => {
   const d = decls(`namespace a { annotation Category { name : string; order : number?; } }`)[0] as AnnotationDecl;
   assert.equal(d.kind, DeclKind.Annotation);
-  assert.equal(d.name, "category");
+  assert.equal(d.name, "Category");
   assert.equal(d.params.length, 2);
   assert.equal(d.params[0]!.name, "name");
   assert.equal(d.params[0]!.type, "string");
@@ -22,7 +22,7 @@ test("annotation declaration parses to an AnnotationDecl with typed params", () 
 test("annotation with a base parses its extends (annotation Sub : Base)", () => {
   const d = decls(`namespace a { annotation Detailed : Visual { badge : string; } }`)[0] as AnnotationDecl;
   assert.equal(d.kind, DeclKind.Annotation);
-  assert.equal(d.extends, "visual");
+  assert.equal(d.extends, "Visual");
   assert.ok(d.extendsSpan);
 });
 
@@ -40,7 +40,7 @@ test("annotate inside a concept attaches an application to the concept", () => {
   }`)[0] as ConceptDecl;
   assert.equal(d.kind, DeclKind.Concept);
   assert.equal(d.annotations.length, 1);
-  assert.equal(d.annotations[0]!.name, "icon");
+  assert.equal(d.annotations[0]!.name, "Icon");
   assert.equal(d.annotations[0]!.assignments[0]!.name, "path");
   assert.ok(d.annotations[0]!.nameSpan);
 });

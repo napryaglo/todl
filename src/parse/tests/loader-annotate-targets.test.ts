@@ -19,11 +19,11 @@ test("a term annotation stages an Annotated edge and an app node", () => {
   const { model } = load([{ uri: "a.todl", text: TERM_SRC }]);
   assert.deepEqual(
     model.related("Actors.Internal", EdgeKind.Annotated, Direction.Out),
-    ["actors.internal@icon"],
+    ["actors.internal@Icon"],
   );
-  const app = model.resolve("actors.internal@icon");
+  const app = model.resolve("actors.internal@Icon");
   assert.equal(app!.tier, Tier.Ontology);
-  assert.equal(app!.typeOf, "icon");
+  assert.equal(app!.typeOf, "Icon");
   assert.equal(app!.attrs.get("path"), "resources/ai_agent.svg");
 });
 
@@ -39,11 +39,11 @@ test("a taxonomy-level annotation stages an Annotated edge from the taxonomy nod
   assert.deepEqual(diagnostics, [], "clean load");
   assert.deepEqual(
     model.related("actors", EdgeKind.Annotated, Direction.Out),
-    ["actors@icon"],
+    ["actors@Icon"],
   );
-  const app = model.resolve("actors@icon");
+  const app = model.resolve("actors@Icon");
   assert.equal(app!.tier, Tier.Ontology);
-  assert.equal(app!.typeOf, "icon");
+  assert.equal(app!.typeOf, "Icon");
   assert.equal(app!.attrs.get("path"), "resources/actors.svg");
 });
 
@@ -56,19 +56,19 @@ test("taxonomy-level and term-level annotations coexist on distinct nodes", () =
       term Internal { annotate Icon { path = "term.svg"; } }
     }
   }` }]);
-  assert.equal(model.resolve("actors@icon")!.attrs.get("path"), "tax.svg");
-  assert.equal(model.resolve("actors.internal@icon")!.attrs.get("path"), "term.svg");
+  assert.equal(model.resolve("actors@Icon")!.attrs.get("path"), "tax.svg");
+  assert.equal(model.resolve("actors.internal@Icon")!.attrs.get("path"), "term.svg");
 });
 
 test("a class annotation stages an Annotated edge from the class node", () => {
   const { model } = load([{ uri: "a.todl", text: `namespace tech {
     concept Component { label : string; }
     annotation Icon { path : string; }
-    Class component webApp { annotate Icon { path = "resources/web.svg"; } }
+    class Component webApp { annotate Icon { path = "resources/web.svg"; } }
   }` }]);
   assert.deepEqual(
     model.related("webApp", EdgeKind.Annotated, Direction.Out),
-    ["web-app@icon"],
+    ["web-app@Icon"],
   );
 });
 

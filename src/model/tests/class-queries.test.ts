@@ -8,7 +8,7 @@ function repo(text: string) {
 
 test("isClass / classOf / instancesOfClass over instanceof", () => {
   const m = repo(
-    `concept Component {} Class component teamsChat {} Component a instanceof teamsChat {} Component b instanceof teamsChat {}`,
+    `concept Component {} class Component teamsChat {} Component a instanceof teamsChat {} Component b instanceof teamsChat {}`,
   );
   assert.equal(m.isClass("teamsChat"), true);
   assert.equal(m.isClass("a"), false);
@@ -31,7 +31,7 @@ test("represents / representedBy / termsOf over a taxonomy", () => {
 
 test("effectiveFields merges class-fixed values with leaf fills", () => {
   const m = repo(
-    `concept Component { realisedBy : string; region : string; } Class component teamsChat { realisedBy = "teams"; } Component hq instanceof teamsChat { region = "eu"; }`,
+    `concept Component { realisedBy : string; region : string; } class Component teamsChat { realisedBy = "teams"; } Component hq instanceof teamsChat { region = "eu"; }`,
   );
   const eff = m.effectiveFields("hq");
   assert.equal(eff.get("realisedBy"), "teams"); // inherited, fixed

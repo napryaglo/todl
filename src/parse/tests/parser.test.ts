@@ -164,7 +164,7 @@ test("parses a string-keyed record id", () => {
 
 test("parses a class modifier and an instanceof leaf", () => {
   const { namespace: ns } = parse(`namespace d {
-    Class component teamsChat { realisedBy = microsoftTeams; }
+    class Component teamsChat { realisedBy = microsoftTeams; }
     Component chat-hq instanceof teamsChat { in = hq; }
   }`);
   const cls = ns.declarations[0];

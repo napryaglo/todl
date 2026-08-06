@@ -109,7 +109,7 @@ test("a nested taxonomy loads Narrower edges and answers branch queries", () => 
 });
 
 test("a class and its instanceof leaf load with InstanceOf wiring", () => {
-  const m = repo(`concept Component {} Class component teamsChat {} Component chat-hq instanceof teamsChat {}`);
+  const m = repo(`concept Component {} class Component teamsChat {} Component chat-hq instanceof teamsChat {}`);
   assert.equal(m.resolve("teamsChat")?.attrs.get("class"), true);
   assert.equal(m.resolve("chat-hq")?.attrs.get("class"), undefined);
   assert.deepEqual(m.related("chat-hq", EdgeKind.InstanceOf, Direction.Out), ["teamsChat"]);

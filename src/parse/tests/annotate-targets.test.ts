@@ -17,9 +17,9 @@ test("annotate parses at the taxonomy level (annotates the taxonomy itself)", ()
     }
   }`)[0] as TaxonomyDecl;
   assert.equal(tax.annotations.length, 1, "one taxonomy-level annotation");
-  assert.equal(tax.annotations[0]!.name, "icon");
+  assert.equal(tax.annotations[0]!.name, "Icon");
   assert.equal(tax.annotations[0]!.assignments[0]!.name, "path");
-  // The annotate is NOT mis-parsed as a concept-led term named "icon".
+  // The annotate is NOT mis-parsed as a concept-led term named "Icon".
   assert.deepEqual(tax.terms.map((t) => t.id), ["internal"]);
 });
 
@@ -47,7 +47,7 @@ test("annotate parses inside a taxonomy term body", () => {
   }`)[0] as TaxonomyDecl;
   const term = tax.terms[0]!;
   assert.equal(term.annotations.length, 1);
-  assert.equal(term.annotations[0]!.name, "icon");
+  assert.equal(term.annotations[0]!.name, "Icon");
   assert.equal(term.annotations[0]!.assignments[0]!.name, "path");
 });
 
@@ -63,17 +63,17 @@ test("a term keeps both an annotate and a nested sub-term", () => {
   const term = tax.terms[0]!;
   assert.equal(term.annotations.length, 1);
   assert.equal(term.children.length, 1);
-  assert.equal(term.children[0]!.id, "partner");
+  assert.equal(term.children[0]!.id, "Partner");
 });
 
 test("annotate parses inside a class body", () => {
   const cls = decls(`namespace t {
-    Class component webApp {
+    class Component webApp {
       annotate Icon { path = "resources/web.svg"; }
     }
   }`)[0] as InstanceDecl;
   assert.equal(cls.kind, DeclKind.Instance);
   assert.equal(cls.isClass, true);
   assert.equal(cls.annotations.length, 1);
-  assert.equal(cls.annotations[0]!.name, "icon");
+  assert.equal(cls.annotations[0]!.name, "Icon");
 });

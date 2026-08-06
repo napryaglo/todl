@@ -9,35 +9,35 @@ function codes(text: string): DiagnosticCode[] {
 
 test("a class is exempt from completeness (may omit required fields)", () => {
   const c = codes(
-    `concept Component { realisedBy : string; region : string; } Class component teamsChat { realisedBy = "teams"; }`,
+    `concept Component { realisedBy : string; region : string; } class Component teamsChat { realisedBy = "teams"; }`,
   );
   assert.ok(!c.includes(DiagnosticCode.RequiredMissing));
 });
 
 test("a leaf inherits its class's required field — no RequiredMissing", () => {
   const c = codes(
-    `concept Component { realisedBy : string; } Class component teamsChat { realisedBy = "teams"; } Component hq instanceof teamsChat {}`,
+    `concept Component { realisedBy : string; } class Component teamsChat { realisedBy = "teams"; } Component hq instanceof teamsChat {}`,
   );
   assert.ok(!c.includes(DiagnosticCode.RequiredMissing));
 });
 
 test("a leaf missing a still-unset required field is flagged", () => {
   const c = codes(
-    `concept Component { realisedBy : string; region : string; } Class component teamsChat { realisedBy = "teams"; } Component hq instanceof teamsChat {}`,
+    `concept Component { realisedBy : string; region : string; } class Component teamsChat { realisedBy = "teams"; } Component hq instanceof teamsChat {}`,
   );
   assert.ok(c.includes(DiagnosticCode.RequiredMissing));
 });
 
 test("a leaf contradicting a class-fixed field is a ClassOverride", () => {
   const c = codes(
-    `concept Component { realisedBy : string; } Class component teamsChat { realisedBy = "teams"; } Component hq instanceof teamsChat { realisedBy = "forked"; }`,
+    `concept Component { realisedBy : string; } class Component teamsChat { realisedBy = "teams"; } Component hq instanceof teamsChat { realisedBy = "forked"; }`,
   );
   assert.ok(c.includes(DiagnosticCode.ClassOverride));
 });
 
 test("a leaf repeating the same class-fixed value is allowed", () => {
   const c = codes(
-    `concept Component { realisedBy : string; } Class component teamsChat { realisedBy = "teams"; } Component hq instanceof teamsChat { realisedBy = "teams"; }`,
+    `concept Component { realisedBy : string; } class Component teamsChat { realisedBy = "teams"; } Component hq instanceof teamsChat { realisedBy = "teams"; }`,
   );
   assert.ok(!c.includes(DiagnosticCode.ClassOverride));
 });
@@ -48,6 +48,6 @@ test("instanceof a non-class is a BindingInvalid", () => {
 });
 
 test("instanceof a class of a different concept is a BindingInvalid", () => {
-  const c = codes(`concept Component {} concept Location {} Class location eu {} Component hq instanceof eu {}`);
+  const c = codes(`concept Component {} concept Location {} class Location eu {} Component hq instanceof eu {}`);
   assert.ok(c.includes(DiagnosticCode.BindingInvalid));
 });
