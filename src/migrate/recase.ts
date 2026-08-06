@@ -123,10 +123,20 @@ function analyze(text: string): { toks: Tok[]; roles: Role[] } {
     seg.forEach((idx, pos) => { roles[idx] = roleAt(pos, pos === seg.length - 1); handled[idx] = true; });
   }
 
+  // Bracket depth per token: a `,` at depth 0 separates a TYPE list
+  // (`represents A, B` / `uses A, B`); a `,` inside `[ … ]` separates VALUES.
+  const depth = new Array<number>(n).fill(0);
+  let d = 0;
+  for (let i = 0; i < n; i++) {
+    if (toks[i]!.text === "[") { depth[i] = d; d++; }
+    else if (toks[i]!.text === "]") { d = Math.max(0, d - 1); depth[i] = d; }
+    else depth[i] = d;
+  }
+
   // 3. single (non-dotted) idents.
   for (let i = 0; i < n; i++) {
     if (toks[i]!.kind !== K.Ident || handled[i]) continue;
-    roles[i] = classifySingle(toks[i]!, toks[i - 1], toks[i + 1], inNs[i] === true);
+    roles[i] = classifySingle(toks[i]!, toks[i - 1], toks[i + 1], inNs[i] === true, depth[i] === 0);
     handled[i] = true;
   }
   return { toks, roles };
@@ -168,16 +178,17 @@ export function collectRenames(text: string, into: Map<string, string>): void {
   }
 }
 
-function classifySingle(t: Tok, prev: Tok | undefined, next: Tok | undefined, inNamespace: boolean): Role {
+function classifySingle(t: Tok, prev: Tok | undefined, next: Tok | undefined, inNamespace: boolean, atTopLevel: boolean): Role {
   if (KEYWORDS.has(t.text)) return Role.Unchanged;                                          // reserved word
   if (inNamespace) return Role.NamespaceLower;
   if (prev?.kind === K.Ident && MEMBER_DECL_KW.has(prev.text)) return Role.MemberCamel;      // `relationship <name>`
   if (prev?.kind === K.Ident && TYPE_DECL_KW.has(prev.text)) return Role.TypePascal;         // decl name
   if (prev !== undefined && TYPE_REF_PREV.has(prev.text)) return Role.TypePascal;            // type reference
+  if (prev?.text === "," && atTopLevel) return Role.TypePascal;                              // `represents A, B` — type list
   if (isStmtBoundary(prev) && next?.kind === K.Ident) return Role.TypePascal;                // `Type id {` — the TYPE
   if (prev?.kind === K.Ident && next?.text === "{") return Role.InstanceCamel;               // `Type id {` — the ID
   if (next !== undefined && (next.text === ":" || next.text === "=")) return Role.MemberCamel; // member/attr key
-  if (prev !== undefined && VALUE_PREV.has(prev.text)) return Role.InstanceCamel;            // bare reference value
+  if (prev !== undefined && VALUE_PREV.has(prev.text)) return Role.InstanceCamel;            // bare reference value ( = / [ / , inside [] )
   return Role.Unchanged;
 }
 

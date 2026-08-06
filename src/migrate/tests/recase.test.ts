@@ -53,6 +53,11 @@ test("predicate member access (this.member) stays camel; keywords untouched", ()
   assert.equal(recaseSource(`this.type == service`), `this.type == service`);
 });
 
+test("comma-separated represents/uses items are all types (Pascal); [] list items are values (camel)", () => {
+  assert.equal(recaseSource(`taxonomy Micro : represents location, tech-x { }`), `taxonomy Micro : represents Location, TechX { }`);
+  assert.equal(recaseSource(`outgoing = [order-placed, order-to-validate];`), `outgoing = [orderPlaced, orderToValidate];`);
+});
+
 test("keywords stay lowercase even at statement start (class, import, instanceof)", () => {
   assert.equal(recaseSource(`class component web-app { }`), `class Component webApp { }`);
   assert.equal(recaseSource(`import adl.meta-models.enums.task-type;`), `import adl.metaModels.enums.TaskType;`);
