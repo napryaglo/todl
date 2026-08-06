@@ -1,6 +1,6 @@
 # Taxonomy-Scoped Bare Reference Resolution — Design
 
-**Status:** Design approved 2026-08-03. Ready for an implementation plan.
+**Status:** ✅ Finished
 
 **Goal:** Let a taxonomy reference terms by their **bare** (unqualified) name —
 sibling terms implicitly, and other taxonomies' terms via an explicit `uses`

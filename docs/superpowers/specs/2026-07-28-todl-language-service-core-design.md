@@ -10,7 +10,7 @@ references, document symbols, rename, semantic tokens, folding, workspace symbol
 actions, formatting, signature help) as `vscode-languageserver-types`. No protocol, no
 Monaco, no I/O — proven by exhaustive headless unit tests.
 
-**Status:** Design approved 2026-07-28. Next step: implementation plan.
+**Status:** ✅ Finished
 
 ---
 

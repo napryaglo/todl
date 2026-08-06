@@ -1,5 +1,7 @@
 # `annotate` on taxonomy terms and classes — design (SP1)
 
+**Status:** ✅ Finished
+
 ## Goal
 
 Let a TODL author apply an `annotate` application inside a **taxonomy `term`**

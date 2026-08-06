@@ -1,7 +1,7 @@
 # Remove `object` from TODL — Named Concepts & Nested Records
 
 **Date:** 2026-07-20
-**Status:** Approved (design decisions locked via user Q&A)
+**Status:** ✅ Finished
 **Repo:** TODL (`@pragmatic-lab/todl`) + test_project EA meta-model & instance data
 
 ## Problem

@@ -1,7 +1,7 @@
 # Type-Directed References Design
 
 **Date:** 2026-08-05
-**Status:** Approved (design) — proceed to implementation plan
+**Status:** ✅ Finished
 **Component:** TODL (`@pragmatic-lab/todl`) — parser, loader, model/API, validation
 
 ## Goal

@@ -1,7 +1,7 @@
 # TODL Class & Taxonomy Model — Design Spec
 
 **Date:** 2026-07-20
-**Status:** Approved design; ready for implementation planning.
+**Status:** ✅ Finished
 
 **Goal:** Introduce a unified `class` / `instanceof` instantiation model, and
 reframe taxonomies as first-class entities that *represent* a concept and curate

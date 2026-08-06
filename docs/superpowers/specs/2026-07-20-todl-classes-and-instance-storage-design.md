@@ -1,7 +1,7 @@
 # TODL Classes + Per-Project Instance Storage — Design Capture
 
 **Date:** 2026-07-20
-**Status:** Brainstorm capture (not yet a per-subsystem spec). Two sub-projects.
+**Status:** ⬜ Unfinished — Brainstorm capture (not yet a per-subsystem spec). Two sub-projects.
 Model (#1) design complete pending final sign-off on §3–§6; Storage/Query (#2)
 only partially brainstormed. **No implementation started.**
 

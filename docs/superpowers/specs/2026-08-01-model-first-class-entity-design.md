@@ -1,6 +1,6 @@
 # Model as a First-Class Entity — Design
 
-**Status:** design complete, pending user review
+**Status:** ✅ Finished
 **Target package:** `@pragmatic-lab/todl` (0.3.1 → **0.4.0**, breaking)
 **Date:** 2026-08-01
 

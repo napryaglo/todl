@@ -1,6 +1,6 @@
 # Meta-Model Annotations — SP1 (TODL language) Design
 
-**Status:** design complete, pending user review
+**Status:** ✅ Finished
 **Target package:** `@pragmatic-lab/todl` (0.4.0 → **0.5.0**, reserves new keywords)
 **Date:** 2026-08-01
 

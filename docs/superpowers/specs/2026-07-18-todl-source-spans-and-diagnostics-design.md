@@ -1,5 +1,7 @@
 # TODL Source Spans, Unified Diagnostics & Parser Recovery — Design
 
+**Status:** ✅ Finished
+
 Captured 2026-07-18. This is an **implementation spec** for sub-project 1 of the
 Plexus "meta-model project type" effort. Plexus will let a human author a
 meta-model as `.todl` files in the Monaco editor with live, inline validation.

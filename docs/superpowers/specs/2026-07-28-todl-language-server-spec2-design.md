@@ -10,7 +10,7 @@ single process that partitions documents into multiple projects, keeps each proj
 analysis fresh, and answers every LSP request by delegating to the core. Ships a stdio
 binary that both the Plexus client (Spec 3) and a future VS Code extension consume.
 
-**Status:** Design approved 2026-07-28. Next step: implementation plan.
+**Status:** ✅ Finished
 
 ---
 

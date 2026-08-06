@@ -1,7 +1,7 @@
 # Namespace-Scoped Name Resolution — Design
 
 **Date:** 2026-08-04
-**Status:** Draft for review
+**Status:** ✅ Finished
 **Package:** TODL (`@pragmatic-lab/todl`), consumed by Plexus/Mural via Verdaccio
 
 ## Problem

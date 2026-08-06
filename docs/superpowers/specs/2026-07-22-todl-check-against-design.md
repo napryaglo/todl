@@ -1,7 +1,7 @@
 # TODL `checkAgainst(bases, sources)`
 
 **Date:** 2026-07-22
-**Status:** Design (approved)
+**Status:** ✅ Finished
 **Repo:** TODL (`@pragmatic-lab/todl`)
 **Arc:** Sub-project 3 of 4 (architecture-model loading). The engine primitive
 that lets a downstream model (library, architecture) be validated against

@@ -1,5 +1,7 @@
 # TODL Use-Case, Consumption & Round-Trip — Design Note
 
+**Status:** ⬜ Unfinished — vision/context note, not an implementation spec
+
 Captured 2026-07-16 from a brainstorm clarifying *why* TODL exists and how it is
 consumed. This is vision/architecture context, not an implementation spec — it
 frames the work, the missing primitives, and the open decisions.

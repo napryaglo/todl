@@ -1,6 +1,6 @@
 # TODL Language & Runtime — Design Spec (`@pragmatic-lab/todl`)
 
-**Status:** DRAFT — for review. Sketch fidelity: firm on architecture, marked where a
+**Status:** ✅ Finished — for review. Sketch fidelity: firm on architecture, marked where a
 decision is still open (§11).
 
 **Companion reference:** [`../../../legacy-todl-architecture.md`](../../../legacy-todl-architecture.md)

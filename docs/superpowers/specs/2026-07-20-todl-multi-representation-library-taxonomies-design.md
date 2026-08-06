@@ -1,7 +1,7 @@
 # Multi-Representation Taxonomies & Libraries-as-Taxonomies
 
 **Date:** 2026-07-20
-**Status:** Approved (design decisions locked via user Q&A)
+**Status:** ✅ Finished
 **Repo:** TODL engine + test_project libraries & model
 
 ## Problem

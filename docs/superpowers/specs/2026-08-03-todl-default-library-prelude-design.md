@@ -1,6 +1,6 @@
 # TODL Default Library (Prelude) — Design
 
-**Status:** Design approved 2026-08-03. Ready for an implementation plan.
+**Status:** ✅ Finished
 
 **Goal:** Ship a curated set of standard TODL definitions — primitives, standard
 annotations, and a universal root concept — that are implicitly in scope for every

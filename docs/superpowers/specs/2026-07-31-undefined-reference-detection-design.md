@@ -1,7 +1,7 @@
 # Undefined-Reference Detection — Design
 
 **Date:** 2026-07-31
-**Status:** Approved (design), pending plan
+**Status:** ✅ Finished
 **Repo:** TODL (`@pragmatic-lab/todl`)
 
 ## Goal

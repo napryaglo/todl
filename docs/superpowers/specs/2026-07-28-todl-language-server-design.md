@@ -7,7 +7,7 @@ rename, semantic tokens, folding, workspace symbols, code actions, formatting, s
 help) in Plexus's Monaco editors, with a reusable core and server that an external editor
 could later consume.
 
-**Status:** Architecture approved 2026-07-28. This is the **umbrella design** — the full
+**Status:** ⬜ Unfinished — umbrella design; Specs 1 & 2 (analysis core, LSP server) landed in TODL, but Spec 3 (Plexus client) is not merged into this repo. Architecture approved 2026-07-28. This is the **umbrella design** — the full
 picture and the decisions that bind all layers. Implementation is decomposed into three
 sequential sub-specs (below); each gets its own detailed spec → plan → build cycle.
 
