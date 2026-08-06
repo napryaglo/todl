@@ -17,16 +17,16 @@ const errs = (ds: { code: DiagnosticCode; severity: string }[]) =>
 // A base in namespace `ea`: concepts + a taxonomy with a term.
 const base = () => toJSON(check([{ uri: "ea.todl", text:
   `namespace ea {
-     concept category { label : string; }
-     concept technology { label : string; applicable-to : categories; }
-     taxonomy categories : represents category { term platform-api { label = "API"; } }
+     concept Category { label : string; }
+     concept Technology { label : string; applicableTo : Categories; }
+     taxonomy Categories : represents Category { term PlatformApi { label = "API"; } }
    }` }]).model);
 
 test("a bare cross-namespace reference WITHOUT an import is unreachable", () => {
   const { diagnostics } = checkAgainst([base()], [{ uri: "lib.todl", text:
     `namespace lib {
-       taxonomy mtech : represents technology uses categories {
-         technology graph { label = "G"; applicable-to = [platform-api]; }
+       taxonomy mtech : represents Technology uses Categories {
+         Technology graph { label = "G"; applicableTo = [PlatformApi]; }
        }
      }` }]);
   const codes = errs(diagnostics);
@@ -43,8 +43,8 @@ test("the same reference WITH `import ea` resolves clean", () => {
   const { diagnostics } = checkAgainst([base()], [{ uri: "lib.todl", text:
     `namespace lib {
        import ea;
-       taxonomy mtech : represents technology uses categories {
-         technology graph { label = "G"; applicable-to = [platform-api]; }
+       taxonomy mtech : represents Technology uses Categories {
+         Technology graph { label = "G"; applicableTo = [PlatformApi]; }
        }
      }` }]);
   assert.deepEqual(errs(diagnostics), []);
@@ -53,8 +53,8 @@ test("the same reference WITH `import ea` resolves clean", () => {
 test("qualified names (represents/uses/value ref) resolve WITHOUT an import", () => {
   const { diagnostics } = checkAgainst([base()], [{ uri: "lib.todl", text:
     `namespace lib {
-       taxonomy mtech : represents ea.technology uses ea.categories {
-         technology graph { label = "G"; applicable-to = [ea.categories.platform-api]; }
+       taxonomy mtech : represents ea.Technology uses ea.Categories {
+         Technology graph { label = "G"; applicableTo = [ea.Categories.PlatformApi]; }
        }
      }` }]);
   assert.deepEqual(errs(diagnostics), []);
@@ -63,8 +63,8 @@ test("qualified names (represents/uses/value ref) resolve WITHOUT an import", ()
 test("a qualified name with the WRONG namespace is undefined", () => {
   const { diagnostics } = checkAgainst([base()], [{ uri: "lib.todl", text:
     `namespace lib {
-       taxonomy mtech : represents zzz.technology {
-         technology graph { label = "G"; }
+       taxonomy mtech : represents zzz.Technology {
+         Technology graph { label = "G"; }
        }
      }` }]);
   assert.ok(errs(diagnostics).includes(DiagnosticCode.ReferenceUndefined));
@@ -137,11 +137,11 @@ test("built-in scalar types resolve everywhere without a declaration", () => {
 test("parser: `uses`/`represents` accept namespace-qualified targets", () => {
   const { namespace, diagnostics } = parse(
     `namespace lib {
-       taxonomy t : represents ea.concept-a, ea.concept-b uses ea.tax-x, tax-y { }
+       taxonomy t : represents ea.ConceptA, ea.ConceptB uses ea.TaxX, TaxY { }
      }`, "t.todl");
   assert.deepEqual(diagnostics.filter((d) => d.severity === "error"), [], "no syntax error on qualified targets");
   const tax = namespace.declarations.find((d) => (d as { name?: string }).name === "t") as
     { represents: string[]; uses: string[] };
-  assert.deepEqual(tax.represents, ["ea.concept-a", "ea.concept-b"]);
-  assert.deepEqual(tax.uses, ["ea.tax-x", "tax-y"]);
+  assert.deepEqual(tax.represents, ["ea.ConceptA", "ea.ConceptB"]);
+  assert.deepEqual(tax.uses, ["ea.TaxX", "TaxY"]);
 });
