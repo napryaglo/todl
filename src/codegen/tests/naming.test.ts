@@ -5,15 +5,15 @@ import { pascalCase, camelCase, pluralize, allocateNames } from "../naming.js";
 test("pascalCase splits kebab/underscore/case boundaries and capitalizes each", () => {
   assert.equal(pascalCase("component"), "Component");
   assert.equal(pascalCase("app-component"), "AppComponent");
-  assert.equal(pascalCase("microsoft-tech"), "MicrosoftTech");
+  assert.equal(pascalCase("MicrosoftTech"), "MicrosoftTech");
   assert.equal(pascalCase("AppComponent"), "AppComponent"); // idempotent
   assert.equal(pascalCase("appComponent"), "AppComponent");
 });
 
 test("camelCase lowercases the first word, capitalizes the rest", () => {
   assert.equal(camelCase("label"), "label");
-  assert.equal(camelCase("implemented-by"), "implementedBy");
-  assert.equal(camelCase("available-in"), "availableIn");
+  assert.equal(camelCase("implementedBy"), "implementedBy");
+  assert.equal(camelCase("availableIn"), "availableIn");
   assert.equal(camelCase("ImplementedBy"), "implementedBy"); // idempotent
   assert.equal(camelCase("implementedBy"), "implementedBy");
 });

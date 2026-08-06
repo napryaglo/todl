@@ -46,7 +46,7 @@ test("addEdge records forward and reverse adjacency", () => {
 
   const edge: Edge = {
     kind: EdgeKind.Relationship,
-    via: "implemented-by",
+    via: "implementedBy",
     from: "shop-web",
     to: "react",
   };
@@ -66,7 +66,7 @@ test("addEdge requires both endpoints to exist", () => {
     () =>
       graph.addEdge({
         kind: EdgeKind.Relationship,
-        via: "implemented-by",
+        via: "implementedBy",
         from: "shop-web",
         to: "ghost",
       }),
@@ -76,7 +76,7 @@ test("addEdge requires both endpoints to exist", () => {
     () =>
       graph.addEdge({
         kind: EdgeKind.Relationship,
-        via: "implemented-by",
+        via: "implementedBy",
         from: "ghost",
         to: "shop-web",
       }),
@@ -86,14 +86,14 @@ test("addEdge requires both endpoints to exist", () => {
 
 test("related traverses InstanceOf and Represents edges", () => {
   const graph = new Graph();
-  graph.addNode(instance("teams-chat", "component"));
+  graph.addNode(instance("teamsChat", "component"));
   graph.addNode(instance("chat-hq", "component"));
-  graph.addNode({ id: "component-category", tier: Tier.Ontology, typeOf: "taxonomy", attrs: new Map() });
+  graph.addNode({ id: "ComponentCategory", tier: Tier.Ontology, typeOf: "taxonomy", attrs: new Map() });
   graph.addNode({ id: "category", tier: Tier.Ontology, typeOf: "concept", attrs: new Map() });
-  graph.addEdge({ kind: EdgeKind.InstanceOf, via: null, from: "chat-hq", to: "teams-chat" });
-  graph.addEdge({ kind: EdgeKind.Represents, via: null, from: "component-category", to: "category" });
+  graph.addEdge({ kind: EdgeKind.InstanceOf, via: null, from: "chat-hq", to: "teamsChat" });
+  graph.addEdge({ kind: EdgeKind.Represents, via: null, from: "ComponentCategory", to: "category" });
 
-  assert.deepEqual(graph.related("chat-hq", EdgeKind.InstanceOf, Direction.Out), ["teams-chat"]);
-  assert.deepEqual(graph.related("teams-chat", EdgeKind.InstanceOf, Direction.In), ["chat-hq"]);
-  assert.deepEqual(graph.related("category", EdgeKind.Represents, Direction.In), ["component-category"]);
+  assert.deepEqual(graph.related("chat-hq", EdgeKind.InstanceOf, Direction.Out), ["teamsChat"]);
+  assert.deepEqual(graph.related("teamsChat", EdgeKind.InstanceOf, Direction.In), ["chat-hq"]);
+  assert.deepEqual(graph.related("category", EdgeKind.Represents, Direction.In), ["ComponentCategory"]);
 });

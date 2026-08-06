@@ -1,23 +1,23 @@
-namespace adl.meta-models.bpmn.concepts
+namespace adl.metaModels.bpmn.concepts
 {
-    import adl.meta-models.bpmn.primitives.identifier;
-    import adl.meta-models.bpmn.enums.task-type;
+    import adl.metaModels.bpmn.primitives.Identifier;
+    import adl.metaModels.bpmn.enums.TaskType;
 
-    concept event-trigger { }
+    concept EventTrigger { }
 
-    concept flow-type { }
+    concept FlowType { }
 
-    concept task
+    concept Task
     {
         description = "An atomic activity in the process.";
 
         label    : string;
-        type     : task-type;
+        type     : TaskType;
         assignee : string?;
 
-        relationship lives-in -> lane;
-        relationship incoming -> sequence-flow[];
-        relationship outgoing -> sequence-flow[];
+        relationship livesIn -> Lane;
+        relationship incoming -> SequenceFlow[];
+        relationship outgoing -> SequenceFlow[];
 
         invariant "Task ids are unique within the process.";
         invariant
@@ -28,27 +28,27 @@ namespace adl.meta-models.bpmn.concepts
         }
     }
 
-    concept event
+    concept Event
     {
         description = "Something that happens in the process.";
 
         label      : string?;
-        event-type : event-type;
-        trigger    : event-trigger?;
+        eventType : EventType;
+        trigger    : EventTrigger?;
 
-        relationship lives-in -> lane;
-        relationship incoming -> sequence-flow[];
-        relationship outgoing -> sequence-flow[];
+        relationship livesIn -> Lane;
+        relationship incoming -> SequenceFlow[];
+        relationship outgoing -> SequenceFlow[];
 
         invariant
         {
             description = "Start events have no incoming sequence flows.";
-            predicate   = this.event-type == start implies this.incoming.empty;
+            predicate   = This.EventType == start implies this.incoming.empty;
         }
         invariant
         {
             description = "End events have no outgoing sequence flows.";
-            predicate   = this.event-type == end implies this.outgoing.empty;
+            predicate   = This.EventType == end implies this.outgoing.empty;
         }
     }
 }

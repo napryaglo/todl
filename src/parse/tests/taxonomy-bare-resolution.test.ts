@@ -10,10 +10,10 @@ const errs = (ds: { code: DiagnosticCode; severity: string }[]) =>
 test("a bare sibling term reference resolves within the taxonomy", () => {
   const { diagnostics } = check([{ uri: "t.todl", text:
     `namespace n {
-       concept location { label : string; }
-       taxonomy geo : represents location {
-         location azure { label = "A"; }
-         location m365  { label = "M"; parent = azure; }
+       concept Location { label : string; }
+       taxonomy Geo : represents Location {
+         Location azure { label = "A"; }
+         Location m365  { label = "M"; parent = azure; }
        }
      }` }]);
   assert.deepEqual(errs(diagnostics), []);
@@ -22,15 +22,15 @@ test("a bare sibling term reference resolves within the taxonomy", () => {
 test("a bare cross-taxonomy reference resolves through `uses`", () => {
   const base = toJSON(check([{ uri: "base.todl", text:
     `namespace ea {
-       concept category { label : string; }
-       concept technology { label : string; applicable-to : categories; }
-       taxonomy categories : represents category { term platform-api { label = "API"; } }
+       concept Category { label : string; }
+       concept Technology { label : string; applicableTo : Categories; }
+       taxonomy Categories : represents Category { term PlatformApi { label = "API"; } }
      }` }]).model);
   const { diagnostics } = checkAgainst([base], [{ uri: "lib.todl", text:
     `namespace lib {
        import ea;
-       taxonomy mtech : represents technology uses categories {
-         technology graph { label = "G"; applicable-to = [platform-api]; }
+       taxonomy Mtech : represents Technology uses Categories {
+         Technology graph { label = "G"; applicableTo = [platformApi]; }
        }
      }` }]);
   assert.deepEqual(errs(diagnostics), []);
@@ -39,14 +39,14 @@ test("a bare cross-taxonomy reference resolves through `uses`", () => {
 test("without `uses`, the same cross reference is undefined", () => {
   const base = toJSON(check([{ uri: "base.todl", text:
     `namespace ea {
-       concept category { label : string; }
-       concept technology { label : string; applicable-to : categories; }
-       taxonomy categories : represents category { term platform-api { label = "API"; } }
+       concept Category { label : string; }
+       concept Technology { label : string; applicableTo : Categories; }
+       taxonomy Categories : represents Category { term PlatformApi { label = "API"; } }
      }` }]).model);
   const { diagnostics } = checkAgainst([base], [{ uri: "lib.todl", text:
     `namespace lib {
-       taxonomy mtech : represents technology {
-         technology graph { label = "G"; applicable-to = [platform-api]; }
+       taxonomy Mtech : represents Technology {
+         Technology graph { label = "G"; applicableTo = [platformApi]; }
        }
      }` }]);
   assert.ok(errs(diagnostics).includes(DiagnosticCode.ReferenceUndefined));
@@ -55,11 +55,11 @@ test("without `uses`, the same cross reference is undefined", () => {
 test("a bare name defined by two used taxonomies is ambiguous", () => {
   const { diagnostics } = check([{ uri: "t.todl", text:
     `namespace n {
-       concept c { label : string; ref : a; }
-       taxonomy a : represents c { term dup { label = "1"; } }
-       taxonomy b : represents c { term dup { label = "2"; } }
-       taxonomy user : represents c uses a, b {
-         c x { label = "X"; ref = dup; }
+       concept C { label : string; ref : A; }
+       taxonomy A : represents C { term Dup { label = "1"; } }
+       taxonomy B : represents C { term Dup { label = "2"; } }
+       taxonomy User : represents C uses A, b {
+         C x { label = "X"; ref = dup; }
        }
      }` }]);
   assert.ok(errs(diagnostics).includes(DiagnosticCode.TaxonomyAmbiguousBareReference));

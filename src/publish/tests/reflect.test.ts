@@ -10,7 +10,7 @@ function doc(): TodlDocument {
     nodes: [
       { id: "ms.az", tier: "Instance", typeOf: "location", attrs: { id: "az", class: true, label: "Azure" } },
       { id: "ms.az@icon", tier: "Instance", typeOf: "icon", attrs: { path: "resources/az.svg", namespace: "ms" } },
-      { id: "ms.other", tier: "Ontology", typeOf: "concept", attrs: { id: "other" } },
+      { id: "ms.Other", tier: "Ontology", typeOf: "concept", attrs: { id: "other" } },
     ],
     edges: [{ kind: "Annotated", via: null, from: "ms.az", to: "ms.az@icon" }],
   };
@@ -18,7 +18,7 @@ function doc(): TodlDocument {
 
 test("projectAnnotations keys applications by annotation name, strips namespace", () => {
   assert.deepEqual(projectAnnotations(doc(), "ms.az"), { icon: { path: "resources/az.svg" } });
-  assert.deepEqual(projectAnnotations(doc(), "ms.missing"), {});
+  assert.deepEqual(projectAnnotations(doc(), "ms.Missing"), {});
 });
 
 // Richer cases (ported from Plexus annotation-projection.test.ts when that copy
@@ -36,7 +36,7 @@ test("projectAnnotations: multi-annotation, dangling edge skipped, non-annotatio
       { kind: "Annotated", via: null, from: "actor", to: "actor@icon" },
       { kind: "Annotated", via: null, from: "actor", to: "actor@category" },
       { kind: "Annotated", via: null, from: "actor", to: "missing@ghost" }, // dangling → skipped
-      { kind: "HasField", via: null, from: "actor", to: "actor.name" }, // non-annotation edge ignored
+      { kind: "HasField", via: null, from: "actor", to: "Actor.name" }, // non-annotation edge ignored
     ],
   };
   assert.deepEqual(projectAnnotations(doc2, "actor"), {

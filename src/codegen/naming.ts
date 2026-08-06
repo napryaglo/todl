@@ -20,7 +20,7 @@ export function pascalCase(kebab: string): string {
   return segments(kebab).map(cap).join("");
 }
 
-/** kebab → camelCase: "implemented-by" → "implementedBy". */
+/** kebab → camelCase: "implementedBy" → "implementedBy". */
 export function camelCase(kebab: string): string {
   const parts = segments(kebab);
   if (parts.length === 0) return "";

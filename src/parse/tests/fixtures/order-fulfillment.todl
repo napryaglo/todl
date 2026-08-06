@@ -1,32 +1,32 @@
-namespace demo.order-fulfillment
+namespace demo.orderFulfillment
 {
-    lane sales { label = "Sales"; }
+    Lane sales { label = "Sales"; }
 
-    event-trigger message { }
+    EventTrigger message { }
 
-    flow-type sequence { }
+    FlowType sequence { }
 
-    event order-placed
+    Event orderPlaced
     {
         label      = "Order Placed";
-        event-type = event-type.start;
+        eventType = EventType.Start;
         trigger    = message;
-        lives-in   = sales;
-        outgoing   = [order-to-validate];
+        livesIn   = sales;
+        outgoing   = [orderToValidate];
     }
 
-    task validate-payment
+    Task validatePayment
     {
         label    = "Validate Payment";
-        type     = task-type.service;
-        lives-in = sales;
-        incoming = [order-to-validate];
+        type     = TaskType.Service;
+        livesIn = sales;
+        incoming = [orderToValidate];
     }
 
-    sequence-flow order-to-validate
+    SequenceFlow orderToValidate
     {
-        from = order-placed;
-        to   = validate-payment;
+        from = orderPlaced;
+        to   = validatePayment;
         type = sequence;
     }
 }

@@ -31,12 +31,12 @@ function techModel(reactAvailableIn: string[] = ["m365", "browser"]): Repository
   builder.addRelationship("vue", "provides", "ui-framework");
   builder.addRelationship("express", "provides", "http-api");
   for (const location of reactAvailableIn) {
-    builder.addRelationship("react", "available-in", location);
+    builder.addRelationship("react", "availableIn", location);
   }
   builder.assertInstance("frontend", "shop-web");
   builder.addRelationship("shop-web", "kind", "ui-framework");
   builder.addRelationship("shop-web", "in", "m365");
-  builder.addRelationship("shop-web", "implemented-by", "react");
+  builder.addRelationship("shop-web", "implementedBy", "react");
   builder.commit();
   return model;
 }
@@ -56,8 +56,8 @@ test("invariant holds when the implementing tech covers the location", () => {
   const model = techModel(["m365", "browser"]);
   // this.implemented-by != none implies this.in in this.implemented-by.available-in
   const expr = implies(
-    neq(member(THIS, "implemented-by"), NONE),
-    isIn(member(THIS, "in"), member(member(THIS, "implemented-by"), "available-in")),
+    neq(member(THIS, "implementedBy"), NONE),
+    isIn(member(THIS, "in"), member(member(THIS, "implementedBy"), "availableIn")),
   );
 
   assert.equal(satisfies(model, expr, "shop-web"), true);
@@ -66,8 +66,8 @@ test("invariant holds when the implementing tech covers the location", () => {
 test("invariant fails when the implementing tech does not cover the location", () => {
   const model = techModel(["browser"]); // react no longer available in m365
   const expr = implies(
-    neq(member(THIS, "implemented-by"), NONE),
-    isIn(member(THIS, "in"), member(member(THIS, "implemented-by"), "available-in")),
+    neq(member(THIS, "implementedBy"), NONE),
+    isIn(member(THIS, "in"), member(member(THIS, "implementedBy"), "availableIn")),
   );
 
   assert.equal(satisfies(model, expr, "shop-web"), false);

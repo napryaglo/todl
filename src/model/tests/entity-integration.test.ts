@@ -9,12 +9,12 @@ function fixture(): Repository {
   const repo = new Repository();
   const b = repo.builder();
   b.defineConcept("component");
-  b.defineTaxonomy("component-category", ["component"], [
+  b.defineTaxonomy("ComponentCategory", ["component"], [
     { id: "ai-agent", attrs: new Map([["label", "AI Agent"]]) },
   ]);
   b.assertInstance("component", "gw");
   b.setField("gw", "label", "Gateway");
-  b.addRelationship("gw", "category", "component-category.ai-agent");
+  b.addRelationship("gw", "category", "ComponentCategory.ai-agent");
   b.commit();
   return repo;
 }
@@ -28,7 +28,7 @@ test("Entity and EntityBase are exported from the package root", () => {
 test("a reference into a taxonomy term navigates to a class Entity with its fields", () => {
   const repo = fixture();
   const category = repo.entity("gw")!.ref("category")!;
-  assert.equal(category.id, "component-category.ai-agent");
+  assert.equal(category.id, "ComponentCategory.ai-agent");
   assert.equal(category.field("label"), "AI Agent");
   // The term node is a class of `component`, so is() sees the represented concept.
   assert.equal(category.is("component"), true);
@@ -38,7 +38,7 @@ test("the whole read surface composes: fields, refs, and reverse navigation", ()
   const repo = fixture();
   const gw = repo.entity("gw")!;
   assert.equal(gw.field("label"), "Gateway");
-  assert.deepEqual(gw.refs("category").map((e) => e.id), ["component-category.ai-agent"]);
-  const term = repo.entity("component-category.ai-agent")!;
+  assert.deepEqual(gw.refs("category").map((e) => e.id), ["ComponentCategory.ai-agent"]);
+  const term = repo.entity("ComponentCategory.ai-agent")!;
   assert.deepEqual(term.referrers("category").map((e) => e.id), ["gw"]);
 });

@@ -8,24 +8,24 @@ const codes = (text: string) =>
 
 test("a top-level concrete object is an orphan", () => {
   const c = codes(`namespace acme {
-    concept component { }
-    component checkout { }
+    concept Component { }
+    Component checkout { }
   }`);
   assert.ok(c.includes(DiagnosticCode.InstanceOrphan));
 });
 
 test("an object inside a model is not an orphan", () => {
   const c = codes(`namespace acme {
-    concept component { }
-    model prod : acme { component checkout { } }
+    concept Component { }
+    model Prod : Acme { Component checkout { } }
   }`);
   assert.ok(!c.includes(DiagnosticCode.InstanceOrphan));
 });
 
 test("a top-level class is not an orphan", () => {
   const c = codes(`namespace acme {
-    concept component { }
-    class component base { }
+    concept Component { }
+    Class component base { }
   }`);
   assert.ok(!c.includes(DiagnosticCode.InstanceOrphan));
 });

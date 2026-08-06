@@ -6,11 +6,11 @@ import { MetaKind, PACKAGE_NODE_ID } from "../../model/kinds.js";
 import { DiagnosticCode } from "../../diagnostics/diagnostic.js";
 
 const SRC = `namespace acme {
-  annotation icon { path : string; }
-  annotation author { name : string; }
-  package { annotate author { name = "Acme"; } }
-  concept actor {
-    annotate icon { path = "icons/actor.svg"; }
+  annotation Icon { path : string; }
+  annotation Author { name : string; }
+  package { annotate Author { name = "Acme"; } }
+  concept Actor {
+    annotate Icon { path = "icons/actor.svg"; }
     label : string;
   }
 }`;
@@ -20,7 +20,7 @@ test("an annotation loads as an Ontology-tier node with HasField params", () => 
   const n = model.resolve("icon");
   assert.equal(n!.tier, Tier.Ontology);
   assert.equal(n!.typeOf, MetaKind.Annotation);
-  assert.equal(model.resolve("icon.path")!.typeOf, MetaKind.Field);
+  assert.equal(model.resolve("Icon.path")!.typeOf, MetaKind.Field);
 });
 
 test("an application loads as an Annotated node typed by the annotation", () => {
@@ -41,10 +41,10 @@ test("package annotations attach to the singleton package node", () => {
 
 test("a duplicate application on one target is annotation.duplicate", () => {
   const dup = `namespace acme {
-    annotation icon { path : string; }
-    concept actor {
-      annotate icon { path = "a.svg"; }
-      annotate icon { path = "b.svg"; }
+    annotation Icon { path : string; }
+    concept Actor {
+      annotate Icon { path = "a.svg"; }
+      annotate Icon { path = "b.svg"; }
     }
   }`;
   const { diagnostics } = load([{ uri: "a.todl", text: dup }]);
@@ -52,7 +52,7 @@ test("a duplicate application on one target is annotation.duplicate", () => {
 });
 
 test("annotating an undefined annotation is reference.undefined", () => {
-  const bad = `namespace acme { concept actor { annotate ghost { x = "y"; } } }`;
+  const bad = `namespace acme { concept Actor { annotate Ghost { x = "y"; } } }`;
   const { diagnostics } = load([{ uri: "a.todl", text: bad }]);
   assert.ok(diagnostics.map((d) => d.code).includes(DiagnosticCode.ReferenceUndefined));
 });

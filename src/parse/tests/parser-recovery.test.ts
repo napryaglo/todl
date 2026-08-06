@@ -5,9 +5,9 @@ import { parse } from "../parser.js";
 import { DeclKind } from "../ast.js";
 
 const SRC = `namespace demo {
-  concept good-a { label : string; }
+  concept GoodA { label : string; }
   concept @@@ { }
-  concept good-b { label : string; }
+  concept GoodB { label : string; }
 }`;
 
 test("parse recovers past a broken declaration and reports it", () => {
@@ -16,7 +16,7 @@ test("parse recovers past a broken declaration and reports it", () => {
   const names = namespace.declarations
     .filter((d) => d.kind === DeclKind.Concept)
     .map((d) => (d.kind === DeclKind.Concept ? d.name : ""));
-  assert.deepEqual(names, ["good-a", "good-b"]);
+  assert.deepEqual(names, ["GoodA", "GoodB"]);
   // The broken one produced at least one spanned syntax diagnostic.
   assert.ok(diagnostics.length >= 1);
   assert.equal(diagnostics[0]?.span?.uri, "demo.todl");

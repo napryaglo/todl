@@ -215,7 +215,7 @@ export function loadInto(
         diagnostics.push({
           code: DiagnosticCode.TaxonomyAmbiguousBareReference,
           severity: Severity.Error,
-          message: `bare reference "${site.id}" is defined by more than one used taxonomy (${matches.join(", ")}); qualify it`,
+          message: `Bare reference "${site.id}" is defined by more than one used taxonomy (${matches.join(", ")}); Qualify it`,
           span: site.span,
           node: site.node,
           path: site.path,
@@ -330,7 +330,7 @@ export function loadInto(
         // prelude base, keep their declared (null) parent. The synthetic parent
         // is a base node, so it never yields a reference.undefined.
         const parent = declaration.extends
-          ?? (declaration.name !== "element" && model.has("element") ? "element" : null);
+          ?? (declaration.name !== "Element" && model.has("Element") ? "Element" : null);
         first.defineConcept(declaration.name, parent);
         break;
       }
@@ -649,7 +649,7 @@ function applyModel(
 ): void {
   builder.assertModel(decl.id);
   builder.setField(decl.id, "id", decl.id);
-  builder.setField(decl.id, "meta-model", decl.metaModel);
+  builder.setField(decl.id, "MetaModel", decl.metaModel);
   builder.setField(decl.id, "uses.count", decl.libraries.length);
   decl.libraries.forEach((lib, i) => builder.setField(decl.id, `uses.${i}`, lib));
   asserted.add(decl.id);
@@ -685,7 +685,7 @@ function applyInstance(
     builder.assertInstance(decl.concept, decl.id, decl.isClass);
     // The record name is its `id`; surface it as the field the schema declares.
     builder.setField(decl.id, "id", decl.id);
-    if (decl.binds !== null) builder.setField(decl.id, "meta-model", decl.binds);
+    if (decl.binds !== null) builder.setField(decl.id, "MetaModel", decl.binds);
     if (decl.instanceOf !== null) builder.addInstanceOf(decl.id, decl.instanceOf);
     if (parent !== null) {
       builder.addContains(parent, decl.id);

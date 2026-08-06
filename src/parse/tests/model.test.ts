@@ -11,24 +11,24 @@ function firstDecl(text: string) {
 
 test("model parses to a ModelDecl with meta-model, uses, and object body", () => {
   const decl = firstDecl(`namespace acme {
-    model prod : enterprise-architecture uses aws-catalog, ea-patterns {
-      component checkout { name = "Checkout"; }
-      component payments instanceof payment-service { name = "Payments"; }
+    model Prod : EnterpriseArchitecture uses AwsCatalog, eaPatterns {
+      Component checkout { name = "Checkout"; }
+      Component payments instanceof paymentService { name = "Payments"; }
     }
   }`) as ModelDecl;
   assert.equal(decl.kind, DeclKind.Model);
   assert.equal(decl.id, "prod");
-  assert.equal(decl.metaModel, "enterprise-architecture");
-  assert.deepEqual(decl.libraries, ["aws-catalog", "ea-patterns"]);
+  assert.equal(decl.metaModel, "EnterpriseArchitecture");
+  assert.deepEqual(decl.libraries, ["AwsCatalog", "eaPatterns"]);
   assert.equal(decl.instances.length, 2);
   assert.equal(decl.instances[0]!.concept, "component");
-  assert.equal(decl.instances[1]!.instanceOf, "payment-service");
+  assert.equal(decl.instances[1]!.instanceOf, "paymentService");
   assert.ok(decl.idSpan && decl.metaModelSpan && decl.librarySpans?.length === 2);
 });
 
 test("model with no uses list parses with empty libraries", () => {
   const decl = firstDecl(`namespace acme {
-    model prod : ea { component c { } }
+    model Prod : Ea { Component c { } }
   }`) as ModelDecl;
   assert.equal(decl.kind, DeclKind.Model);
   assert.deepEqual(decl.libraries, []);

@@ -11,9 +11,9 @@ function decls(text: string) {
 
 test("annotate parses at the taxonomy level (annotates the taxonomy itself)", () => {
   const tax = decls(`namespace t {
-    taxonomy actors : represents actor {
-      annotate icon { path = "resources/actors.svg"; }
-      term internal { label = "Internal"; }
+    taxonomy Actors : represents Actor {
+      annotate Icon { path = "resources/actors.svg"; }
+      term Internal { label = "Internal"; }
     }
   }`)[0] as TaxonomyDecl;
   assert.equal(tax.annotations.length, 1, "one taxonomy-level annotation");
@@ -25,9 +25,9 @@ test("annotate parses at the taxonomy level (annotates the taxonomy itself)", ()
 
 test("a taxonomy keeps both taxonomy-level and term-level annotations", () => {
   const tax = decls(`namespace t {
-    taxonomy actors : represents actor {
-      annotate icon { path = "tax.svg"; }
-      term internal { annotate icon { path = "term.svg"; } }
+    taxonomy Actors : represents Actor {
+      annotate Icon { path = "tax.svg"; }
+      term Internal { annotate Icon { path = "term.svg"; } }
     }
   }`)[0] as TaxonomyDecl;
   assert.equal(tax.annotations.length, 1);
@@ -38,10 +38,10 @@ test("a taxonomy keeps both taxonomy-level and term-level annotations", () => {
 
 test("annotate parses inside a taxonomy term body", () => {
   const tax = decls(`namespace t {
-    taxonomy actors : represents actor {
-      term internal {
+    taxonomy Actors : represents Actor {
+      term Internal {
         label = "Internal";
-        annotate icon { path = "resources/ai_agent.svg"; }
+        annotate Icon { path = "resources/ai_agent.svg"; }
       }
     }
   }`)[0] as TaxonomyDecl;
@@ -53,10 +53,10 @@ test("annotate parses inside a taxonomy term body", () => {
 
 test("a term keeps both an annotate and a nested sub-term", () => {
   const tax = decls(`namespace t {
-    taxonomy actors : represents actor {
-      term external {
-        annotate icon { path = "x.svg"; }
-        term partner { label = "Partner"; }
+    taxonomy Actors : represents Actor {
+      term External {
+        annotate Icon { path = "x.svg"; }
+        term Partner { label = "Partner"; }
       }
     }
   }`)[0] as TaxonomyDecl;
@@ -68,8 +68,8 @@ test("a term keeps both an annotate and a nested sub-term", () => {
 
 test("annotate parses inside a class body", () => {
   const cls = decls(`namespace t {
-    class component web-app {
-      annotate icon { path = "resources/web.svg"; }
+    Class component webApp {
+      annotate Icon { path = "resources/web.svg"; }
     }
   }`)[0] as InstanceDecl;
   assert.equal(cls.kind, DeclKind.Instance);

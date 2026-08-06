@@ -8,14 +8,14 @@ function model(text: string) {
 }
 
 const SRC = `namespace d {
-  concept technology { label : string; }
-  concept component { label : string; implemented-by : technology?; }
-  taxonomy category : represents component { term alpha { label = "A"; } }
+  concept Technology { label : string; }
+  concept Component { label : string; implementedBy : Technology?; }
+  taxonomy Category : represents Component { term Alpha { label = "A"; } }
 }`;
 
 test("field typed by a concept is reference-like", () => {
   const m = model(SRC);
-  assert.equal(__test__.isReferenceMember(m, "component", "implemented-by"), true);
+  assert.equal(__test__.isReferenceMember(m, "component", "implementedBy"), true);
 });
 
 test("field typed by a primitive is value-like", () => {

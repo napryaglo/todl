@@ -9,10 +9,10 @@ import type { SourceFile } from "../diagnostics/span.js";
 const META: SourceFile = {
   uri: "meta.todl",
   text: `namespace ea {
-    concept location  { label : string; }
-    concept technology { label : string; applicable-to : component-category; }
-    concept category   { label : string; }
-    taxonomy component-category : represents category { term platform-api { label = "API"; } }
+    concept Location  { label : string; }
+    concept Technology { label : string; applicableTo : ComponentCategory; }
+    concept Category   { label : string; }
+    taxonomy ComponentCategory : represents Category { term PlatformApi { label = "API"; } }
   }`,
 };
 
@@ -22,9 +22,9 @@ const LIB: SourceFile = {
   uri: "microsoft.todl",
   text: `namespace lib {
     import ea;
-    taxonomy microsoft : represents location, technology {
-      location azure { label = "Azure"; }
-      technology azure-openai { label = "Azure OpenAI"; applicable-to = component-category.platform-api; }
+    taxonomy Microsoft : represents Location, technology {
+      Location azure { label = "Azure"; }
+      Technology azureOpenai { label = "Azure OpenAI"; applicableTo = ComponentCategory.PlatformApi; }
     }
   }`,
 };
@@ -48,19 +48,19 @@ test("a library validates clean against a base meta-model", () => {
   assert.deepEqual(errorCodes(diagnostics), []);
   // The merged model carries both the base concept and the library term.
   assert.ok(model.has("location"));
-  assert.equal(model.resolve("microsoft.azure")?.typeOf, "location");
-  assert.equal(model.resolve("microsoft.azure-openai")?.typeOf, "technology");
+  assert.equal(model.resolve("Microsoft.Azure")?.typeOf, "location");
+  assert.equal(model.resolve("Microsoft.azureOpenai")?.typeOf, "technology");
 });
 
 test("a reference resolvable in neither base nor source is still flagged", () => {
   const base = toJSON(check([META]).model);
   const bad: SourceFile = {
     uri: "bad.todl",
-    text: `namespace lib { taxonomy m : represents location { location x { parent = nonsense.ghost; } } }`,
+    text: `namespace lib { taxonomy M : represents Location { Location x { parent = Nonsense.Ghost; } } }`,
   };
   const { model, diagnostics } = checkAgainst([base], [bad]);
   assert.ok(diagnostics.some((d) => d.code === DiagnosticCode.ReferenceUndefined));
-  assert.equal(model.resolve("nonsense.ghost"), undefined);
+  assert.equal(model.resolve("Nonsense.Ghost"), undefined);
 });
 
 test("a reference resolved via the base model is not reported undefined", () => {
@@ -68,7 +68,7 @@ test("a reference resolved via the base model is not reported undefined", () => 
   const base = toJSON(check([META]).model);
   const src: SourceFile = {
     uri: "src.todl",
-    text: `namespace lib { location azure { label = "Azure"; } }`,
+    text: `namespace lib { Location azure { label = "Azure"; } }`,
   };
   const result = checkAgainst([base], [src]);
   assert.equal(result.diagnostics.filter((d) => d.code === DiagnosticCode.ReferenceUndefined).length, 0);

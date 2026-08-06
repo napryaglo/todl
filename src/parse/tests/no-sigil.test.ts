@@ -8,18 +8,18 @@ function loaded(text: string) {
 }
 
 const SRC = `namespace d {
-  concept technology { label : string; }
-  concept component { implemented-by : technology?; }
-  model m : d {
-    technology t { label = "T"; }
-    component c { implemented-by = t; }
+  concept Technology { label : string; }
+  concept Component { implementedBy : Technology?; }
+  model M : D {
+    Technology t { label = "T"; }
+    Component c { implementedBy = t; }
   }
 }`;
 
 test("a bare name resolves as a reference with no sigil, and no parse error", () => {
   const r = loaded(SRC);
   assert.deepEqual(r.diagnostics.filter((d) => d.severity === "error"), []);
-  assert.deepEqual(r.model.related("c", EdgeKind.Relationship, Direction.Out, "implemented-by"), ["t"]);
+  assert.deepEqual(r.model.related("c", EdgeKind.Relationship, Direction.Out, "implementedBy"), ["t"]);
 });
 
 test("a leftover `&` sigil is now a parse error", () => {

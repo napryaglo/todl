@@ -54,7 +54,7 @@ export class TechCatalog extends FrozenRepository {
     const scalars = new Map<string, Scalar>();
     const refs = new Map<string, readonly NodeId[]>();
     scalars.set("label", fields.label);
-    if (fields.availableIn !== undefined) refs.set("available-in", fields.availableIn.map((e) => e.id));
+    if (fields.availableIn !== undefined) refs.set("availableIn", fields.availableIn.map((e) => e.id));
     if (fields.billing !== undefined) refs.set("billing", [fields.billing.id]);
     return { concept: "technology", id, scalars, refs };
   }
@@ -70,6 +70,6 @@ export class Location extends EntityBase {
 
 export class Technology extends EntityBase {
   get label(): string { return this.field("label") as string; }
-  get availableIn(): readonly Location[] { return this.refs("available-in") as Location[]; }
+  get availableIn(): readonly Location[] { return this.refs("availableIn") as Location[]; }
   get billing(): Billing | undefined { return this.ref("billing") as Billing | undefined; }
 }

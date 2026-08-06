@@ -34,7 +34,7 @@ test("a relationship pointing at the wrong concept is reported", () => {
   const diagnostics = targetTypeDiagnostics(model);
   assert.equal(diagnostics.length, 1);
   assert.equal(diagnostics[0]?.node, "web");
-  assert.equal(diagnostics[0]?.path, "component.in");
+  assert.equal(diagnostics[0]?.path, "Component.in");
 });
 
 test("a correctly-typed relationship produces no diagnostic", () => {

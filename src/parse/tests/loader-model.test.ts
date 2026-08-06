@@ -5,9 +5,9 @@ import { Tier, EdgeKind, Direction } from "../../model/graph.js";
 import { MetaKind } from "../../model/kinds.js";
 
 const SRC = `namespace acme {
-  concept component { name : string; }
-  model prod : acme uses aws-catalog {
-    component checkout { name = "Checkout"; }
+  concept Component { name : string; }
+  model Prod : Acme uses AwsCatalog {
+    Component checkout { name = "Checkout"; }
   }
 }`;
 
@@ -17,9 +17,9 @@ test("a model loads as an Instance-tier MetaKind.Model node with binding attrs",
   assert.ok(node);
   assert.equal(node!.tier, Tier.Instance);
   assert.equal(node!.typeOf, MetaKind.Model);
-  assert.equal(node!.attrs.get("meta-model"), "acme");
+  assert.equal(node!.attrs.get("MetaModel"), "acme");
   assert.equal(node!.attrs.get("uses.count"), 1);
-  assert.equal(node!.attrs.get("uses.0"), "aws-catalog");
+  assert.equal(node!.attrs.get("uses.0"), "AwsCatalog");
 });
 
 test("the model contains its objects via Contains", () => {

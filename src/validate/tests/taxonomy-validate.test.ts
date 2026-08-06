@@ -21,38 +21,38 @@ test("a taxonomy-typed field value must resolve to a term", () => {
   // Use a value that is a defined node but not a term of the taxonomy — the
   // validator then reports TaxonomyValueUnresolved (an undefined symbol would
   // emit ReferenceUndefined from the loader instead, before validation runs).
-  const c = codes(`concept category { icon : string; }
-    concept component { category : component-category; }
-    taxonomy component-category : represents category { term conversational-interface { icon = "x"; } }
-    component good { category = component-category.conversational-interface; }
-    component bad { category = good; }`);
+  const c = codes(`concept Category { icon : string; }
+    concept Component { category : ComponentCategory; }
+    taxonomy ComponentCategory : represents Category { term ConversationalInterface { icon = "x"; } }
+    Component good { category = ComponentCategory.ConversationalInterface; }
+    Component bad { category = good; }`);
   assert.ok(c.includes(DiagnosticCode.TaxonomyValueUnresolved));
 });
 
 test("well-formed taxonomy usage yields no taxonomy diagnostics", () => {
-  const c = codes(`concept category { icon : string; }
-    concept component { category : component-category; }
-    taxonomy component-category : represents category { term conversational-interface { icon = "x"; } }
-    component good { category = component-category.conversational-interface; }`);
+  const c = codes(`concept Category { icon : string; }
+    concept Component { category : ComponentCategory; }
+    taxonomy ComponentCategory : represents Category { term ConversationalInterface { icon = "x"; } }
+    Component good { category = ComponentCategory.ConversationalInterface; }`);
   assert.ok(!c.includes(DiagnosticCode.TaxonomyValueUnresolved));
   assert.ok(!c.includes(DiagnosticCode.TaxonomyNoRepresentedConcept));
 });
 
 test("a term whose concept is not represented is flagged", () => {
   // `microsoft` represents only location, but declares a technology term.
-  const c = codes(`concept location {} concept technology {}
-    taxonomy microsoft : represents location {
-      location azure          {}
-      technology azure-openai {}
+  const c = codes(`concept Location {} concept Technology {}
+    taxonomy Microsoft : represents Location {
+      Location azure          {}
+      Technology azureOpenai {}
     }`);
   assert.ok(c.includes(DiagnosticCode.TermConceptNotRepresented));
 });
 
 test("a multi-representation taxonomy with matching term concepts is clean", () => {
-  const c = codes(`concept location {} concept technology {}
-    taxonomy microsoft : represents location, technology {
-      location azure          {}
-      technology azure-openai {}
+  const c = codes(`concept Location {} concept Technology {}
+    taxonomy Microsoft : represents Location, technology {
+      Location azure          {}
+      Technology azureOpenai {}
     }`);
   assert.ok(!c.includes(DiagnosticCode.TermConceptNotRepresented));
   assert.ok(!c.includes(DiagnosticCode.TaxonomyNoRepresentedConcept));

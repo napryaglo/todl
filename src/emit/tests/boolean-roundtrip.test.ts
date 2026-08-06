@@ -8,11 +8,11 @@ import { toJSON, fromJSON } from "../json.js";
 test("a boolean annotation param round-trips through JSON as a boolean", () => {
   const { model } = check([{ uri: "a.todl", text:
     `namespace acme {
-      concept actor { label : string; }
-      annotation shelf { visible : boolean; }
-      taxonomy actors : represents actor {
-        annotate shelf { visible = true; }
-        term internal { label = "Internal"; }
+      concept Actor { label : string; }
+      annotation Shelf { visible : boolean; }
+      taxonomy Actors : represents Actor {
+        annotate Shelf { visible = true; }
+        term Internal { label = "Internal"; }
       }
     }` }]);
 

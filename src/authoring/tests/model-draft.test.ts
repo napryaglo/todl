@@ -17,7 +17,7 @@ function baseClient(): FrozenRepository {
   b.addField("technology", "label", "string");
   b.defineConcept("component");
   b.addField("component", "label", "string");
-  b.addField("component", "implemented-by", "technology", Cardinality.Optional);
+  b.addField("component", "implementedBy", "technology", Cardinality.Optional);
   b.assertInstance("technology", "copilot");
   b.setField("copilot", "label", "Copilot");
   b.commit();
@@ -38,12 +38,12 @@ test("add stages an instance with a scalar and a cross-boundary reference", () =
     concept: "component",
     id: "gw",
     scalars: new Map([["label", "Gateway"]]),
-    refs: new Map([["implemented-by", ["copilot"]]]),
+    refs: new Map([["implementedBy", ["copilot"]]]),
   });
   assert.equal(gw.field("label"), "Gateway");
   // the reference resolves across the boundary to the frozen base instance
-  assert.equal(gw.ref("implemented-by")!.id, "copilot");
-  assert.equal(gw.ref("implemented-by"), draft.entity("copilot"));
+  assert.equal(gw.ref("implementedBy")!.id, "copilot");
+  assert.equal(gw.ref("implementedBy"), draft.entity("copilot"));
 });
 
 test("add supports own->own references", () => {
@@ -52,9 +52,9 @@ test("add supports own->own references", () => {
   const gw = draft.add({
     concept: "component",
     id: "gw",
-    refs: new Map([["implemented-by", ["custom"]]]),
+    refs: new Map([["implementedBy", ["custom"]]]),
   });
-  assert.equal(gw.ref("implemented-by")!.id, "custom");
+  assert.equal(gw.ref("implementedBy")!.id, "custom");
 });
 
 test("ownInstances lists only overlay instances, not base nodes", () => {
@@ -69,7 +69,7 @@ test("diagnostics is clean for a valid overlay", () => {
     concept: "component",
     id: "gw",
     scalars: new Map([["label", "Gateway"]]),
-    refs: new Map([["implemented-by", ["copilot"]]]),
+    refs: new Map([["implementedBy", ["copilot"]]]),
   });
   assert.deepEqual(draft.diagnostics, []);
 });
@@ -77,7 +77,7 @@ test("diagnostics is clean for a valid overlay", () => {
 test("add throws when a reference target does not exist (fail-fast, no dangling)", () => {
   const draft = ModelDraft.on([baseClient()], { namespace: "app" });
   assert.throws(
-    () => draft.add({ concept: "component", id: "gw", refs: new Map([["implemented-by", ["ghost"]]]) }),
+    () => draft.add({ concept: "component", id: "gw", refs: new Map([["implementedBy", ["ghost"]]]) }),
     /ghost/,
   );
 });

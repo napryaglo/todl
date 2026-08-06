@@ -67,8 +67,8 @@ export function validate(model: Repository): Diagnostic[] {
 /** A model's declared bindings: its meta-model namespace (`: <metaModel>`) and
  * its `uses` taxonomies (each a flat taxonomy node id). */
 function boundModules(node: Node): { metaModel: string | undefined; uses: string[] } {
-  const metaModel = typeof node.attrs.get("meta-model") === "string"
-    ? (node.attrs.get("meta-model") as string) : undefined;
+  const metaModel = typeof node.attrs.get("MetaModel") === "string"
+    ? (node.attrs.get("MetaModel") as string) : undefined;
   const count = typeof node.attrs.get("uses.count") === "number"
     ? (node.attrs.get("uses.count") as number) : 0;
   const uses: string[] = [];

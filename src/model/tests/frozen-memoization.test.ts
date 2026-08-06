@@ -40,9 +40,9 @@ test("memoized ref-target arrays are frozen (no accidental mutation of the cache
   b.defineConcept("technology");
   b.assertInstance("technology", "copilot");
   b.assertInstance("component", "gw");
-  b.addRelationship("gw", "implemented-by", "copilot");
+  b.addRelationship("gw", "implementedBy", "copilot");
   b.commit();
   const frozen = FrozenRepository.fromJSON(toJSON(repo));
-  const targets = frozen.effectiveRelationships("gw").get("implemented-by")!;
+  const targets = frozen.effectiveRelationships("gw").get("implementedBy")!;
   assert.equal(Object.isFrozen(targets), true);
 });

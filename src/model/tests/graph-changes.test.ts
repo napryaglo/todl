@@ -37,10 +37,10 @@ test("addEdge for a domain relationship emits EdgeAdded carrying the relationshi
   graph.addNode(instance("react", "technology"));
   const changes = record(graph);
 
-  graph.addEdge({ kind: EdgeKind.Relationship, via: "implemented-by", from: "shop-web", to: "react" });
+  graph.addEdge({ kind: EdgeKind.Relationship, via: "implementedBy", from: "shop-web", to: "react" });
 
   assert.deepEqual(changes, [
-    { kind: GraphChangeKind.EdgeAdded, node: "shop-web", property: "implemented-by", target: "react" },
+    { kind: GraphChangeKind.EdgeAdded, node: "shop-web", property: "implementedBy", target: "react" },
   ]);
 });
 

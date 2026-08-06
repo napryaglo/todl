@@ -189,7 +189,7 @@ function emitRegistry(
   for (const concept of concepts) {
     const cls = pascalCase(concept);
     lines.push(
-      `${i}${i}${jsKey(concept)}: data => { const o = new ${cls}(); ` +
+      `${i}${i}${jsKey(concept)}: Data => { Const o = new ${cls}(); ` +
         `if (data) for (const [k, v] of Object.entries(data)) o.set(k, v); return o; },`,
     );
   }
@@ -228,7 +228,7 @@ function relationshipCardinalityText(card: Cardinality): string {
 
 /** Coarse resolver classification for name-ref-typed fields. */
 function resolvesHint(type: string, card: Cardinality): string | null {
-  if (type !== "identifier" && type !== "slug") return null;
+  if (type !== "Identifier" && type !== "Slug") return null;
   return card === Cardinality.Many || card === Cardinality.NonEmpty ? "list-of-name-ref" : "name-ref";
 }
 

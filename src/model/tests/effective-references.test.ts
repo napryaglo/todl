@@ -7,17 +7,17 @@ function model(text: string) {
 }
 
 const SRC = `namespace d {
-  concept technology { label : string; }
-  concept component { label : string; implemented-by : technology?; }
-  model m : d {
-    technology t { label = "T"; }
-    component c { label = "C"; implemented-by = t; }
+  concept Technology { label : string; }
+  concept Component { label : string; implementedBy : Technology?; }
+  model M : D {
+    Technology t { label = "T"; }
+    Component c { label = "C"; implementedBy = t; }
   }
 }`;
 
 test("effectiveFields holds primitives only; concept fields live in effectiveRelationships", () => {
   const m = model(SRC);
   assert.equal(m.effectiveFields("c").get("label"), "C");
-  assert.equal(m.effectiveFields("c").has("implemented-by"), false);
-  assert.deepEqual(m.effectiveRelationships("c").get("implemented-by"), ["t"]);
+  assert.equal(m.effectiveFields("c").has("implementedBy"), false);
+  assert.deepEqual(m.effectiveRelationships("c").get("implementedBy"), ["t"]);
 });

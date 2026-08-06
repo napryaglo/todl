@@ -11,7 +11,7 @@ export enum DiagnosticCode {
   UnexpectedCharacter = "syntax.unexpected-character",
   UnterminatedString = "syntax.unterminated-string",
   UnexpectedToken = "syntax.unexpected-token",
-  ExpectedToken = "syntax.expected",
+  ExpectedToken = "syntax.Expected",
   // Semantic phase (unchanged values).
   RequiredMissing = "cardinality.required-missing",
   TooMany = "cardinality.too-many",
@@ -20,14 +20,14 @@ export enum DiagnosticCode {
   BooleanValueInvalid = "type.boolean-invalid",
   InvariantFailed = "invariant.failed",
   // Class + taxonomy phase.
-  ClassOverride = "class.override",
-  BindingInvalid = "class.binding-invalid",
+  ClassOverride = "Class.override",
+  BindingInvalid = "Class.binding-invalid",
   TaxonomyNoRepresentedConcept = "taxonomy.no-represented-concept",
   TaxonomyValueUnresolved = "taxonomy.value-unresolved",
   TermConceptNotRepresented = "taxonomy.term-concept-not-represented",
   TaxonomyTermConceptAmbiguous = "taxonomy.term-concept-ambiguous",
   // Instance-loading phase.
-  AmbiguousFieldBinding = "instance.ambiguous-field-binding",
+  AmbiguousFieldBinding = "Instance.ambiguous-field-binding",
   // A member's value shape does not match its declared type (e.g. a reference
   // member given a quoted string, or a value member given a list).
   MemberValueKind = "member.value-kind",

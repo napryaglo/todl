@@ -10,7 +10,7 @@ function decls(text: string) {
 }
 
 test("annotation declaration parses to an AnnotationDecl with typed params", () => {
-  const d = decls(`namespace a { annotation category { name : string; order : number?; } }`)[0] as AnnotationDecl;
+  const d = decls(`namespace a { annotation Category { name : string; order : number?; } }`)[0] as AnnotationDecl;
   assert.equal(d.kind, DeclKind.Annotation);
   assert.equal(d.name, "category");
   assert.equal(d.params.length, 2);
@@ -20,21 +20,21 @@ test("annotation declaration parses to an AnnotationDecl with typed params", () 
 });
 
 test("annotation with a base parses its extends (annotation Sub : Base)", () => {
-  const d = decls(`namespace a { annotation detailed : visual { badge : string; } }`)[0] as AnnotationDecl;
+  const d = decls(`namespace a { annotation Detailed : Visual { badge : string; } }`)[0] as AnnotationDecl;
   assert.equal(d.kind, DeclKind.Annotation);
   assert.equal(d.extends, "visual");
   assert.ok(d.extendsSpan);
 });
 
 test("annotation without a base has null extends", () => {
-  const d = decls(`namespace a { annotation icon { path : string; } }`)[0] as AnnotationDecl;
+  const d = decls(`namespace a { annotation Icon { path : string; } }`)[0] as AnnotationDecl;
   assert.equal(d.extends, null);
 });
 
 test("annotate inside a concept attaches an application to the concept", () => {
   const d = decls(`namespace a {
-    concept actor {
-      annotate icon { path = "icons/actor.svg"; }
+    concept Actor {
+      annotate Icon { path = "icons/actor.svg"; }
       label : string;
     }
   }`)[0] as ConceptDecl;
@@ -48,8 +48,8 @@ test("annotate inside a concept attaches an application to the concept", () => {
 test("package block parses to a PackageDecl of applications", () => {
   const d = decls(`namespace a {
     package {
-      annotate author { name = "Acme"; }
-      annotate license { spdx = "MIT"; }
+      annotate Author { name = "Acme"; }
+      annotate License { spdx = "MIT"; }
     }
   }`)[0] as PackageDecl;
   assert.equal(d.kind, DeclKind.Package);

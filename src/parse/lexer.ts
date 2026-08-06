@@ -1,6 +1,6 @@
 /**
  * Lexer for the TODL surface (design spec §3, legacy `adl/todl/spec.md` §2).
- * Kebab-case identifiers, string and raw-string (`"""`) literals, the `&`
+ * C-like identifiers (`[A-Za-z_][A-Za-z0-9_]*`), string and raw-string (`"""`) literals, the `&`
  * reference sigil, `?` / `[]` / `[+]` cardinality punctuation, and the
  * predicate operators (`==` `!=` `&&` `||` `implies` …). Line and block comments
  * and whitespace are trivia. Unknown characters (`$`, `@` — reserved for Mural)
@@ -169,9 +169,6 @@ class Lexer {
       const char = this.peek();
       if (isIdentifierPart(char)) {
         this.advance();
-      } else if (char === "-" && isIdentifierPart(this.peek(1))) {
-        this.advance();
-        this.advance();
       } else {
         break;
       }
@@ -283,11 +280,11 @@ function unescape(char: string): string {
 }
 
 function isIdentifierStart(char: string): boolean {
-  return char >= "a" && char <= "z";
+  return (char >= "a" && char <= "z") || (char >= "A" && char <= "Z") || char === "_";
 }
 
 function isIdentifierPart(char: string): boolean {
-  return (char >= "a" && char <= "z") || (char >= "0" && char <= "9");
+  return isIdentifierStart(char) || (char >= "0" && char <= "9");
 }
 
 function isDigit(char: string): boolean {

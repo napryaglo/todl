@@ -5,12 +5,12 @@ import { load } from "../loader.js";
 import { Repository } from "../../model/model.js";
 
 const CONCEPTS = `namespace ea {
-  concept component { label : string; }
+  concept Component { label : string; }
 }`;
 const MODEL = `namespace app {
   import ea;
-  model m : ea {
-    component teams-chat { label = "Teams"; }
+  model M : Ea {
+    Component teamsChat { label = "Teams"; }
   }
 }`;
 
@@ -20,9 +20,9 @@ test("load takes SourceFiles, builds a model, and records instance spans", () =>
     { uri: "app.todl", text: MODEL },
   ]);
   assert.equal(diagnostics.length, 0);
-  assert.ok(model.has("teams-chat"));
-  assert.equal(model.spanOf("teams-chat")?.uri, "app.todl");
-  assert.equal(model.spanOf(Repository.memberKey("teams-chat", "label"))?.uri, "app.todl");
+  assert.ok(model.has("teamsChat"));
+  assert.equal(model.spanOf("teamsChat")?.uri, "app.todl");
+  assert.equal(model.spanOf(Repository.memberKey("teamsChat", "label"))?.uri, "app.todl");
 });
 
 test("load surfaces syntax diagnostics from a malformed file", () => {

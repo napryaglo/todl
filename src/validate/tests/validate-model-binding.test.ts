@@ -7,16 +7,16 @@ const codes = (text: string) => check([{ uri: "a.todl", text }]).diagnostics.map
 
 test("binding a meta-model that is a loaded namespace is clean", () => {
   const c = codes(`namespace acme {
-    concept component { }
-    model prod : acme { component checkout { } }
+    concept Component { }
+    model Prod : Acme { Component checkout { } }
   }`);
   assert.ok(!c.includes(DiagnosticCode.ModelBindingUndefined));
 });
 
 test("binding a meta-model no module provides is model.binding-undefined", () => {
   const c = codes(`namespace acme {
-    concept component { }
-    model prod : nonexistent { component checkout { } }
+    concept Component { }
+    model Prod : Nonexistent { Component checkout { } }
   }`);
   assert.ok(c.includes(DiagnosticCode.ModelBindingUndefined));
 });
@@ -25,8 +25,8 @@ test("a uses target that is not a known taxonomy is flagged", () => {
   // `uses` on a model names taxonomies (its term-drop scope). A `uses` of
   // something that is not a known taxonomy is a taxonomy-uses error.
   const c = codes(`namespace acme {
-    concept component { }
-    model prod : acme uses ghost-tax { component checkout { } }
+    concept Component { }
+    model Prod : Acme uses GhostTax { Component checkout { } }
   }`);
   assert.ok(c.includes(DiagnosticCode.TaxonomyUsesUndefined));
 });

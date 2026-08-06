@@ -9,13 +9,13 @@ import { TodlFileStore, type FileIO } from "../../index.js";
 
 function baseClient(): FrozenRepository {
   const repo = new Repository();
-  const b = repo.builder().setNamespace("acme.ea");
+  const b = repo.builder().setNamespace("Acme.ea");
   b.definePrimitive("string");
   b.defineConcept("technology");
   b.addField("technology", "label", "string");
   b.defineConcept("component");
   b.addField("component", "label", "string");
-  b.addField("component", "implemented-by", "technology", Cardinality.Optional);
+  b.addField("component", "implementedBy", "technology", Cardinality.Optional);
   b.assertInstance("technology", "copilot");
   b.setField("copilot", "label", "Copilot");
   b.commit();
@@ -34,21 +34,21 @@ class MemoryFileIO implements FileIO {
 
 test("save writes .todl; load reparses the model", async () => {
   const base = baseClient();
-  const draft = ModelDraft.on([base], { namespace: "acme.app" });
+  const draft = ModelDraft.on([base], { namespace: "Acme.app" });
   draft.add({
     concept: "component",
     id: "gw",
     scalars: new Map([["label", "Gateway"]]),
-    refs: new Map([["implemented-by", ["copilot"]]]),
+    refs: new Map([["implementedBy", ["copilot"]]]),
   });
 
   const io = new MemoryFileIO();
-  const store = new TodlFileStore(io, [base], { namespace: "acme.app" });
+  const store = new TodlFileStore(io, [base], { namespace: "Acme.app" });
   await store.save(draft);
   assert.match(io.content, /model acme-app-model : acme\.ea/);
 
   const { model, diagnostics } = await store.load();
   assert.deepEqual(diagnostics, []);
   assert.equal(model.entity("gw")!.field("label"), "Gateway");
-  assert.equal(model.entity("gw")!.ref("implemented-by")!.id, "copilot");
+  assert.equal(model.entity("gw")!.ref("implementedBy")!.id, "copilot");
 });

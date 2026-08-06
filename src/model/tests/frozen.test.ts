@@ -16,7 +16,7 @@ function doc() {
   b.setField("copilot", "label", "Copilot");
   b.assertInstance("component", "gw");
   b.setField("gw", "label", "Gateway");
-  b.addRelationship("gw", "implemented-by", "copilot");
+  b.addRelationship("gw", "implementedBy", "copilot");
   b.assertInstance("component", "a");
   b.assertInstance("component", "b");
   b.addRelationship("a", "peer", "b");
@@ -28,14 +28,14 @@ function doc() {
 test("FrozenRepository reads scalars and references like a Repository", () => {
   const frozen = FrozenRepository.fromJSON(doc());
   assert.equal(frozen.attr("gw", "label"), "Gateway");
-  assert.equal(frozen.ref("gw", "implemented-by"), "copilot");
-  assert.equal(frozen.entity("gw")!.ref("implemented-by")!.id, "copilot");
+  assert.equal(frozen.ref("gw", "implementedBy"), "copilot");
+  assert.equal(frozen.entity("gw")!.ref("implementedBy")!.id, "copilot");
 });
 
 test("entity handles are shared (identity map) and cycle-safe", () => {
   const frozen = FrozenRepository.fromJSON(doc());
   assert.equal(frozen.entity("gw"), frozen.entity("gw"));
-  assert.equal(frozen.entity("gw")!.ref("implemented-by"), frozen.entity("copilot"));
+  assert.equal(frozen.entity("gw")!.ref("implementedBy"), frozen.entity("copilot"));
   const a = frozen.entity("a")!;
   assert.equal(a.ref("peer")!.ref("peer"), a);
 });
@@ -72,5 +72,5 @@ test("a hand-written client exposes concept collections of typed entities", () =
   assert.deepEqual(catalog.technologies.map((e) => e.id), ["copilot"]);
   assert.equal(catalog.technologies[0]!.field("label"), "Copilot");
   assert.deepEqual(catalog.components.map((e) => e.id).sort(), ["a", "b", "gw"]);
-  assert.equal(catalog.entity("gw")!.ref("implemented-by"), catalog.entity("copilot"));
+  assert.equal(catalog.entity("gw")!.ref("implementedBy"), catalog.entity("copilot"));
 });

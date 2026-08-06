@@ -13,7 +13,7 @@ const NAMESPACE_ATTR = "namespace";
 
 /** One instantiable class a package provides — a palette item. */
 export interface PublishedClass {
-  id: string; // qualified class NodeId, e.g. "microsoft.azure"
+  id: string; // qualified class NodeId, e.g. "Microsoft.Azure"
   concept: string; // node.typeOf — the meta concept it realises, e.g. "location"
   localId?: string; // attrs.id — the bare local name
   label?: string; // attrs.label, if present

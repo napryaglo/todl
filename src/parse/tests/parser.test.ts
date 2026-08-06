@@ -14,7 +14,7 @@ function fixture(name: string): string {
 
 test("parses a primitive declaration with base and regex", () => {
   const { namespace } = parse(fixture("primitives.todl"));
-  assert.equal(namespace.path, "adl.meta-models.bpmn.primitives");
+  assert.equal(namespace.path, "adl.metaModels.bpmn.primitives");
 
   const primitive = namespace.declarations[0];
   assert.equal(primitive?.kind, DeclKind.Primitive);
@@ -28,7 +28,7 @@ test("parses a primitive declaration with base and regex", () => {
 test("parses taxonomy declarations with their terms", () => {
   const { namespace } = parse(fixture("enums.todl"));
   const taskType = namespace.declarations.find(
-    (declaration) => declaration.kind === DeclKind.Taxonomy && declaration.name === "task-type",
+    (declaration) => declaration.kind === DeclKind.Taxonomy && declaration.name === "TaskType",
   );
   assert.ok(taskType && taskType.kind === DeclKind.Taxonomy);
   if (taskType.kind === DeclKind.Taxonomy) {
@@ -44,8 +44,8 @@ test("parses taxonomy declarations with their terms", () => {
 test("parses concept imports, fields with cardinality, relationships, and invariants", () => {
   const { namespace } = parse(fixture("concepts.todl"));
   assert.deepEqual(namespace.imports, [
-    "adl.meta-models.bpmn.primitives.identifier",
-    "adl.meta-models.bpmn.enums.task-type",
+    "adl.metaModels.bpmn.primitives.Identifier",
+    "adl.metaModels.bpmn.enums.TaskType",
   ]);
 
   const task = namespace.declarations.find(
@@ -55,7 +55,7 @@ test("parses concept imports, fields with cardinality, relationships, and invari
   if (task.kind === DeclKind.Concept) {
     assert.equal(task.fields.find((field) => field.name === "label")?.cardinality, Cardinality.One);
     assert.equal(task.fields.find((field) => field.name === "assignee")?.cardinality, Cardinality.Optional);
-    assert.equal(task.relationships.find((r) => r.name === "lives-in")?.cardinality, Cardinality.One);
+    assert.equal(task.relationships.find((r) => r.name === "livesIn")?.cardinality, Cardinality.One);
     assert.equal(task.relationships.find((r) => r.name === "incoming")?.cardinality, Cardinality.Many);
 
     assert.equal(task.invariants.length, 2);
@@ -73,11 +73,11 @@ test("reports a malformed declaration with position (recovers, no throw)", () =>
 
 test("tolerates doc-only concept members (authoring blocks, references, formal invariants)", () => {
   const { namespace: ns } = parse(`namespace d {
-    concept component {
+    concept Component {
       description = "A thing.";
       label : string;
       invariant { description = "Ids unique."; formal = "for all c in C"; }
-      authoring list-form { description = "Primary."; example = "components: …"; }
+      Authoring listForm { description = "Primary."; example = "components: …"; }
       references = [ "docs/a.md", "docs/b.md" ];
     }
   }`);
@@ -93,8 +93,8 @@ test("tolerates doc-only concept members (authoring blocks, references, formal i
 
 test("rejects an `object`-typed field — object is not a TODL type", () => {
   const { diagnostics } = parse(`namespace d {
-    concept component {
-      slots : object { id : identifier; }[];
+    concept Component {
+      slots : Object { id : Identifier; }[];
     }
   }`);
   assert.ok(diagnostics.some((d) => d.code === DiagnosticCode.UnexpectedToken));
@@ -102,13 +102,13 @@ test("rejects an `object`-typed field — object is not a TODL type", () => {
 
 test("rejects a `{ … }` object value literal — no anonymous records", () => {
   const { diagnostics } = parse(`namespace d {
-    technology t { billing = { hosting = azure-consumption; }; }
+    Technology t { billing = { hosting = azureConsumption; }; }
   }`);
   assert.ok(diagnostics.some((d) => d.code === DiagnosticCode.UnexpectedToken));
 });
 
 test("parses concept-prefixed edge-shorthand with a body", () => {
-  const { namespace: ns } = parse(`namespace d { connector business-agent -> agent-orchestrator { type = enabled-by; } }`);
+  const { namespace: ns } = parse(`namespace d { Connector business-agent -> AgentOrchestrator { type = enabledBy; } }`);
   const edge = ns.declarations[0];
   assert.ok(edge && edge.kind === DeclKind.Instance);
   if (edge.kind === DeclKind.Instance) {
@@ -116,16 +116,16 @@ test("parses concept-prefixed edge-shorthand with a body", () => {
     const from = edge.assignments.find((a) => a.name === "from")?.value;
     const to = edge.assignments.find((a) => a.name === "to")?.value;
     assert.equal(from?.kind, ValueKind.Name);
-    assert.equal((from as NameValue).name, "business-agent");
-    assert.equal((to as NameValue).name, "agent-orchestrator");
+    assert.equal((from as NameValue).name, "businessAgent");
+    assert.equal((to as NameValue).name, "AgentOrchestrator");
     assert.ok(edge.assignments.find((a) => a.name === "type"));
   }
 });
 
 test("parses an application-connectors block of --> edges inside a model", () => {
   const { namespace: ns } = parse(`namespace d {
-    model m : ea {
-      application-connectors { external-agent-bridge --> agent-service }
+    model M : Ea {
+      application-connectors { external-agent-bridge --> AgentService }
     }
   }`);
   const model = ns.declarations[0] as ModelDecl;
@@ -137,18 +137,18 @@ test("parses an application-connectors block of --> edges inside a model", () =>
 
 test("parses a model with a meta-model binding and nested instances", () => {
   const { namespace: ns } = parse(`namespace d {
-    model m : enterprise-architecture {
-      location saas-3p { label = "3rd-Party SaaS"; type = logical-grouping; }
+    model M : EnterpriseArchitecture {
+      Location saas3p { label = "3rd-Party SaaS"; type = logicalGrouping; }
     }
   }`);
   const model = ns.declarations[0];
   assert.ok(model && model.kind === DeclKind.Model);
   if (model.kind === DeclKind.Model) {
     assert.equal(model.id, "m");
-    assert.equal(model.metaModel, "enterprise-architecture");
+    assert.equal(model.metaModel, "EnterpriseArchitecture");
     assert.equal(model.instances.length, 1);
     assert.equal(model.instances[0]?.concept, "location");
-    assert.equal(model.instances[0]?.id, "saas-3p");
+    assert.equal(model.instances[0]?.id, "saas3p");
   }
 });
 
@@ -164,14 +164,14 @@ test("parses a string-keyed record id", () => {
 
 test("parses a class modifier and an instanceof leaf", () => {
   const { namespace: ns } = parse(`namespace d {
-    class component teams-chat { realised-by = microsoft-teams; }
-    component chat-hq instanceof teams-chat { in = hq; }
+    Class component teamsChat { realisedBy = microsoftTeams; }
+    Component chat-hq instanceof teamsChat { in = hq; }
   }`);
   const cls = ns.declarations[0];
   assert.ok(cls && cls.kind === DeclKind.Instance);
   if (cls.kind === DeclKind.Instance) {
     assert.equal(cls.concept, "component");
-    assert.equal(cls.id, "teams-chat");
+    assert.equal(cls.id, "teamsChat");
     assert.equal(cls.isClass, true);
     assert.equal(cls.instanceOf, null);
   }
@@ -180,19 +180,19 @@ test("parses a class modifier and an instanceof leaf", () => {
   if (leaf.kind === DeclKind.Instance) {
     assert.equal(leaf.id, "chat-hq");
     assert.equal(leaf.isClass, false);
-    assert.equal(leaf.instanceOf, "teams-chat");
+    assert.equal(leaf.instanceOf, "teamsChat");
   }
 });
 
 test("parses a |-composed enum-flag value", () => {
-  const { namespace: ns } = parse(`namespace d { location on-prem { type = physical | on-premises | logical-grouping; } }`);
+  const { namespace: ns } = parse(`namespace d { Location onPrem { type = physical | on-premises | logical-grouping; } }`);
   const inst = ns.declarations[0];
   assert.ok(inst && inst.kind === DeclKind.Instance);
   if (inst.kind === DeclKind.Instance) {
     const value = inst.assignments[0]?.value;
     assert.equal(value?.kind, ValueKind.Composite);
     if (value?.kind === ValueKind.Composite) {
-      assert.deepEqual(value.parts, ["physical", "on-premises", "logical-grouping"]);
+      assert.deepEqual(value.parts, ["physical", "on-premises", "logicalGrouping"]);
     }
   }
 });

@@ -8,24 +8,24 @@ import { Repository } from "../model.js";
 function taxo(): Repository {
   const g = new Graph();
   g.addNode({ id: "cc", tier: Tier.Ontology, typeOf: MetaKind.Taxonomy, attrs: new Map() });
-  for (const id of ["cc.surface", "cc.api-service", "cc.web-portal", "cc.data-store"])
+  for (const id of ["cc.Surface", "cc.ApiService", "cc.WebPortal", "cc.DataStore"])
     g.addNode({ id, tier: Tier.Ontology, typeOf: "cc", attrs: new Map() });
   // surface -> {api-service, web-portal}; broader -> narrower
-  g.addEdge({ kind: EdgeKind.Narrower, via: null, from: "cc.surface", to: "cc.api-service" });
-  g.addEdge({ kind: EdgeKind.Narrower, via: null, from: "cc.surface", to: "cc.web-portal" });
+  g.addEdge({ kind: EdgeKind.Narrower, via: null, from: "cc.Surface", to: "cc.ApiService" });
+  g.addEdge({ kind: EdgeKind.Narrower, via: null, from: "cc.Surface", to: "cc.WebPortal" });
   return new Repository(g);
 }
 
 test("narrowerOf returns direct children; broaderOf the direct parent", () => {
   const m = taxo();
-  assert.deepEqual(m.narrowerOf("cc.surface").sort(), ["cc.api-service", "cc.web-portal"]);
-  assert.deepEqual(m.broaderOf("cc.api-service"), ["cc.surface"]);
-  assert.deepEqual(m.narrowerOf("cc.api-service"), []);
+  assert.deepEqual(m.narrowerOf("cc.Surface").sort(), ["cc.ApiService", "cc.WebPortal"]);
+  assert.deepEqual(m.broaderOf("cc.ApiService"), ["cc.Surface"]);
+  assert.deepEqual(m.narrowerOf("cc.ApiService"), []);
 });
 
 test("descendantsOf/ancestorsOf walk the whole branch; flat terms return empty", () => {
   const m = taxo();
-  assert.deepEqual(m.descendantsOf("cc.surface").sort(), ["cc.api-service", "cc.web-portal"]);
-  assert.deepEqual(m.ancestorsOf("cc.api-service"), ["cc.surface"]);
-  assert.deepEqual(m.descendantsOf("cc.data-store"), []); // flat/root term
+  assert.deepEqual(m.descendantsOf("cc.Surface").sort(), ["cc.ApiService", "cc.WebPortal"]);
+  assert.deepEqual(m.ancestorsOf("cc.ApiService"), ["cc.Surface"]);
+  assert.deepEqual(m.descendantsOf("cc.DataStore"), []); // flat/root term
 });

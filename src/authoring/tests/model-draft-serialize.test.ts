@@ -10,13 +10,13 @@ import { checkAgainst } from "../../api.js";
 
 function baseClient(): FrozenRepository {
   const repo = new Repository();
-  const b = repo.builder().setNamespace("acme.ea");
+  const b = repo.builder().setNamespace("Acme.ea");
   b.definePrimitive("string");
   b.defineConcept("technology");
   b.addField("technology", "label", "string");
   b.defineConcept("component");
   b.addField("component", "label", "string");
-  b.addField("component", "implemented-by", "technology", Cardinality.Optional);
+  b.addField("component", "implementedBy", "technology", Cardinality.Optional);
   b.assertInstance("technology", "copilot");
   b.setField("copilot", "label", "Copilot");
   b.commit();
@@ -30,7 +30,7 @@ function draftWithGw() {
     concept: "component",
     id: "gw",
     scalars: new Map([["label", "Gateway"]]),
-    refs: new Map([["implemented-by", ["copilot"]]]),
+    refs: new Map([["implementedBy", ["copilot"]]]),
   });
   return { base, draft };
 }
@@ -45,7 +45,7 @@ test("toJSON emits only the own delta — base nodes are not copied in", () => {
 test("the delta records the cross-boundary edge by target id", () => {
   const { draft } = draftWithGw();
   const delta = draft.toJSON();
-  const edge = delta.edges.find((e) => e.from === "gw" && e.via === "implemented-by");
+  const edge = delta.edges.find((e) => e.from === "gw" && e.via === "implementedBy");
   assert.ok(edge);
   assert.equal(edge!.to, "copilot"); // frozen base id, referenced not copied
 });
@@ -54,7 +54,7 @@ test("delta + base recompose into the full model", () => {
   const { base, draft } = draftWithGw();
   const recomposed = new Repository(mergeBases([toJSON(base), draft.toJSON()]));
   assert.equal(recomposed.entity("gw")!.field("label"), "Gateway");
-  assert.equal(recomposed.entity("gw")!.ref("implemented-by")!.id, "copilot");
+  assert.equal(recomposed.entity("gw")!.ref("implementedBy")!.id, "copilot");
 });
 
 test("toTodl emits .todl that round-trips through checkAgainst", () => {
@@ -63,7 +63,7 @@ test("toTodl emits .todl that round-trips through checkAgainst", () => {
   const { model, diagnostics } = checkAgainst([toJSON(base)], [{ uri: "app.todl", text: todl }]);
   assert.deepEqual(diagnostics, []); // valid, no new diagnostics
   assert.equal(model.entity("gw")!.field("label"), "Gateway");
-  assert.equal(model.entity("gw")!.ref("implemented-by")!.id, "copilot");
+  assert.equal(model.entity("gw")!.ref("implementedBy")!.id, "copilot");
 });
 
 // InstanceDescriptor is usable as a type from the package root.

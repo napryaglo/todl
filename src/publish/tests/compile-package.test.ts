@@ -5,7 +5,7 @@ import { toJSON } from "../../emit/json.js";
 import { compilePackage } from "../publish.js";
 
 const META = `namespace ea {
-  concept technology { label : string; }
+  concept Technology { label : string; }
 }`;
 
 test("compilePackage: clean sources → ok, document + classes derived", () => {
@@ -19,7 +19,7 @@ test("compilePackage: clean sources → ok, document + classes derived", () => {
 });
 
 test("compilePackage: erroring sources → not ok, errors populated, no package", () => {
-  const bad = `namespace x { concept c { f : nonexistent-type; } }`;
+  const bad = `namespace x { concept C { f : NonexistentType; } }`;
   const out = compilePackage([], [{ uri: "x.todl", text: bad }], { id: "x", version: "0.1.0" });
   assert.equal(out.ok, false);
   assert.ok(out.errors.length > 0);

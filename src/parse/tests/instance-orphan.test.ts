@@ -8,12 +8,12 @@ function diags(text: string) {
 }
 
 test("a concrete object outside a model is an error", () => {
-  const src = `namespace d { concept component { label : string; } component c { label = "C"; } }`;
+  const src = `namespace d { concept Component { label : string; } Component c { label = "C"; } }`;
   const ds = diags(src);
   assert.ok(ds.some((d) => d.code === DiagnosticCode.InstanceOrphan && d.severity === "error"));
 });
 
 test("the same object inside a model is clean", () => {
-  const src = `namespace d { concept component { label : string; } model m : d { component c { label = "C"; } } }`;
+  const src = `namespace d { concept Component { label : string; } model M : D { Component c { label = "C"; } } }`;
   assert.ok(!diags(src).some((d) => d.code === DiagnosticCode.InstanceOrphan));
 });

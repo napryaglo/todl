@@ -18,7 +18,7 @@ function predicate(source: string) {
 function serviceTask(assignee: string | null): Repository {
   const model = new Repository();
   const builder = model.builder();
-  builder.assertInstance("task-type", "service");
+  builder.assertInstance("TaskType", "service");
   builder.assertInstance("task", "t1").addRelationship("t1", "type", "service");
   if (assignee !== null) builder.setField("t1", "assignee", assignee);
   builder.commit();
@@ -40,9 +40,9 @@ test("start-event invariant desugars .empty and holds with no incoming flows", (
   const model = new Repository();
   model
     .builder()
-    .assertInstance("event-type", "start")
+    .assertInstance("EventType", "start")
     .assertInstance("event", "e1")
-    .addRelationship("e1", "event-type", "start")
+    .addRelationship("e1", "EventType", "start")
     .commit();
 
   assert.equal(satisfies(model, expr, "e1"), true);
@@ -53,10 +53,10 @@ test("start-event invariant fails when a start event has an incoming flow", () =
   const model = new Repository();
   model
     .builder()
-    .assertInstance("event-type", "start")
-    .assertInstance("sequence-flow", "f1")
+    .assertInstance("EventType", "start")
+    .assertInstance("SequenceFlow", "f1")
     .assertInstance("event", "e1")
-    .addRelationship("e1", "event-type", "start")
+    .addRelationship("e1", "EventType", "start")
     .addRelationship("e1", "incoming", "f1")
     .commit();
 

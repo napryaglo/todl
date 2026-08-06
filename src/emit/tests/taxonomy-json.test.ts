@@ -4,10 +4,10 @@ import { load } from "../../parse/loader.js";
 import { toJSON, fromJSON } from "../json.js";
 
 test("toJSON/fromJSON round-trips a nested taxonomy including Narrower edges", () => {
-  const src = `namespace n { concept thing {} taxonomy cc : represents thing { term surface { term api-service {} } term data-store {} } }`;
+  const src = `namespace n { concept Thing {} taxonomy Cc : represents Thing { term Surface { term ApiService {} } term DataStore {} } }`;
   const original = load([{ uri: "t.todl", text: src }]).model;
   const rebuilt = fromJSON(toJSON(original));
-  assert.deepEqual(rebuilt.narrowerOf("cc.surface"), ["cc.api-service"]);
-  assert.deepEqual(rebuilt.broaderOf("cc.api-service"), ["cc.surface"]);
+  assert.deepEqual(rebuilt.narrowerOf("cc.Surface"), ["cc.ApiService"]);
+  assert.deepEqual(rebuilt.broaderOf("cc.ApiService"), ["cc.Surface"]);
   assert.equal(rebuilt.resolve("cc")?.typeOf, "taxonomy");
 });

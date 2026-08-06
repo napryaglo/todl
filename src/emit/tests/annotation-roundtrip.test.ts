@@ -8,8 +8,8 @@ import { MetaKind } from "../../model/kinds.js";
 test("annotation def, application node, Annotated edge, and params round-trip", () => {
   const { model } = check([{ uri: "a.todl", text:
     `namespace acme {
-      annotation badge { path : string; }
-      concept actor { annotate badge { path = "a.svg"; } }
+      annotation Badge { path : string; }
+      concept Actor { annotate Badge { path = "a.svg"; } }
     }` }]);
   const restored = fromJSON(toJSON(model));
 
@@ -23,11 +23,11 @@ test("annotation def, application node, Annotated edge, and params round-trip", 
 test("a taxonomy-level annotation round-trips through JSON", () => {
   const { model, diagnostics } = check([{ uri: "a.todl", text:
     `namespace acme {
-      concept actor { label : string; }
-      annotation badge { path : string; }
-      taxonomy actors : represents actor {
-        annotate badge { path = "actors.svg"; }
-        term internal { label = "Internal"; }
+      concept Actor { label : string; }
+      annotation Badge { path : string; }
+      taxonomy Actors : represents Actor {
+        annotate Badge { path = "actors.svg"; }
+        term Internal { label = "Internal"; }
       }
     }` }]);
   assert.deepEqual(diagnostics, [], "clean check");
@@ -35,6 +35,6 @@ test("a taxonomy-level annotation round-trips through JSON", () => {
 
   const app = restored.resolve("actors@badge");
   assert.equal(app!.typeOf, "badge");
-  assert.equal(app!.attrs.get("path"), "actors.svg");
+  assert.equal(app!.attrs.get("path"), "Actors.svg");
   assert.deepEqual(restored.related("actors", EdgeKind.Annotated, Direction.Out), ["actors@badge"]);
 });

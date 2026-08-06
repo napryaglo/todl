@@ -13,17 +13,17 @@ function coveredModel(): Repository {
     .builder()
     .defineConcept("location")
     .defineConcept("technology")
-    .addConceptRelationship("technology", "available-in", "location", Cardinality.Many)
+    .addConceptRelationship("technology", "availableIn", "location", Cardinality.Many)
     .defineConcept("component")
     .addConceptRelationship("component", "in", "location", Cardinality.One)
-    .addConceptRelationship("component", "implemented-by", "technology", Cardinality.Optional)
+    .addConceptRelationship("component", "implementedBy", "technology", Cardinality.Optional)
     .commit();
 
   model.defineInvariant(
     "component",
     implies(
-      neq(member(THIS, "implemented-by"), NONE),
-      isIn(member(THIS, "in"), member(member(THIS, "implemented-by"), "available-in")),
+      neq(member(THIS, "implementedBy"), NONE),
+      isIn(member(THIS, "in"), member(member(THIS, "implementedBy"), "availableIn")),
     ),
     "location must be offered by the implementing technology",
   );
@@ -40,10 +40,10 @@ test("a satisfying instance raises no invariant diagnostic", () => {
     .builder()
     .assertInstance("location", "m365")
     .assertInstance("technology", "teams")
-    .addRelationship("teams", "available-in", "m365")
-    .assertInstance("component", "teams-chat")
-    .addRelationship("teams-chat", "in", "m365")
-    .addRelationship("teams-chat", "implemented-by", "teams")
+    .addRelationship("teams", "availableIn", "m365")
+    .assertInstance("component", "teamsChat")
+    .addRelationship("teamsChat", "in", "m365")
+    .addRelationship("teamsChat", "implementedBy", "teams")
     .commit();
 
   assert.deepEqual(invariantDiagnostics(model), []);
@@ -56,15 +56,15 @@ test("a violating instance is reported with the invariant description", () => {
     .assertInstance("location", "m365")
     .assertInstance("location", "aws")
     .assertInstance("technology", "teams")
-    .addRelationship("teams", "available-in", "m365") // not aws
-    .assertInstance("component", "teams-chat")
-    .addRelationship("teams-chat", "in", "aws")
-    .addRelationship("teams-chat", "implemented-by", "teams")
+    .addRelationship("teams", "availableIn", "m365") // not aws
+    .assertInstance("component", "teamsChat")
+    .addRelationship("teamsChat", "in", "aws")
+    .addRelationship("teamsChat", "implementedBy", "teams")
     .commit();
 
   const diagnostics = invariantDiagnostics(model);
   assert.equal(diagnostics.length, 1);
-  assert.equal(diagnostics[0]?.node, "teams-chat");
+  assert.equal(diagnostics[0]?.node, "teamsChat");
   assert.match(diagnostics[0]?.message ?? "", /location must be offered/);
 });
 
@@ -76,10 +76,10 @@ test("invariants are inherited by subtype instances", () => {
     .assertInstance("location", "m365")
     .assertInstance("location", "aws")
     .assertInstance("technology", "teams")
-    .addRelationship("teams", "available-in", "m365")
+    .addRelationship("teams", "availableIn", "m365")
     .assertInstance("frontend", "web")
     .addRelationship("web", "in", "aws")
-    .addRelationship("web", "implemented-by", "teams")
+    .addRelationship("web", "implementedBy", "teams")
     .commit();
 
   assert.equal(invariantDiagnostics(model).some((diagnostic) => diagnostic.node === "web"), true);
