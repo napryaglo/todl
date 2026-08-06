@@ -229,6 +229,41 @@ export class Repository {
     return result;
   }
 
+  // ── Read primitives (typed-client foundation, spec §4) ────────────────────
+
+  /** A node's effective scalar field value (class-merged), or undefined. */
+  attr(id: NodeId, name: string): Scalar | undefined {
+    return this.effectiveFields(id).get(name);
+  }
+
+  /** The single target of reference member `member` (class-merged), or undefined. */
+  ref(id: NodeId, member: string): NodeId | undefined {
+    return this.refs(id, member)[0];
+  }
+
+  /** All targets of reference member `member` (class-merged); [] if none. */
+  refs(id: NodeId, member: string): NodeId[] {
+    return this.effectiveRelationships(id).get(member) ?? [];
+  }
+
+  /** Inbound reference sources (reverse adjacency), optionally filtered by member. */
+  referrers(id: NodeId, member?: string): NodeId[] {
+    return this.related(id, EdgeKind.Relationship, Direction.In, member ?? null);
+  }
+
+  /** Every relationship edge whose target node is absent (bulk dangling report). */
+  danglingRefs(): { from: NodeId; member: string; to: NodeId }[] {
+    const result: { from: NodeId; member: string; to: NodeId }[] = [];
+    for (const node of this.allNodes()) {
+      for (const edge of this.outEdges(node.id)) {
+        if (edge.kind === EdgeKind.Relationship && edge.via !== null && !this.has(edge.to)) {
+          result.push({ from: node.id, member: edge.via, to: edge.to });
+        }
+      }
+    }
+    return result;
+  }
+
   /** Reflect a concept's declared schema (spec §5): direct parent, fields, relationships. */
   schemaOf(concept: NodeId): ConceptSchema {
     const parents = this.graph.related(concept, EdgeKind.Extends, Direction.Out);
