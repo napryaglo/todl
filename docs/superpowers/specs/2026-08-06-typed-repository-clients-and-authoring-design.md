@@ -1,7 +1,7 @@
 # Typed Repository Clients & Model Authoring — Design
 
 **Date:** 2026-08-06
-**Status:** ⬜ Unfinished — design only, not started
+**Status:** 🚧 In progress — **Phase 1 (Component A: read primitives + `Entity` identity map) DONE** and merged to `main` (2026-08-06; `Repository.entity()`/`attr`/`ref`/`refs`/`referrers`/`danglingRefs`, `Entity`/`EntityBase`, exported; 381/381 green). Phases 2–7 not started. `danglingRefs()` positive case deferred to Phase 4 (no dangling edge is constructible in a single well-formed `Repository`); `type()` returns `Entity | undefined` (no-throw). Plan: `docs/superpowers/plans/2026-08-06-typed-repository-clients-phase1-read-primitives.md`.
 **Component:** TODL (`@pragmatic-lab/todl`) — runtime, a `GraphStore` seam, code generation, and a mutable authoring layer. Downstream consumer: Plexus.
 
 ---
