@@ -20,6 +20,7 @@ import {
 } from "./graph.js";
 import { Builder } from "./builder.js";
 import { ReactiveNode } from "./reactive.js";
+import { EntityBase, type Entity } from "./entity.js";
 import { Derivations } from "../predicate/derivations.js";
 import { Invariants, type InvariantDef } from "../predicate/invariants.js";
 import type { Expr } from "../predicate/ast.js";
@@ -51,6 +52,7 @@ export class Repository {
   private readonly derivations: Derivations;
   private readonly invariants: Invariants;
   private readonly spans = new Map<string, SourceSpan>();
+  private readonly entityCache = new Map<NodeId, EntityBase>();
 
   constructor(graph: Graph = new Graph()) {
     this.graph = graph;
@@ -91,6 +93,21 @@ export class Repository {
   /** A live reactive view of one node. */
   view(id: NodeId): ReactiveNode {
     return new ReactiveNode(this, id);
+  }
+
+  /**
+   * A memoized read lens for `id` (spec §4). Same id → same instance (identity
+   * map), so references resolve to shared handles and cycles are safe. Undefined
+   * when the node does not exist.
+   */
+  entity<T extends Entity = Entity>(id: NodeId): T | undefined {
+    if (!this.has(id)) return undefined;
+    let handle = this.entityCache.get(id);
+    if (handle === undefined) {
+      handle = new EntityBase(this, id);
+      this.entityCache.set(id, handle);
+    }
+    return handle as unknown as T;
   }
 
   resolve(id: NodeId): Node | undefined {
