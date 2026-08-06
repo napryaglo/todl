@@ -16,19 +16,19 @@ test("a migrated-style library compiles clean: bare siblings + uses cross-refs",
      }` }]).model);
 
   const lib = `namespace libraries.microsoft {
-    import tech-architecture;
+    import techArchitecture;
     taxonomy MicrosoftTech : represents Location, Technology uses Categories {
       Location azure { label = "Azure"; }
       Location m365  { label = "Microsoft 365"; parent = azure; }
       Technology graph {
         label = "Microsoft Graph";
         availableIn  = [m365];
-        applicableTo = [platformApi];
+        applicableTo = [PlatformApi];
       }
       Technology teams {
         label = "Microsoft Teams";
         availableIn  = [m365];
-        applicableTo = [conversationalInterface];
+        applicableTo = [ConversationalInterface];
       }
     }
   }`;

@@ -80,7 +80,7 @@ test("a bare term is still writable as a fully-qualified node id without `uses`"
     `namespace app {
        import ea;
        model m : ea {
-         Component gw { label = "GW"; realisedBy = Stack.AzureOpenai; }
+         Component gw { label = "GW"; realisedBy = Stack.azureOpenai; }
        }
      }` }]);
   assert.deepEqual(errs(diagnostics), []);
