@@ -19,6 +19,13 @@ export {
 export { InMemoryGraphStore, type GraphStore } from "./model/graph-store.js";
 
 export {
+  CypherGraphStore,
+  type CypherSession,
+  type CypherOp,
+  type CypherRow,
+} from "./model/cypher-store.js";
+
+export {
   ReactiveNode,
   PropertyChangeKind,
   CollectionChangeKind,
