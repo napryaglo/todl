@@ -42,6 +42,8 @@ export { FrozenRepository } from "./model/frozen.js";
 
 export { generateReadClient, isReferenceType, type ReadClientOptions } from "./codegen/read-client.js";
 
+export { ModelDraft, type InstanceDescriptor } from "./authoring/model-draft.js";
+
 export {
   ExprKind,
   BinaryOp,
