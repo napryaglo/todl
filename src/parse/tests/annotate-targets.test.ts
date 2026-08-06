@@ -20,7 +20,7 @@ test("annotate parses at the taxonomy level (annotates the taxonomy itself)", ()
   assert.equal(tax.annotations[0]!.name, "Icon");
   assert.equal(tax.annotations[0]!.assignments[0]!.name, "path");
   // The annotate is NOT mis-parsed as a concept-led term named "Icon".
-  assert.deepEqual(tax.terms.map((t) => t.id), ["internal"]);
+  assert.deepEqual(tax.terms.map((t) => t.id), ["Internal"]);
 });
 
 test("a taxonomy keeps both taxonomy-level and term-level annotations", () => {

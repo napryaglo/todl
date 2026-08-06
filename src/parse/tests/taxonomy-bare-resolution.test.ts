@@ -30,7 +30,7 @@ test("a bare cross-taxonomy reference resolves through `uses`", () => {
     `namespace lib {
        import ea;
        taxonomy Mtech : represents Technology uses Categories {
-         Technology graph { label = "G"; applicableTo = [platformApi]; }
+         Technology graph { label = "G"; applicableTo = [PlatformApi]; }
        }
      }` }]);
   assert.deepEqual(errs(diagnostics), []);
@@ -46,7 +46,7 @@ test("without `uses`, the same cross reference is undefined", () => {
   const { diagnostics } = checkAgainst([base], [{ uri: "lib.todl", text:
     `namespace lib {
        taxonomy Mtech : represents Technology {
-         Technology graph { label = "G"; applicableTo = [platformApi]; }
+         Technology graph { label = "G"; applicableTo = [PlatformApi]; }
        }
      }` }]);
   assert.ok(errs(diagnostics).includes(DiagnosticCode.ReferenceUndefined));
@@ -59,7 +59,7 @@ test("a bare name defined by two used taxonomies is ambiguous", () => {
        taxonomy A : represents C { term Dup { label = "1"; } }
        taxonomy B : represents C { term Dup { label = "2"; } }
        taxonomy User : represents C uses A, B {
-         C x { label = "X"; ref = dup; }
+         C x { label = "X"; ref = Dup; }
        }
      }` }]);
   assert.ok(errs(diagnostics).includes(DiagnosticCode.TaxonomyAmbiguousBareReference));

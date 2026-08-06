@@ -54,5 +54,5 @@ test("package block parses to a PackageDecl of applications", () => {
   }`)[0] as PackageDecl;
   assert.equal(d.kind, DeclKind.Package);
   assert.equal(d.annotations.length, 2);
-  assert.equal(d.annotations[1]!.name, "license");
+  assert.equal(d.annotations[1]!.name, "License");
 });
