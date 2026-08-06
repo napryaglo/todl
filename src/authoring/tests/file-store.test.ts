@@ -9,7 +9,7 @@ import { TodlFileStore, type FileIO } from "../../index.js";
 
 function baseClient(): FrozenRepository {
   const repo = new Repository();
-  const b = repo.builder().setNamespace("Acme.ea");
+  const b = repo.builder().setNamespace("acme.ea");
   b.definePrimitive("string");
   b.defineConcept("technology");
   b.addField("technology", "label", "string");
@@ -34,7 +34,7 @@ class MemoryFileIO implements FileIO {
 
 test("save writes .todl; load reparses the model", async () => {
   const base = baseClient();
-  const draft = ModelDraft.on([base], { namespace: "Acme.app" });
+  const draft = ModelDraft.on([base], { namespace: "acme.app" });
   draft.add({
     concept: "component",
     id: "gw",
@@ -43,9 +43,9 @@ test("save writes .todl; load reparses the model", async () => {
   });
 
   const io = new MemoryFileIO();
-  const store = new TodlFileStore(io, [base], { namespace: "Acme.app" });
+  const store = new TodlFileStore(io, [base], { namespace: "acme.app" });
   await store.save(draft);
-  assert.match(io.content, /model acme-app-model : acme\.ea/);
+  assert.match(io.content, /model acmeAppModel : acme\.ea/);
 
   const { model, diagnostics } = await store.load();
   assert.deepEqual(diagnostics, []);

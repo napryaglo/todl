@@ -85,9 +85,9 @@ export function emitModelTodl(own: TodlDocument, namespace: string, bindings: Mo
   for (const n of classes) lines.push(...emitOne(n, instanceOf.get(n.id), rels.get(n.id) ?? []));
   if (concrete.length > 0) {
     const uses = bindings.uses.length > 0 ? ` uses ${bindings.uses.join(", ")}` : "";
-    // The model id must be a bare identifier (no dots); a dotted namespace is
-    // flattened with hyphens so `acme.app` → `acme-app-model`.
-    const modelId = `${namespace.replace(/\./g, "-")}-model`;
+    // The model id must be a bare C-like identifier (no dots); a dotted namespace
+    // is flattened to camelCase so `acme.app` → `acmeAppModel`.
+    const modelId = `${namespace.split(".").map((s, i) => (i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1))).join("")}Model`;
     lines.push(`  model ${modelId} : ${bindings.metaModel}${uses} {`);
     for (const n of concrete) {
       for (const l of emitOne(n, instanceOf.get(n.id), rels.get(n.id) ?? [])) lines.push(`  ${l}`);

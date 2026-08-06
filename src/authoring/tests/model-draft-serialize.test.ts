@@ -10,7 +10,7 @@ import { checkAgainst } from "../../api.js";
 
 function baseClient(): FrozenRepository {
   const repo = new Repository();
-  const b = repo.builder().setNamespace("Acme.ea");
+  const b = repo.builder().setNamespace("acme.ea");
   b.definePrimitive("string");
   b.defineConcept("technology");
   b.addField("technology", "label", "string");
