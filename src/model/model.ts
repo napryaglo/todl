@@ -104,10 +104,15 @@ export class Repository {
     if (!this.has(id)) return undefined;
     let handle = this.entityCache.get(id);
     if (handle === undefined) {
-      handle = new EntityBase(this, id);
+      handle = this.createEntity(id);
       this.entityCache.set(id, handle);
     }
     return handle as unknown as T;
+  }
+
+  /** Construct the handle for `id`. Override to return a typed EntityBase subclass. */
+  protected createEntity(id: NodeId): EntityBase {
+    return new EntityBase(this, id);
   }
 
   resolve(id: NodeId): Node | undefined {
