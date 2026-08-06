@@ -17,7 +17,7 @@ test("a top-level concrete object is an orphan", () => {
 test("an object inside a model is not an orphan", () => {
   const c = codes(`namespace acme {
     concept Component { }
-    model Prod : Acme { Component checkout { } }
+    model prod : acme { Component checkout { } }
   }`);
   assert.ok(!c.includes(DiagnosticCode.InstanceOrphan));
 });

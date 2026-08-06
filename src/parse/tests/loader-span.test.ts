@@ -9,7 +9,7 @@ const CONCEPTS = `namespace ea {
 }`;
 const MODEL = `namespace app {
   import ea;
-  model M : Ea {
+  model m : ea {
     Component teamsChat { label = "Teams"; }
   }
 }`;

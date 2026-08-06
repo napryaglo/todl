@@ -14,6 +14,6 @@ test("a concrete object outside a model is an error", () => {
 });
 
 test("the same object inside a model is clean", () => {
-  const src = `namespace d { concept Component { label : string; } model M : D { Component c { label = "C"; } } }`;
+  const src = `namespace d { concept Component { label : string; } model m : d { Component c { label = "C"; } } }`;
   assert.ok(!diags(src).some((d) => d.code === DiagnosticCode.InstanceOrphan));
 });

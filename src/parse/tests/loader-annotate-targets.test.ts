@@ -76,7 +76,7 @@ test("annotate on a concrete instance is annotation.invalid-target", () => {
   const { diagnostics } = load([{ uri: "a.todl", text: `namespace tech {
     concept Component { label : string; }
     annotation Icon { path : string; }
-    model M : Tech {
+    model m : tech {
       Component storefront { label = "S"; annotate Icon { path = "w.svg"; } }
     }
   }` }]);

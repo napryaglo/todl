@@ -11,7 +11,7 @@ function loaded(text: string) {
 const BASE = `namespace d {
   concept Technology { label : string; }
   concept Component { label : string; category : string; implementedBy : Technology?; }
-  model Microsoft : D {
+  model microsoft : d {
     Technology m365Copilot { label = "Copilot"; }
     Component a { label = "A"; category = draft; implementedBy = m365Copilot; }
     Component b { label = "B"; category = draft; implementedBy = m365Copilot; }
@@ -40,7 +40,7 @@ test("a concept-typed field given a quoted string is a value-kind error", () => 
   const bad = `namespace d {
     concept Technology { label : string; }
     concept Component { implementedBy : Technology?; }
-    model Microsoft : D { Component a { implementedBy = "m365-copilot"; } }
+    model microsoft : d { Component a { implementedBy = "m365-copilot"; } }
   }`;
   const codes = loaded(bad).diagnostics.map((d) => d.code);
   assert.ok(codes.includes(DiagnosticCode.MemberValueKind));

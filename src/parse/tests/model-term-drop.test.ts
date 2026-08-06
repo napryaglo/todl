@@ -31,7 +31,7 @@ test("model `uses <taxonomy>` brings its terms into bare scope", () => {
   const { diagnostics } = checkAgainst([base()], [{ uri: "app.todl", text:
     `namespace app {
        import ea;
-       model M : Ea uses Stack, kinds {
+       model m : ea uses Stack, kinds {
          Component gw { label = "GW"; realisedBy = azureOpenai; kind = service; }
        }
      }` }]);
@@ -42,7 +42,7 @@ test("a bare term drops to its flat taxonomy.term node (edge points at stack.azu
   const { model } = checkAgainst([base()], [{ uri: "app.todl", text:
     `namespace app {
        import ea;
-       model M : Ea uses Stack {
+       model m : ea uses Stack {
          Component gw { label = "GW"; realisedBy = azureOpenai; }
        }
      }` }]);
@@ -56,7 +56,7 @@ test("without `uses`, the bare term is undefined", () => {
   const { diagnostics } = checkAgainst([base()], [{ uri: "app.todl", text:
     `namespace app {
        import ea;
-       model M : Ea {
+       model m : ea {
          Component gw { label = "GW"; realisedBy = azureOpenai; }
        }
      }` }]);
@@ -67,7 +67,7 @@ test("qualified `uses ea.stack` normalizes and still brings terms into scope", (
   const { diagnostics } = checkAgainst([base()], [{ uri: "app.todl", text:
     `namespace app {
        import ea;
-       model M : Ea uses ea.Stack {
+       model m : ea uses ea.Stack {
          Component gw { label = "GW"; realisedBy = azureOpenai; }
        }
      }` }]);
@@ -79,7 +79,7 @@ test("a bare term is still writable as a fully-qualified node id without `uses`"
   const { diagnostics } = checkAgainst([base()], [{ uri: "app.todl", text:
     `namespace app {
        import ea;
-       model M : Ea {
+       model m : ea {
          Component gw { label = "GW"; realisedBy = Stack.AzureOpenai; }
        }
      }` }]);
@@ -90,7 +90,7 @@ test("model `uses` of a non-taxonomy is flagged", () => {
   const { diagnostics } = checkAgainst([base()], [{ uri: "app.todl", text:
     `namespace app {
        import ea;
-       model M : Ea uses Component {
+       model m : ea uses Component {
          Component gw { label = "GW"; }
        }
      }` }]);
@@ -108,7 +108,7 @@ test("a bare id defined by two used taxonomies is ambiguous", () => {
   const { diagnostics } = checkAgainst([b], [{ uri: "app.todl", text:
     `namespace app {
        import ea;
-       model M : Ea uses A, b {
+       model m : ea uses A, b {
          Component gw { label = "GW"; realisedBy = dup; }
        }
      }` }]);

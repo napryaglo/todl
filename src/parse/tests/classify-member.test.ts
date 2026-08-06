@@ -15,17 +15,17 @@ const SRC = `namespace d {
 
 test("field typed by a concept is reference-like", () => {
   const m = model(SRC);
-  assert.equal(__test__.isReferenceMember(m, "component", "implementedBy"), true);
+  assert.equal(__test__.isReferenceMember(m, "Component", "implementedBy"), true);
 });
 
 test("field typed by a primitive is value-like", () => {
   const m = model(SRC);
-  assert.equal(__test__.isReferenceMember(m, "component", "label"), false);
+  assert.equal(__test__.isReferenceMember(m, "Component", "label"), false);
 });
 
 test("a type resolving to a taxonomy is reference-like", () => {
   const m = model(SRC);
-  assert.equal(__test__.isReferenceType(m, "category"), true);
+  assert.equal(__test__.isReferenceType(m, "Category"), true);
   assert.equal(__test__.isReferenceType(m, "string"), false);
   assert.equal(__test__.isReferenceType(m, "does-not-exist"), false);
 });

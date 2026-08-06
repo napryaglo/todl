@@ -4,7 +4,7 @@ import { Repository } from "../../model/model.js";
 import { toJSON, type TodlDocument } from "../json.js";
 import { deriveBindings, emitModelTodl } from "../todl.js";
 
-// A namespaced meta-model base: concept `component` { label; implemented-by : technology }.
+// A namespaced meta-model base : concept `component` { label; implemented-by : technology }.
 function base(): Repository {
   const r = new Repository();
   const b = r.builder().setNamespace("Acme.ea");

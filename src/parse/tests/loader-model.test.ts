@@ -6,7 +6,7 @@ import { MetaKind } from "../../model/kinds.js";
 
 const SRC = `namespace acme {
   concept Component { name : string; }
-  model Prod : Acme uses AwsCatalog {
+  model prod : acme uses AwsCatalog {
     Component checkout { name = "Checkout"; }
   }
 }`;

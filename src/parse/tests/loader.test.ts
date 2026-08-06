@@ -100,7 +100,7 @@ test("edge-shorthand connector loads from/to as relationship edges", () => {
 test("nested instances load with contains edges and a meta-model binding", () => {
   const model = load([
     `namespace d {
-      model M : EnterpriseArchitecture {
+      model m : enterpriseArchitecture {
         Location saas3p { label = "x"; }
       }
     }`,

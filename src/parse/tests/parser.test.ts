@@ -124,7 +124,7 @@ test("parses concept-prefixed edge-shorthand with a body", () => {
 
 test("parses an application-connectors block of --> edges inside a model", () => {
   const { namespace: ns } = parse(`namespace d {
-    model M : Ea {
+    model m : ea {
       application-connectors { external-agent-bridge --> AgentService }
     }
   }`);
@@ -137,7 +137,7 @@ test("parses an application-connectors block of --> edges inside a model", () =>
 
 test("parses a model with a meta-model binding and nested instances", () => {
   const { namespace: ns } = parse(`namespace d {
-    model M : EnterpriseArchitecture {
+    model m : enterpriseArchitecture {
       Location saas3p { label = "3rd-Party SaaS"; type = logicalGrouping; }
     }
   }`);

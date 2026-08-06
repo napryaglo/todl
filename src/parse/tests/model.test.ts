@@ -11,7 +11,7 @@ function firstDecl(text: string) {
 
 test("model parses to a ModelDecl with meta-model, uses, and object body", () => {
   const decl = firstDecl(`namespace acme {
-    model Prod : EnterpriseArchitecture uses AwsCatalog, eaPatterns {
+    model prod : enterpriseArchitecture uses AwsCatalog, eaPatterns {
       Component checkout { name = "Checkout"; }
       Component payments instanceof paymentService { name = "Payments"; }
     }
@@ -28,7 +28,7 @@ test("model parses to a ModelDecl with meta-model, uses, and object body", () =>
 
 test("model with no uses list parses with empty libraries", () => {
   const decl = firstDecl(`namespace acme {
-    model Prod : Ea { Component c { } }
+    model prod : ea { Component c { } }
   }`) as ModelDecl;
   assert.equal(decl.kind, DeclKind.Model);
   assert.deepEqual(decl.libraries, []);

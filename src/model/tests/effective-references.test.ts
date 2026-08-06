@@ -9,7 +9,7 @@ function model(text: string) {
 const SRC = `namespace d {
   concept Technology { label : string; }
   concept Component { label : string; implementedBy : Technology?; }
-  model M : D {
+  model m : d {
     Technology t { label = "T"; }
     Component c { label = "C"; implementedBy = t; }
   }
