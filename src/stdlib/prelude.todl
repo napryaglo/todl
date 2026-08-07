@@ -4,11 +4,15 @@ namespace todl
     primitive Identifier : string { regex = "^[A-Za-z_][A-Za-z0-9_]*$"; }
     primitive Slug       : string { regex = "^[a-z0-9]+(?:-[a-z0-9]+)*$"; }
     primitive Label      : string { }
+    primitive ResourceKey : string { regex = "^[a-z][a-z0-9_]*$"; }
 
-    // Standard annotations.
-    annotation Icon     { path    : string?; }
-    annotation Toolbox  { visible : boolean?; }
-    annotation Instance { concept : Identifier; via : Identifier?; }
+    // Standard annotations. The four well-known keys tools switch on
+    // (icon/label/toolbox/instance) are lowercase by deliberate exception.
+    annotation MuralResource { key : ResourceKey?; }
+    annotation icon     : MuralResource { path : string?; }
+    annotation label    { text : string?; }
+    annotation toolbox  { visible : boolean?; }
+    annotation instance { concept : Identifier; via : Identifier?; }
 
     // Universal root concept — implicit supertype of every parent-less concept.
     concept Element
