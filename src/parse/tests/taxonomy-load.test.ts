@@ -66,7 +66,7 @@ test("term relationship assignments (refs and lists) load as edges, scalars as a
 
 test("a term composes a represented-concept record, bound to its field (not a term)", () => {
   const { model: m, diagnostics } = loadResult(
-    `concept Billing { id : Identifier; perCall : string?; }
+    `concept Billing { id : identifier; perCall : string?; }
      concept Technology { billing : Billing?; }
      taxonomy Microsoft : represents Technology, Billing {
        Technology azureOpenai { label = "AO"; Billing azureOpenaiBilling { perCall = "consumption"; } }
@@ -85,7 +85,7 @@ test("a term composes a represented-concept record, bound to its field (not a te
 
 test("a term composing a non-represented concept is a load error", () => {
   const { diagnostics } = loadResult(
-    `concept Billing { id : Identifier; } concept Technology { billing : Billing?; }
+    `concept Billing { id : identifier; } concept Technology { billing : Billing?; }
      taxonomy Microsoft : represents Technology {
        Technology azureOpenai { Billing azureOpenaiBilling {} }
      }`,
