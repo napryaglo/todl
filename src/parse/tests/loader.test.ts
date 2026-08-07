@@ -113,8 +113,8 @@ test("nested instances load with contains edges and a meta-model binding", () =>
 test("a nested record binds to the parent field typed by its concept", () => {
   const model = load([
     `namespace d {
-      concept Host { id : Identifier; slots : Slot[]; }
-      concept Slot { id : Identifier; label : string; }
+      concept Host { id : identifier; slots : Slot[]; }
+      concept Slot { id : identifier; label : string; }
       Host h1 {
         Slot s1 { label = "S1"; }
       }
@@ -129,8 +129,8 @@ test("a nested record binds to the parent field typed by its concept", () => {
 test("a nested record with no matching parent field is contains-only", () => {
   const model = load([
     `namespace d {
-      concept Host { id : Identifier; }
-      concept Slot { id : Identifier; }
+      concept Host { id : identifier; }
+      concept Slot { id : identifier; }
       Host h1 { Slot s1 { } }
     }`,
   ]);
@@ -143,8 +143,8 @@ test("ambiguous field binding (two fields of the same type) diagnoses and falls 
     {
       uri: "s.todl",
       text: `namespace d {
-        concept Host { id : Identifier; a : Slot[]; b : Slot[]; }
-        concept Slot { id : Identifier; }
+        concept Host { id : identifier; a : Slot[]; b : Slot[]; }
+        concept Slot { id : identifier; }
         Host h1 { Slot s1 { } }
       }`,
     },

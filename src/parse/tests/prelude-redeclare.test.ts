@@ -5,7 +5,7 @@ import { check } from "../../api.js";
 import { DiagnosticCode, Severity } from "../../diagnostics/diagnostic.js";
 
 test("redeclaring a prelude primitive warns but still compiles", () => {
-  const { diagnostics } = check([{ uri: "a.todl", text: `namespace a { primitive Identifier : string { } }` }]);
+  const { diagnostics } = check([{ uri: "a.todl", text: `namespace a { primitive identifier : string { } }` }]);
   const d = diagnostics.find((x) => x.code === DiagnosticCode.PreludeNameRedeclared);
   assert.ok(d, "expected a prelude.name-redeclared diagnostic");
   assert.equal(d!.severity, Severity.Warning);

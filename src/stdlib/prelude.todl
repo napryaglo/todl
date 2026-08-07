@@ -1,23 +1,23 @@
 namespace todl
 {
-    // Standard primitives — stop redeclaring these in every meta-model.
-    primitive Identifier : string { regex = "^[A-Za-z_][A-Za-z0-9_]*$"; }
-    primitive Slug       : string { regex = "^[a-z0-9]+(?:-[a-z0-9]+)*$"; }
-    primitive Label      : string { }
-    primitive ResourceKey : string { regex = "^[a-z][a-z0-9_]*$"; }
+    // Standard primitives — stop redeclaring these in every meta-model. Built-in
+    // types are lowercase (like `string`); user-declared types are PascalCase.
+    primitive identifier  : string { regex = "^[A-Za-z_][A-Za-z0-9_]*$"; }
+    primitive slug        : string { regex = "^[a-z0-9]+(?:-[a-z0-9]+)*$"; }
+    primitive resourceKey : string { regex = "^[a-z][a-z0-9_]*$"; }
 
     // Standard annotations. The four well-known keys tools switch on
     // (icon/label/toolbox/instance) are lowercase by deliberate exception.
-    annotation MuralResource { key : ResourceKey?; }
+    annotation MuralResource { key : resourceKey?; }
     annotation icon     : MuralResource { path : string?; }
     annotation label    { text : string?; }
     annotation toolbox  { visible : boolean?; }
-    annotation instance { concept : Identifier; via : Identifier?; }
+    annotation instance { concept : identifier; via : identifier?; }
 
     // Universal root concept — implicit supertype of every parent-less concept.
     concept Element
     {
-        label       : Label?;
+        label       : string?;
         description : string?;
     }
 }

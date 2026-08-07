@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { check } from "../../index.js";
 import { DiagnosticCode } from "../../diagnostics/diagnostic.js";
 
-// icon : MuralResource { key : ResourceKey? } — the inherited `key` param is a
+// icon : MuralResource { key : resourceKey? } — the inherited `key` param is a
 // known param on `icon`, so annotating with it compiles clean.
 test("a prelude icon annotation accepts the inherited key param", () => {
   const src = `namespace app {
@@ -27,7 +27,8 @@ test("an unknown param on a prelude icon annotation is still annotation.unknown-
   assert.ok(codes.includes(DiagnosticCode.AnnotationUnknownParam));
 });
 
-// The well-known label annotation now exists (lowercase; distinct from primitive Label).
+// The well-known label annotation exists (lowercase); there is no primitive Label —
+// label-valued fields are just `string`.
 test("a prelude label annotation accepts a text param", () => {
   const src = `namespace app {
     concept Thing { annotate label { text = "A Thing"; } label : string; }
