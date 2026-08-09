@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { checkAgainst } from "../../api.js";
+import { DiagnosticCode } from "../../diagnostics/diagnostic.js";
 
 const fileA = { uri: "a.todl", text: `namespace acme {
   concept Component {}
@@ -25,4 +26,22 @@ test("each entity carries its own file's conforms viewpoint", () => {
   const { model } = checkAgainst([], [fileA, fileB]);
   assert.equal(model.resolve("web")?.attrs.get("conforms"), "ComponentView");
   assert.equal(model.resolve("host")?.attrs.get("conforms"), "DeploymentView");
+});
+
+test("conforms is required once a model is split across files", () => {
+  const noVP = { uri: "b.todl", text: `namespace acme {
+    concept Node {}
+    model Arch : acme { Node host {} }
+  }` };
+  const { diagnostics } = checkAgainst([], [fileA, noVP]);
+  assert.ok(diagnostics.some((d) => d.code === DiagnosticCode.ModelConformsRequiredWhenSplit));
+});
+
+test("a single-file model may omit conforms", () => {
+  const one = { uri: "solo.todl", text: `namespace acme {
+    concept Node {}
+    model Arch : acme { Node host {} }
+  }` };
+  const { diagnostics } = checkAgainst([], [one]);
+  assert.ok(!diagnostics.some((d) => d.code === DiagnosticCode.ModelConformsRequiredWhenSplit));
 });
