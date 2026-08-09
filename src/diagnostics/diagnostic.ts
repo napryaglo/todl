@@ -26,6 +26,8 @@ export enum DiagnosticCode {
   TaxonomyValueUnresolved = "taxonomy.value-unresolved",
   TermConceptNotRepresented = "taxonomy.term-concept-not-represented",
   TaxonomyTermConceptAmbiguous = "taxonomy.term-concept-ambiguous",
+  ViewpointNoFramedConcept = "viewpoint.no-framed-concept",
+  ViewpointFramesNotConcept = "viewpoint.frames-not-concept",
   // Instance-loading phase.
   AmbiguousFieldBinding = "Instance.ambiguous-field-binding",
   // A member's value shape does not match its declared type (e.g. a reference
