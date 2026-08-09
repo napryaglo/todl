@@ -219,7 +219,40 @@ export class ModelDraft {
   toTodl(): string {
     const own = this.toJSON();
     const bindings = deriveBindings(this.model, this.baseIds, this.namespace, own);
-    return emitModelTodl(own, this.namespace, bindings);
+    return emitModelTodl(own, this.namespace, bindings, this.conformsOf(own));
+  }
+
+  /** Serialize the overlay as one `.todl` per home file (Option B multi-file):
+   *  own nodes/edges partitioned by home, each file emitting its own model block
+   *  with its `conforms <viewpoint>`. Nodes with no recorded home fall to a
+   *  single default `${namespace}.todl`. */
+  toTodlByFile(): Map<string, string> {
+    const defaultUri = `${this.namespace}.todl`;
+    const files = new Map<string, TodlDocument>();
+    const ensure = (uri: string): TodlDocument => {
+      let doc = files.get(uri);
+      if (doc === undefined) { doc = { nodes: [], edges: [] }; files.set(uri, doc); }
+      return doc;
+    };
+    const own = this.toJSON();
+    for (const n of own.nodes) ensure(this.home.get(n.id) ?? defaultUri).nodes.push(n);
+    for (const e of own.edges) ensure(this.home.get(String(e.from)) ?? defaultUri).edges.push(e);
+    const result = new Map<string, string>();
+    for (const [uri, doc] of files) {
+      const bindings = deriveBindings(this.model, this.baseIds, this.namespace, doc);
+      result.set(uri, emitModelTodl(doc, this.namespace, bindings, this.conformsOf(doc)));
+    }
+    return result;
+  }
+
+  /** The shared `conforms` viewpoint of a file's concrete entities (file↔viewpoint
+   *  1:1), or undefined when none carry one. */
+  private conformsOf(doc: TodlDocument): string | undefined {
+    for (const n of doc.nodes) {
+      const c = (n.attrs as Record<string, Scalar>).conforms;
+      if (typeof c === "string") return c;
+    }
+    return undefined;
   }
 
   /** True when `id` is base (frozen), false when it is an own overlay instance. */
