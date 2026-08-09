@@ -7,6 +7,7 @@ export enum MetaKind {
   Concept = "concept",
   Primitive = "primitive",
   Taxonomy = "taxonomy",
+  Viewpoint = "viewpoint",
   Field = "field",
   Relationship = "relationship",
   Model = "model",

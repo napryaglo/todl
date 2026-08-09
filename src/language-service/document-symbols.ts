@@ -19,6 +19,8 @@ function toSymbol(decl: Declaration): DocumentSymbol | null {
       return leaf(decl.name, SymbolKind.Struct, range, nameRange(decl.nameSpan, range));
     case DeclKind.Taxonomy:
       return leaf(decl.name, SymbolKind.Enum, range, nameRange(decl.nameSpan, range));
+    case DeclKind.Viewpoint:
+      return leaf(decl.name, SymbolKind.Interface, range, nameRange(decl.nameSpan, range));
     case DeclKind.Concept:
       return conceptSymbol(decl, range);
     case DeclKind.Instance:

@@ -37,6 +37,7 @@ export enum EdgeKind {
   InstanceOf, // leaf -> class (identity instantiation)
   Represents, // taxonomy -> the concept it represents
   Annotated, // concept | package -> annotation application node
+  Frames, // viewpoint -> the concept it frames
 }
 
 /** Which way to walk an edge from a node. */
