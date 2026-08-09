@@ -108,11 +108,15 @@ export interface ModelDecl {
   libraries: string[];
   /** The concrete objects this model carries. */
   instances: InstanceDecl[];
+  /** The viewpoint this model conforms to (`… conforms <viewpoint>`), or null. */
+  conforms: string | null;
   span: SourceSpan;
   idSpan?: SourceSpan;
   metaModelSpan?: SourceSpan;
   /** Span of each `uses` library identifier, parallel to `libraries`. */
   librarySpans?: SourceSpan[];
+  /** Span of the `conforms` viewpoint identifier, when present. */
+  conformsSpan?: SourceSpan;
 }
 
 export interface AnnotationApplication {

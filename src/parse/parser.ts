@@ -265,6 +265,14 @@ class Parser {
         librarySpans.push(this.spanFrom(libStart));
       } while (this.match(TokenKind.Comma));
     }
+    let conforms: string | null = null;
+    let conformsSpan: SourceSpan | undefined;
+    if (this.checkKeyword("conforms")) {
+      this.advance();
+      const cStart = this.current();
+      conforms = this.parseDottedPath();   // viewpoint may be ns-qualified
+      conformsSpan = this.spanFrom(cStart);
+    }
     const instances: InstanceDecl[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
@@ -288,11 +296,13 @@ class Parser {
       metaModel,
       libraries,
       instances,
+      conforms,
       span: this.spanFrom(start),
     };
     decl.idSpan = tokenSpan(idTok, this.uri);
     decl.metaModelSpan = metaModelSpan;
     if (librarySpans.length > 0) decl.librarySpans = librarySpans;
+    if (conformsSpan !== undefined) decl.conformsSpan = conformsSpan;
     return decl;
   }
 

@@ -46,6 +46,8 @@ export enum DiagnosticCode {
   // Model phase.
   InstanceOrphan = "instance.orphan",
   ModelBindingUndefined = "model.binding-undefined",
+  ModelConformsNotViewpoint = "model.conforms-not-viewpoint",
+  ModelEntityNotFramed = "model.entity-not-framed",
   ConstructorOutOfScope = "constructor.out-of-scope",
   // Prelude (default library) phase.
   PreludeNameRedeclared = "prelude.name-redeclared",

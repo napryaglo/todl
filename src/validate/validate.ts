@@ -125,6 +125,26 @@ function validateModel(out: Diagnostic[], model: Repository, node: Node): void {
     const cls = model.classOf(objId);
     if (cls !== null) checkConstructor(out, model, obj, cls, bound); // the instanceof class/term
   }
+
+  // conforms <viewpoint>: every concrete entity the model homes must have a
+  // concept framed by the viewpoint (subtype-aware via viewpointsFraming).
+  const conforms = node.attrs.get("conforms");
+  if (typeof conforms === "string" && model.resolve(conforms)?.typeOf === MetaKind.Viewpoint) {
+    for (const objId of model.closure(node.id, EdgeKind.Contains, Direction.Out, false)) {
+      const obj = model.resolve(objId);
+      if (obj === undefined || obj.attrs.get("class") === true) continue;
+      if (!model.viewpointsFraming(obj.typeOf).includes(conforms)) {
+        out.push({
+          code: DiagnosticCode.ModelEntityNotFramed,
+          severity: Severity.Error,
+          message: `entity "${objId}" is a ${obj.typeOf}, not framed by viewpoint "${conforms}"`,
+          span: model.spanOf(objId) ?? model.spanOf(node.id),
+          node: objId,
+          path: null,
+        });
+      }
+    }
+  }
 }
 
 /** A constructor (concept or class/term) is in scope iff its provider namespace is bound. */
