@@ -48,6 +48,7 @@ export enum DiagnosticCode {
   ModelBindingUndefined = "model.binding-undefined",
   ModelConformsNotViewpoint = "model.conforms-not-viewpoint",
   ModelEntityNotFramed = "model.entity-not-framed",
+  ModelConformsRequiredWhenSplit = "model.conforms-required-when-split",
   ConstructorOutOfScope = "constructor.out-of-scope",
   // Prelude (default library) phase.
   PreludeNameRedeclared = "prelude.name-redeclared",

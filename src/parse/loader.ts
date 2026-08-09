@@ -78,12 +78,12 @@ export function loadInto(
   reserved: ReadonlySet<string> = new Set(),
 ): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
-  const units: { ns: string; imports: readonly string[]; decl: Declaration }[] = [];
+  const units: { ns: string; imports: readonly string[]; uri: string; decl: Declaration }[] = [];
   for (const source of sources) {
     const result = parse(source.text, source.uri);
     diagnostics.push(...result.diagnostics);
     for (const decl of result.namespace.declarations) {
-      units.push({ ns: result.namespace.path, imports: result.namespace.imports, decl });
+      units.push({ ns: result.namespace.path, imports: result.namespace.imports, uri: source.uri, decl });
     }
   }
 
@@ -215,6 +215,33 @@ export function loadInto(
       node: decl.id,
       path: null,
     });
+  }
+
+  // A model split across MORE THAN ONE file must declare `conforms <viewpoint>`
+  // in every contributing block (the viewpoint is the per-file home discriminator).
+  // A single-file model may omit it.
+  const modelBlocks = new Map<string, { uris: Set<string>; blocks: ModelDecl[] }>();
+  for (const { uri, decl } of units) {
+    if (decl.kind !== DeclKind.Model) continue;
+    const entry = modelBlocks.get(decl.id) ?? { uris: new Set<string>(), blocks: [] };
+    entry.uris.add(uri);
+    entry.blocks.push(decl);
+    modelBlocks.set(decl.id, entry);
+  }
+  for (const [id, { uris, blocks }] of modelBlocks) {
+    if (uris.size < 2) continue;
+    for (const decl of blocks) {
+      if (decl.conforms === null) {
+        diagnostics.push({
+          code: DiagnosticCode.ModelConformsRequiredWhenSplit,
+          severity: Severity.Error,
+          message: `model "${id}" is split across multiple files, so each block must declare \`conforms <viewpoint>\``,
+          span: decl.span,
+          node: id,
+          path: null,
+        });
+      }
+    }
   }
 
   // Resolve references BEFORE Pass 1 — Pass 1's defineTaxonomy reads term value
@@ -679,15 +706,25 @@ function applyModel(
   asserted: Set<string>,
   diagnostics: Diagnostic[],
 ): void {
-  builder.assertModel(decl.id);
-  builder.setField(decl.id, "id", decl.id);
-  builder.setField(decl.id, "MetaModel", decl.metaModel);
-  builder.setField(decl.id, "uses.count", decl.libraries.length);
-  decl.libraries.forEach((lib, i) => builder.setField(decl.id, `uses.${i}`, lib));
-  if (decl.conforms !== null) builder.setField(decl.id, "conforms", decl.conforms);
-  asserted.add(decl.id);
+  // A model may be split across several files (Option B): same id, one node.
+  // Assert the container + its model-level fields only on first sight; later
+  // same-id blocks merge their instances into it.
+  if (!asserted.has(decl.id)) {
+    builder.assertModel(decl.id);
+    builder.setField(decl.id, "id", decl.id);
+    builder.setField(decl.id, "MetaModel", decl.metaModel);
+    builder.setField(decl.id, "uses.count", decl.libraries.length);
+    decl.libraries.forEach((lib, i) => builder.setField(decl.id, `uses.${i}`, lib));
+    asserted.add(decl.id);
+  }
   for (const child of decl.instances) {
     applyInstance(builder, model, child, decl.id, null, asserted, diagnostics);
+    // `conforms` is a per-FILE (per-block) home viewpoint: stamp each concrete
+    // top-level entity so a model split across files keeps each entity's own
+    // viewpoint after the model nodes merge.
+    if (decl.conforms !== null && !child.isClass && !WRAPPER_CONCEPTS.has(child.concept)) {
+      builder.setField(child.id, "conforms", decl.conforms);
+    }
   }
 }
 
