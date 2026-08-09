@@ -23,6 +23,9 @@ function roleOf(r: RefRole): Role {
     case RefRole.ParamType: return Role.FieldType;
     case RefRole.RelationshipTarget: return Role.RelationshipTarget;
     case RefRole.Represents: return Role.Represents;
+    // A viewpoint's `frames` reference is a concept reference like `represents`;
+    // reuse the editor role (occurrences are keyed by symbol, not role).
+    case RefRole.Frames: return Role.Represents;
     case RefRole.RecordConcept: return Role.InstanceConcept;
     case RefRole.InstanceOf: return Role.InstanceOf;
     case RefRole.RefValue: return Role.RefValue;
