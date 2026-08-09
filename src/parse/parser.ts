@@ -23,6 +23,7 @@ import {
   type InvariantDecl,
   type Term,
   type TaxonomyDecl,
+  type ViewpointDecl,
   type InstanceDecl,
   type ModelDecl,
   type AnnotationDecl,
@@ -169,6 +170,7 @@ class Parser {
     const start = this.startToken();
     if (this.checkKeyword("primitive")) return this.parsePrimitive(start);
     if (this.checkKeyword("taxonomy")) return this.parseTaxonomy(start);
+    if (this.checkKeyword("viewpoint")) return this.parseViewpoint(start);
     if (this.checkKeyword("concept")) return this.parseConcept(start);
     if (this.checkKeyword("model")) return this.parseModel(start);
     if (this.checkKeyword("annotation")) return this.parseAnnotation(start);
@@ -551,6 +553,29 @@ class Parser {
     const decl: TaxonomyDecl = { kind: DeclKind.Taxonomy, name, represents, representsSpans, description, terms, annotations, uses, span: this.spanFrom(start) };
     decl.nameSpan = tokenSpan(nameTok, this.uri);
     if (usesSpans.length > 0) decl.usesSpans = usesSpans;
+    return decl;
+  }
+
+  private parseViewpoint(start: Token): ViewpointDecl {
+    this.expectKeyword("viewpoint");
+    const nameTok = this.expect(TokenKind.Identifier);
+    const name = nameTok.value;
+    this.expect(TokenKind.Colon);
+    this.expectKeyword("frames");
+    const frames: string[] = [];
+    const framesSpans: SourceSpan[] = [];
+    // frames targets may be namespace-qualified (`ns.Concept`); parseDottedPath
+    // accepts a bare name too, so unqualified authoring is unchanged.
+    const pushTarget = (): void => {
+      const startTok = this.current();
+      frames.push(this.parseDottedPath());
+      framesSpans.push(this.spanFrom(startTok));
+    };
+    pushTarget();
+    while (this.match(TokenKind.Comma)) pushTarget();
+    // No body block — a viewpoint has no terms; the declaration ends here.
+    const decl: ViewpointDecl = { kind: DeclKind.Viewpoint, name, frames, framesSpans, span: this.spanFrom(start) };
+    decl.nameSpan = tokenSpan(nameTok, this.uri);
     return decl;
   }
 
