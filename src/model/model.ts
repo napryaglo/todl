@@ -19,6 +19,7 @@ import {
   type GraphChangeArgs,
 } from "./graph.js";
 import { Builder } from "./builder.js";
+import { MetaKind } from "./kinds.js";
 import { ReactiveNode } from "./reactive.js";
 import { EntityBase, type Entity } from "./entity.js";
 import { Derivations } from "../predicate/derivations.js";
@@ -206,6 +207,31 @@ export class Repository {
   /** Every taxonomy that represents `concept`. */
   representedBy(concept: NodeId): NodeId[] {
     return this.graph.related(concept, EdgeKind.Represents, Direction.In);
+  }
+
+  /** The concepts a viewpoint frames (one or more; empty if none). */
+  frames(viewpoint: NodeId): NodeId[] {
+    return this.graph.related(viewpoint, EdgeKind.Frames, Direction.Out);
+  }
+
+  /** Every viewpoint that frames `concept` directly. */
+  framedBy(concept: NodeId): NodeId[] {
+    return this.graph.related(concept, EdgeKind.Frames, Direction.In);
+  }
+
+  /** Every viewpoint in the model. */
+  viewpoints(): NodeId[] {
+    return this.instancesOf(MetaKind.Viewpoint);
+  }
+
+  /** Every viewpoint that frames `concept` OR any of its supertypes
+   *  (subtype-aware: a subtype of a framed concept is framed). */
+  viewpointsFraming(concept: NodeId): NodeId[] {
+    const seen = new Set<NodeId>();
+    for (const c of [concept, ...this.supertypesOf(concept)]) {
+      for (const vp of this.framedBy(c)) seen.add(vp);
+    }
+    return [...seen];
   }
 
   /** The term (class) members of a taxonomy. */

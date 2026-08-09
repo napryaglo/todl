@@ -12,6 +12,7 @@ import type { SourceSpan } from "../diagnostics/span.js";
 export enum DeclKind {
   Primitive,
   Taxonomy,
+  Viewpoint,
   Concept,
   Instance,
   Model,
@@ -218,6 +219,18 @@ export interface TaxonomyDecl {
   nameSpan?: SourceSpan;
 }
 
+export interface ViewpointDecl {
+  kind: DeclKind.Viewpoint;
+  name: string;
+  /** The concepts this viewpoint frames (`viewpoint X : frames C1, C2`). */
+  frames: string[];
+  /** Span of each `frames` target identifier, parallel to `frames`. */
+  framesSpans?: SourceSpan[];
+  span: SourceSpan;
+  /** Span of the viewpoint's name identifier. */
+  nameSpan?: SourceSpan;
+}
+
 export interface PrimitiveDecl {
   kind: DeclKind.Primitive;
   name: string;
@@ -230,7 +243,7 @@ export interface PrimitiveDecl {
 }
 
 export type Declaration =
-  | ConceptDecl | TaxonomyDecl | PrimitiveDecl | InstanceDecl | ModelDecl
+  | ConceptDecl | TaxonomyDecl | ViewpointDecl | PrimitiveDecl | InstanceDecl | ModelDecl
   | AnnotationDecl | PackageDecl;
 
 export interface NamespaceNode {

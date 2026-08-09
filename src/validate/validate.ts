@@ -43,6 +43,10 @@ export function validate(model: Repository): Diagnostic[] {
       checkTermConcepts(diagnostics, model, node);
       continue;
     }
+    if (node.tier === Tier.Ontology && node.typeOf === MetaKind.Viewpoint) {
+      checkFrames(diagnostics, model, node);
+      continue;
+    }
     if (node.tier === Tier.Instance && node.typeOf === MetaKind.Model) {
       validateModel(diagnostics, model, node);
       continue;
@@ -257,6 +261,38 @@ function checkRepresents(out: Diagnostic[], model: Repository, node: Node): void
         spanFor(model, node.id, null),
       ),
     );
+  }
+}
+
+/** A viewpoint must frame at least one concept, and every framed target must be
+ *  a concept (not a taxonomy/primitive/etc.). */
+function checkFrames(out: Diagnostic[], model: Repository, node: Node): void {
+  const framed = model.frames(node.id);
+  if (framed.length === 0) {
+    out.push(
+      error(
+        DiagnosticCode.ViewpointNoFramedConcept,
+        node.id,
+        node.id,
+        `viewpoint "${node.id}" frames no concept`,
+        spanFor(model, node.id, null),
+      ),
+    );
+    return;
+  }
+  for (const framedId of framed) {
+    const target = model.resolve(framedId);
+    if (target === undefined || target.typeOf !== MetaKind.Concept) {
+      out.push(
+        error(
+          DiagnosticCode.ViewpointFramesNotConcept,
+          node.id,
+          node.id,
+          `viewpoint "${node.id}" frames "${framedId}", which is not a concept`,
+          spanFor(model, node.id, null),
+        ),
+      );
+    }
   }
 }
 

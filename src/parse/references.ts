@@ -24,6 +24,7 @@ export enum RefRole {
   FieldType,
   RelationshipTarget,
   Represents,
+  Frames,
   RecordConcept,
   InstanceOf,
   RefValue,
@@ -74,6 +75,13 @@ export function visitReferences(decl: Declaration, visit: Visit): void {
         t.children.forEach(walkTerm);
       };
       decl.terms.forEach(walkTerm);
+      break;
+    }
+    case DeclKind.Viewpoint: {
+      decl.frames.forEach((c, i) => visit({
+        name: c, span: decl.framesSpans?.[i] ?? decl.span, role: RefRole.Frames,
+        ownerNode: decl.name, memberPath: null, rewrite: (r) => { decl.frames[i] = r; },
+      }));
       break;
     }
     case DeclKind.Concept: {
@@ -185,6 +193,9 @@ export function collectDefinitions(
       decl.terms.forEach(add);
       break;
     }
+    case DeclKind.Viewpoint:
+      define(decl.name);
+      break;
     case DeclKind.Instance:
       defineInstance(decl, ns, defined, sourceNs);
       break;

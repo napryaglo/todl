@@ -207,6 +207,15 @@ export class Builder {
     return this;
   }
 
+  /** Define a viewpoint node framing the given concepts (one Frames edge each). */
+  defineViewpoint(name: NodeId, frames: readonly NodeId[]): this {
+    this.stageNode(name, Tier.Ontology, MetaKind.Viewpoint);
+    for (const concept of frames) {
+      this.stagedEdges.push({ kind: EdgeKind.Frames, via: null, from: name, to: concept });
+    }
+    return this;
+  }
+
   // ── Commit ──────────────────────────────────────────────────────────────
 
   /** Validate every staged reference, then apply all edits and clear staging. */

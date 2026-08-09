@@ -259,6 +259,9 @@ export function loadInto(
       case DeclKind.Primitive:
         first.definePrimitive(declaration.name);
         break;
+      case DeclKind.Viewpoint:
+        first.defineViewpoint(declaration.name, declaration.frames);
+        break;
       case DeclKind.Taxonomy: {
         const decl = declaration;
         const represented = new Set(decl.represents);
@@ -450,6 +453,7 @@ function recordSpans(model: Repository, declarations: Declaration[]): void {
     switch (declaration.kind) {
       case DeclKind.Primitive:
       case DeclKind.Concept:
+      case DeclKind.Viewpoint:
         model.recordSpan(declaration.name, declaration.span);
         break;
       case DeclKind.Taxonomy: {
