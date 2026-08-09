@@ -13,7 +13,7 @@ import { type TodlDocument, type JsonNode } from "./json.js";
 /** The default-library (prelude) namespace — a base, never a project binding. */
 const PRELUDE_NAMESPACE = "todl";
 /** Attrs that are markers, not authored fields. */
-const MARKER_ATTRS = new Set(["id", "class", "namespace"]);
+const MARKER_ATTRS = new Set(["id", "class", "namespace", "conforms"]);
 
 export interface ModelBindings {
   metaModel: string;
@@ -63,7 +63,7 @@ function literal(v: Scalar): string {
   return typeof v === "string" ? JSON.stringify(v) : String(v);
 }
 
-export function emitModelTodl(own: TodlDocument, namespace: string, bindings: ModelBindings): string {
+export function emitModelTodl(own: TodlDocument, namespace: string, bindings: ModelBindings, conforms?: string): string {
   const instances = own.nodes;
   const classes = instances.filter((n) => (n.attrs as Record<string, unknown>).class === true);
   const concrete = instances.filter((n) => (n.attrs as Record<string, unknown>).class !== true);
@@ -88,7 +88,8 @@ export function emitModelTodl(own: TodlDocument, namespace: string, bindings: Mo
     // The model id must be a bare C-like identifier (no dots); a dotted namespace
     // is flattened to camelCase so `acme.app` → `acmeAppModel`.
     const modelId = `${namespace.split(".").map((s, i) => (i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1))).join("")}Model`;
-    lines.push(`  model ${modelId} : ${bindings.metaModel}${uses} {`);
+    const conf = conforms !== undefined ? ` conforms ${conforms}` : "";
+    lines.push(`  model ${modelId} : ${bindings.metaModel}${uses}${conf} {`);
     for (const n of concrete) {
       for (const l of emitOne(n, instanceOf.get(n.id), rels.get(n.id) ?? [])) lines.push(`  ${l}`);
     }
