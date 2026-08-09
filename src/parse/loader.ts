@@ -146,6 +146,10 @@ export function loadInto(
     for (const decl of declarations) if (decl.kind === DeclKind.Taxonomy && decl.name === id) return true;
     return model.resolve(id)?.typeOf === MetaKind.Taxonomy;
   };
+  const isViewpoint = (id: string): boolean => {
+    for (const decl of declarations) if (decl.kind === DeclKind.Viewpoint && decl.name === id) return true;
+    return model.resolve(id)?.typeOf === MetaKind.Viewpoint;
+  };
   for (const { ns, imports, decl } of units) {
     if (decl.kind !== DeclKind.Taxonomy) continue;
     const home: Home = { ns, imports };
@@ -189,6 +193,27 @@ export function loadInto(
         node: decl.id,
         path: null,
       });
+    });
+  }
+
+  // A model's `conforms <viewpoint>` binds the viewpoint it homes entities for.
+  // Resolve it (rewrite qualified → flat) and require it to be a viewpoint.
+  for (const { ns, imports, decl } of units) {
+    if (decl.kind !== DeclKind.Model || decl.conforms === null) continue;
+    const home: Home = { ns, imports };
+    const r = resolveRef(decl.conforms, home);
+    const flat = r.kind === "qualified" ? r.flat : decl.conforms;
+    if (r.kind === "qualified") decl.conforms = flat;
+    if ((r.kind === "ok" || r.kind === "qualified") && isViewpoint(flat)) continue;
+    diagnostics.push({
+      code: DiagnosticCode.ModelConformsNotViewpoint,
+      severity: Severity.Error,
+      message: r.kind === "unreachable"
+        ? `model "${decl.id}" conforms to "${decl.conforms}", which is defined in namespace "${r.ns}" but not imported here — add \`import ${r.ns};\``
+        : `model "${decl.id}" conforms to "${decl.conforms}", which is not a known viewpoint`,
+      span: decl.conformsSpan ?? decl.span,
+      node: decl.id,
+      path: null,
     });
   }
 
@@ -476,6 +501,9 @@ function recordSpans(model: Repository, declarations: Declaration[]): void {
         declaration.librarySpans?.forEach((s, i) =>
           model.recordSpan(Repository.memberKey(declaration.id, `uses.${i}`), s),
         );
+        if (declaration.conformsSpan !== undefined) {
+          model.recordSpan(Repository.memberKey(declaration.id, "conforms"), declaration.conformsSpan);
+        }
         for (const inst of declaration.instances) recordInstanceSpans(model, inst);
         break;
       case DeclKind.Annotation:
@@ -656,6 +684,7 @@ function applyModel(
   builder.setField(decl.id, "MetaModel", decl.metaModel);
   builder.setField(decl.id, "uses.count", decl.libraries.length);
   decl.libraries.forEach((lib, i) => builder.setField(decl.id, `uses.${i}`, lib));
+  if (decl.conforms !== null) builder.setField(decl.id, "conforms", decl.conforms);
   asserted.add(decl.id);
   for (const child of decl.instances) {
     applyInstance(builder, model, child, decl.id, null, asserted, diagnostics);
