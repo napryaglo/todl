@@ -679,15 +679,25 @@ function applyModel(
   asserted: Set<string>,
   diagnostics: Diagnostic[],
 ): void {
-  builder.assertModel(decl.id);
-  builder.setField(decl.id, "id", decl.id);
-  builder.setField(decl.id, "MetaModel", decl.metaModel);
-  builder.setField(decl.id, "uses.count", decl.libraries.length);
-  decl.libraries.forEach((lib, i) => builder.setField(decl.id, `uses.${i}`, lib));
-  if (decl.conforms !== null) builder.setField(decl.id, "conforms", decl.conforms);
-  asserted.add(decl.id);
+  // A model may be split across several files (Option B): same id, one node.
+  // Assert the container + its model-level fields only on first sight; later
+  // same-id blocks merge their instances into it.
+  if (!asserted.has(decl.id)) {
+    builder.assertModel(decl.id);
+    builder.setField(decl.id, "id", decl.id);
+    builder.setField(decl.id, "MetaModel", decl.metaModel);
+    builder.setField(decl.id, "uses.count", decl.libraries.length);
+    decl.libraries.forEach((lib, i) => builder.setField(decl.id, `uses.${i}`, lib));
+    asserted.add(decl.id);
+  }
   for (const child of decl.instances) {
     applyInstance(builder, model, child, decl.id, null, asserted, diagnostics);
+    // `conforms` is a per-FILE (per-block) home viewpoint: stamp each concrete
+    // top-level entity so a model split across files keeps each entity's own
+    // viewpoint after the model nodes merge.
+    if (decl.conforms !== null && !child.isClass && !WRAPPER_CONCEPTS.has(child.concept)) {
+      builder.setField(child.id, "conforms", decl.conforms);
+    }
   }
 }
 

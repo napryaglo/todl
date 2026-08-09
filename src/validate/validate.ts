@@ -126,23 +126,24 @@ function validateModel(out: Diagnostic[], model: Repository, node: Node): void {
     if (cls !== null) checkConstructor(out, model, obj, cls, bound); // the instanceof class/term
   }
 
-  // conforms <viewpoint>: every concrete entity the model homes must have a
-  // concept framed by the viewpoint (subtype-aware via viewpointsFraming).
-  const conforms = node.attrs.get("conforms");
-  if (typeof conforms === "string" && model.resolve(conforms)?.typeOf === MetaKind.Viewpoint) {
-    for (const objId of model.closure(node.id, EdgeKind.Contains, Direction.Out, false)) {
-      const obj = model.resolve(objId);
-      if (obj === undefined || obj.attrs.get("class") === true) continue;
-      if (!model.viewpointsFraming(obj.typeOf).includes(conforms)) {
-        out.push({
-          code: DiagnosticCode.ModelEntityNotFramed,
-          severity: Severity.Error,
-          message: `entity "${objId}" is a ${obj.typeOf}, not framed by viewpoint "${conforms}"`,
-          span: model.spanOf(objId) ?? model.spanOf(node.id),
-          node: objId,
-          path: null,
-        });
-      }
+  // conforms <viewpoint>: an entity homed by a `conforms V` block carries its
+  // home viewpoint as a per-entity `conforms` attr (a model split across files
+  // homes different entities under different viewpoints). Each such entity's
+  // concept must be framed by its viewpoint (subtype-aware via viewpointsFraming).
+  for (const objId of model.closure(node.id, EdgeKind.Contains, Direction.Out, false)) {
+    const obj = model.resolve(objId);
+    if (obj === undefined || obj.attrs.get("class") === true) continue;
+    const vp = obj.attrs.get("conforms");
+    if (typeof vp !== "string" || model.resolve(vp)?.typeOf !== MetaKind.Viewpoint) continue;
+    if (!model.viewpointsFraming(obj.typeOf).includes(vp)) {
+      out.push({
+        code: DiagnosticCode.ModelEntityNotFramed,
+        severity: Severity.Error,
+        message: `entity "${objId}" is a ${obj.typeOf}, not framed by viewpoint "${vp}"`,
+        span: model.spanOf(objId) ?? model.spanOf(node.id),
+        node: objId,
+        path: null,
+      });
     }
   }
 }
