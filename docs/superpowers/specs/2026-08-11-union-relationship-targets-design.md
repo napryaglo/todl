@@ -48,40 +48,64 @@ Clean, plural cutover — no field carries a single target after this change.
 | AST | [ast.ts:157](../../../src/parse/ast.ts#L157) | `RelationshipDecl.target: string` → `targets: string[]`; `targetSpan?` → `targetSpans?: SourceSpan[]` |
 | Parser | [parser.ts:713](../../../src/parse/parser.ts#L713) | after first `parseDottedPath()`, `while (match(Pipe)) targets.push(parseDottedPath())`; collect spans in parallel; ≥1 target required |
 | Loader | [loader.ts:418](../../../src/parse/loader.ts#L418) | pass `targets` array to `addConceptRelationship` |
-| Builder | [builder.ts:154](../../../src/model/builder.ts#L154) | `addConceptRelationship(concept, name, targets: NodeId[], …)`; store the `"target"` attr as `targets.join(",")` (concept ids are `[a-z_]+`, comma-free). `TermInput.relationships[].target` → `targets` ([builder.ts:28](../../../src/model/builder.ts#L28)) |
+| EdgeKind | `src/model/graph.ts` (EdgeKind enum) | add `Targets` — an ontology-tier edge from a relationship-schema node to a target concept node |
+| Builder | [builder.ts:154](../../../src/model/builder.ts#L154) | `addConceptRelationship(concept, name, targets: NodeId[], …)`: stage one `Targets` **edge** per target (`memberId --Targets--> targetᵢ`) in insertion order; **remove** the `"target"` scalar attr. `TermInput.relationships[].target` → `targets` ([builder.ts:28](../../../src/model/builder.ts#L28)) |
 | Schema | [model.ts:37](../../../src/model/model.ts#L37) | `RelationshipSchema.target: NodeId` → `targets: NodeId[]` |
-| effectiveSchema | [model.ts:330](../../../src/model/model.ts#L330) | read `"target"` attr and `.split(",")` into `targets` (a lone `"location"` → `["location"]`) |
+| effectiveSchema | [model.ts:330](../../../src/model/model.ts#L330) | read targets via `graph.related(memberId, EdgeKind.Targets, Direction.Out)` (insertion order) into `targets`; **no** `"target"` attr read |
 | Validation | [validate.ts:436](../../../src/validate/validate.ts#L436) | `allowed = ⋃ᵢ ({targetsᵢ} ∪ subtypesOf(targetsᵢ))`; skip when `targets` empty; message: `expects one of <a | b | c>` |
-| References | [references.ts:96](../../../src/parse/references.ts#L96) | visit each target with its own span; `rewrite` patches `targets[i]` |
-| JS emit | [js-module.ts:121](../../../src/emit/js-module.ts#L121) | `target: <str>` → `targets: <array>` |
+| References | [references.ts:96](../../../src/parse/references.ts#L96) | visit each target with its own span; `rewrite` patches `targets[i]` (AST-level, unchanged by the storage move) |
+| JS emit | [js-module.ts:121](../../../src/emit/js-module.ts#L121) | `target: <str>` → `targets: <array>` (reads `RelationshipSchema.targets`) |
 | Hover | [hover.ts:24](../../../src/language-service/hover.ts#L24) | `${r.targets.join(" \| ")}` |
 | schema-context | [schema-context.ts:33](../../../src/language-service/schema-context.ts#L33) | `targetConcept: string` → `targetConcepts: string[]` |
 | signature-help | [signature-help.ts:14](../../../src/language-service/signature-help.ts#L14) | display `targetConcepts.join(" \| ")` |
 | Completion | uses schema-context | offer terms of **all** target concepts |
 
-No change: JSON graph round-trip (`emit/json.ts` carries the `"target"` attr
-verbatim), document-symbols (keyed by name), `migrate/recase.ts` (target recasing
-is type-based already).
+No change: document-symbols (keyed by name), `migrate/recase.ts` (target
+recasing is type-based already).
+
+### Storage: targets are graph edges, not a string attr (decided)
+
+The relationship-schema node no longer carries a `target` scalar attr. Each
+target concept is a first-class `Targets` **edge** from the relationship node
+(`component.in`) to the concept node (`location`). Rationale: targets are
+concept **references**, so they belong in the graph as edges — queryable,
+individually resolvable, order-preserving — not packed into a delimited string.
+A single target is just one `Targets` edge, so this also removes the stringly-
+typed `target` attr from the existing single-target case (uniform).
+
+- Symbol-checking of each target still happens at load via `references.ts`
+  (`RelationshipTarget` role) — an undefined target is `reference.undefined`.
+  The `Targets` edges are the post-resolution graph form of ids already proven
+  valid.
+- **Order:** `Targets` edges are staged in author order and `graph.related`
+  returns adjacency in insertion order, so `targets`, emit, and `a | b | c`
+  display are deterministic. A test asserts this.
+- **JSON round-trip** (`emit/json.ts`): edges serialize as-is, so the new
+  `Targets` edges carry through the graph JSON — but the relationship JSON shape
+  changes from an attr to edges (see migration).
 
 ## Migration & compatibility (decided: explicit, hard cutover)
 
-No back-compat shims — the reader accepts only the plural shape; `js-module`
-emits only `targets`; there is no dual-field aliasing.
+No back-compat shims — the reader (`effectiveSchema`) reads only `Targets`
+edges; `js-module` emits only `targets`; there is no dual-representation
+aliasing and no fallback to the old `target` attr.
 
 - **Source `.todl` (single targets):** unaffected — `-> location` still parses
-  (length-1 union). No source rewrite needed.
-- **Graph attr storage:** a single target stored as `"location"` reads back as
-  `["location"]`, so existing in-memory/JSON graphs with single targets are not
-  broken — this is representation-compatible, not a shim.
-- **Published meta-model / library JS (breaking):** `relationshipEntries` now
-  emits `targets: [...]`. Any consumer reading `.target` on a published schema
-  breaks. **Explicit migration:** every first-party package built with the old
-  emitter is republished so its JS carries `targets`, and Plexus schema
-  consumers (`deriveClasses` and anything reading a relationship `.target`) are
-  updated to `.targets`. SP1 owns the TODL emit change; the republish +
-  consumer update is enumerated here and executed in **SP2** (meta-model retype
-  republishes tech-architecture) and **SP5** (Plexus). No consumer is left
-  reading `.target`.
+  (length-1 union) and emits identically. No source rewrite needed.
+- **Persisted graph JSON (breaking):** a relationship's target moves from a
+  `target` string attr to `Targets` edges. Every published package whose graph
+  JSON encodes relationship schemas (meta-models; libraries that declare
+  relationships) must be **rebuilt/republished** with the new emitter — the old
+  attr form is not read. This is the explicit migration; it is executed per
+  package, not papered over with a compatibility read.
+- **Published JS (breaking):** `relationshipEntries` emits `targets: [...]`;
+  consumers reading `.target` on a published schema break and are updated to
+  `.targets`.
+- **Explicit migration checklist (executed in SP2/SP5, enumerated here):**
+  republish tech-architecture (SP2) and every first-party library/meta-model
+  carrying relationships; update Plexus schema consumers (`deriveClasses` and
+  any relationship `.target` reader) to `.targets` (SP5). No consumer or
+  persisted artifact is left on the old representation.
 
 **Downstream consumers to migrate (explicit checklist, tracked into SP2/SP5):**
 - TODL `emit/js-module.ts` output shape → `targets` (SP1).
@@ -102,6 +126,10 @@ emits only `targets`; there is no dual-field aliasing.
 - **Reference integrity still holds:** `from = "quoted"` on the union
   relationship → `MemberValueKind` error ("expected a name, not a quoted
   string"); `from = undefined_id` → `reference.undefined`.
+- **Storage (edges):** a concept with `relationship from -> a | b | c` produces
+  three `Targets` edges from `<concept>.from`; `effectiveSchema().targets` is
+  `["a","b","c"]` in author order; a single-target relationship yields exactly
+  one `Targets` edge and no `target` attr. Order survives a graph JSON round-trip.
 - **js-module emit:** a union relationship emits `targets: ["a","b"]`.
 - **Language service:** hover/signature render `a | b`; completion on the union
   member offers terms of both target concepts.
