@@ -384,14 +384,13 @@ class Parser {
    */
   private parseEdgeRecord(concept: string, start: Token): InstanceDecl {
     const from = this.parseRef();
-    const operator = this.consumeEdgeOperator();
+    this.consumeEdgeOperator(); // arrow (-> / -->) is authoring sugar; not stored
     const to = this.parseRef();
     // `step` names its endpoints src/dst; connectors use from/to.
     const [fromField, toField] = concept === "step" ? ["src", "dst"] : ["from", "to"];
     const assignments: AssignmentNode[] = [
       { name: fromField, value: { kind: ValueKind.Name, name: from } },
       { name: toField, value: { kind: ValueKind.Name, name: to } },
-      { name: "operator", value: { kind: ValueKind.String, text: operator } },
     ];
     if (this.match(TokenKind.LBrace)) {
       while (!this.check(TokenKind.RBrace)) {
@@ -405,7 +404,7 @@ class Parser {
     } else {
       this.match(TokenKind.Semicolon); // optional terminator (bare in an application-connectors block)
     }
-    const id = `${concept}#${(this.edgeSeq += 1)}`;
+    const id = `${concept}_${(this.edgeSeq += 1)}`;
     return { kind: DeclKind.Instance, concept, id, binds: null, isClass: false, instanceOf: null, assignments, children: [], annotations: [], span: this.spanFrom(start) };
   }
 
@@ -419,7 +418,7 @@ class Parser {
       children.push(this.parseEdgeRecord("connector", edgeStart));
     }
     this.expect(TokenKind.RBrace);
-    const id = `application-connectors#${(this.edgeSeq += 1)}`;
+    const id = `application_connectors_${(this.edgeSeq += 1)}`;
     return { kind: DeclKind.Instance, concept: "connectors", id, binds: null, isClass: false, instanceOf: null, assignments: [], children, annotations: [], span: this.spanFrom(start) };
   }
 
