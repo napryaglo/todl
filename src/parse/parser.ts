@@ -717,6 +717,11 @@ class Parser {
     const targetStart = this.current();
     const targets = [this.parseDottedPath()];           // relationship target may be ns-qualified
     const targetSpans = [this.spanFrom(targetStart)];
+    while (this.match(TokenKind.Pipe)) {                 // `-> a | b | c` union of target concepts
+      const nextStart = this.current();
+      targets.push(this.parseDottedPath());
+      targetSpans.push(this.spanFrom(nextStart));
+    }
     const cardinality = this.parseCardinality();
     this.expect(TokenKind.Semicolon);
     return {
