@@ -156,10 +156,10 @@ export interface FieldDecl {
 
 export interface RelationshipDecl {
   name: string;
-  target: string;
+  targets: string[];
   cardinality: Cardinality;
   nameSpan?: SourceSpan;
-  targetSpan?: SourceSpan;
+  targetSpans?: SourceSpan[];
 }
 
 export interface InvariantDecl {

@@ -25,13 +25,13 @@ test("addField and addConceptRelationship populate the concept schema", () => {
     .defineConcept("location")
     .defineConcept("component")
     .addField("component", "label", "string")
-    .addConceptRelationship("component", "in", "location", Cardinality.One)
+    .addConceptRelationship("component", "in", ["location"], Cardinality.One)
     .commit();
 
   const schema = model.schemaOf("component");
   assert.deepEqual(schema.fields, [{ name: "label", type: "string", cardinality: Cardinality.One }]);
   assert.deepEqual(schema.relationships, [
-    { name: "in", target: "location", cardinality: Cardinality.One, inverse: null },
+    { name: "in", targets: ["location"], cardinality: Cardinality.One, inverse: null },
   ]);
 });
 
@@ -41,7 +41,7 @@ test("addConceptRelationship records an inverse name when given", () => {
     .builder()
     .defineConcept("location")
     .defineConcept("component")
-    .addConceptRelationship("component", "in", "location", Cardinality.One, "hosts")
+    .addConceptRelationship("component", "in", ["location"], Cardinality.One, "hosts")
     .commit();
 
   assert.equal(model.schemaOf("component").relationships[0]?.inverse, "hosts");

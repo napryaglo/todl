@@ -47,7 +47,7 @@ test("routes a multi-valued relationship to collectionChanged with the item", ()
     .builder()
     .defineConcept("location")
     .defineConcept("technology")
-    .addConceptRelationship("technology", "availableIn", "location", Cardinality.Many)
+    .addConceptRelationship("technology", "availableIn", ["location"], Cardinality.Many)
     .commit();
   model.builder().assertInstance("location", "m365").assertInstance("technology", "react").commit();
 

@@ -51,7 +51,9 @@ function nodesOfKinds(a: Analysis, kinds: SymbolKind[]): CompletionItem[] {
 // (e.g. the member isn't in the schema).
 function refCandidates(a: Analysis, uri: string, pos: Position): CompletionItem[] {
   const ctx = assignmentContextAt(a, uri, pos);
-  const ids = ctx?.targetConcept != null ? instancesForConcept(a, ctx.targetConcept) : allInstanceIds(a);
+  const ids = ctx !== null && ctx.targetConcepts.length > 0
+    ? [...new Set(ctx.targetConcepts.flatMap((c) => instancesForConcept(a, c)))]
+    : allInstanceIds(a);
   return ids.map((id) => withDoc({ label: id, kind: CompletionItemKind.Variable }, describe(a, id)));
 }
 

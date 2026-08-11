@@ -119,7 +119,8 @@ function fieldEntries(field: FieldSchema): string[] {
 }
 
 function relationshipEntries(rel: RelationshipSchema): string[] {
-  return [`target: ${jsStr(rel.target)}`, `cardinality: ${jsStr(relationshipCardinalityText(rel.cardinality))}`];
+  const targets = `[${rel.targets.map(jsStr).join(", ")}]`;
+  return [`targets: ${targets}`, `cardinality: ${jsStr(relationshipCardinalityText(rel.cardinality))}`];
 }
 
 // ── Taxonomy emission ─────────────────────────────────────────────────

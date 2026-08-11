@@ -440,9 +440,14 @@ function checkTargetTypes(
   relationship: RelationshipSchema,
   targets: NodeId[],
 ): void {
-  if (relationship.target === "") return;
-  const allowed = new Set<NodeId>([relationship.target, ...model.subtypesOf(relationship.target)]);
+  if (relationship.targets.length === 0) return;
+  const allowed = new Set<NodeId>();
+  for (const t of relationship.targets) {
+    allowed.add(t);
+    for (const sub of model.subtypesOf(t)) allowed.add(sub);
+  }
   const path = `${node.typeOf}.${relationship.name}`;
+  const expected = relationship.targets.join(" | ");
   for (const target of targets) {
     const targetNode = model.resolve(target);
     if (targetNode !== undefined && !allowed.has(targetNode.typeOf)) {
@@ -451,7 +456,7 @@ function checkTargetTypes(
         severity: Severity.Error,
         node: node.id,
         path,
-        message: `"${path}" expects ${relationship.target} but "${target}" is a ${targetNode.typeOf}`,
+        message: `"${path}" expects ${expected} but "${target}" is a ${targetNode.typeOf}`,
         span: spanFor(model, node.id, relationship.name),
       });
     }

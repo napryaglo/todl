@@ -38,6 +38,7 @@ export enum EdgeKind {
   Represents, // taxonomy -> the concept it represents
   Annotated, // concept | package -> annotation application node
   Frames, // viewpoint -> the concept it frames
+  Targets, // relationship-schema node -> a target concept node (one per union member)
 }
 
 /** Which way to walk an edge from a node. */

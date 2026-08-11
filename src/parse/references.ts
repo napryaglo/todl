@@ -94,8 +94,10 @@ export function visitReferences(decl: Declaration, visit: Visit): void {
           ownerNode: decl.name, memberPath: f.name, rewrite: (r) => { f.type = r; } });
       }
       for (const rel of decl.relationships) {
-        visit({ name: rel.target, span: rel.targetSpan ?? decl.span, role: RefRole.RelationshipTarget,
-          ownerNode: decl.name, memberPath: rel.name, rewrite: (r) => { rel.target = r; } });
+        rel.targets.forEach((target, i) => visit({
+          name: target, span: rel.targetSpans?.[i] ?? decl.span, role: RefRole.RelationshipTarget,
+          ownerNode: decl.name, memberPath: rel.name, rewrite: (r) => { rel.targets[i] = r; },
+        }));
       }
       annotationRefs(decl.annotations, decl.name);
       break;

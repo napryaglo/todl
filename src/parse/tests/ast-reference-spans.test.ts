@@ -23,7 +23,7 @@ test("concept extends + field + relationship carry reference spans", () => {
   assert.deepEqual(dog.fields[0]!.nameSpan?.start, { line: 4, column: 5 });
   assert.deepEqual(dog.fields[0]!.typeSpan?.start, { line: 4, column: 12 });
   assert.deepEqual(dog.relationships[0]!.nameSpan?.start, { line: 5, column: 18 });
-  assert.deepEqual(dog.relationships[0]!.targetSpan?.start, { line: 5, column: 27 });
+  assert.deepEqual(dog.relationships[0]!.targetSpans?.[0]?.start, { line: 5, column: 27 });
 });
 
 test("imports and instance concept/instanceof and ref values carry spans", () => {

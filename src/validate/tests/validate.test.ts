@@ -14,7 +14,7 @@ function schemaModel(): Repository {
     .defineConcept("location")
     .defineConcept("technology")
     .addField("technology", "label", "string", Cardinality.One)
-    .addConceptRelationship("technology", "availableIn", "location", Cardinality.NonEmpty)
+    .addConceptRelationship("technology", "availableIn", ["location"], Cardinality.NonEmpty)
     .commit();
   return model;
 }

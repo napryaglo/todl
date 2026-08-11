@@ -416,7 +416,7 @@ export function loadInto(
       second.addField(declaration.name, field.name, field.type, field.cardinality);
     }
     for (const relationship of declaration.relationships) {
-      second.addConceptRelationship(declaration.name, relationship.name, relationship.target, relationship.cardinality);
+      second.addConceptRelationship(declaration.name, relationship.name, relationship.targets, relationship.cardinality);
     }
     for (const invariant of declaration.invariants) {
       if (invariant.predicate !== null) {

@@ -36,7 +36,7 @@ export interface FieldSchema {
 
 export interface RelationshipSchema {
   name: string;
-  target: NodeId;
+  targets: NodeId[];
   cardinality: Cardinality;
   inverse: string | null;
 }
@@ -334,7 +334,7 @@ export class Repository {
       const inverse = node.attrs.get("inverse");
       relationships.push({
         name: readString(node.attrs.get("name")),
-        target: readString(node.attrs.get("target")),
+        targets: this.graph.related(memberId, EdgeKind.Targets, Direction.Out),
         cardinality: readCardinality(node.attrs.get("cardinality")),
         inverse: typeof inverse === "string" ? inverse : null,
       });

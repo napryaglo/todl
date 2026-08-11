@@ -13,10 +13,10 @@ function coveredModel(): Repository {
     .builder()
     .defineConcept("location")
     .defineConcept("technology")
-    .addConceptRelationship("technology", "availableIn", "location", Cardinality.Many)
+    .addConceptRelationship("technology", "availableIn", ["location"], Cardinality.Many)
     .defineConcept("component")
-    .addConceptRelationship("component", "in", "location", Cardinality.One)
-    .addConceptRelationship("component", "implementedBy", "technology", Cardinality.Optional)
+    .addConceptRelationship("component", "in", ["location"], Cardinality.One)
+    .addConceptRelationship("component", "implementedBy", ["technology"], Cardinality.Optional)
     .commit();
 
   model.defineInvariant(

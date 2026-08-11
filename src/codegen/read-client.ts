@@ -129,7 +129,7 @@ function emitAuthoringConstructor(concept: NodeId, repo: Repository): string {
       .map((f) => ({ name: f.name, targetPascal: targetPascal(repo, f.type), many: isMany(f.cardinality) })),
     ...schema.relationships.map((r) => ({
       name: r.name,
-      targetPascal: pascalCase(r.target),
+      targetPascal: pascalCase(r.targets[0]!),
       many: isMany(r.cardinality),
     })),
   ].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
@@ -199,7 +199,7 @@ function emitEntityClass(concept: NodeId, repo: Repository): string {
       .map((f) => ({ name: f.name, targetPascal: targetPascal(repo, f.type), many: isMany(f.cardinality) })),
     ...schema.relationships.map((r) => ({
       name: r.name,
-      targetPascal: pascalCase(r.target),
+      targetPascal: pascalCase(r.targets[0]!),
       many: isMany(r.cardinality),
     })),
   ].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));

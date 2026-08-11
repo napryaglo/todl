@@ -14,7 +14,7 @@ test("resolves the target concept of a relationship assignment", () => {
   const ctx = assignmentContextAt(analysis, uri, positions[0]!);
   assert.equal(ctx?.concept, "dog");
   assert.equal(ctx?.member, "owner");
-  assert.equal(ctx?.targetConcept, "person");
+  assert.deepEqual(ctx?.targetConcepts, ["person"]);
   assert.equal(ctx?.isRelationship, true);
 });
 

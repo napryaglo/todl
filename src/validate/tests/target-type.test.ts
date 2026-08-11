@@ -13,7 +13,7 @@ function baseModel(): Repository {
     .defineConcept("location")
     .defineConcept("technology")
     .defineConcept("component")
-    .addConceptRelationship("component", "in", "location", Cardinality.One)
+    .addConceptRelationship("component", "in", ["location"], Cardinality.One)
     .commit();
   return model;
 }
@@ -56,7 +56,7 @@ test("a relationship pointing at a subtype of the declared target is allowed", (
     .defineConcept("location")
     .defineConcept("cloud-region", "location")
     .defineConcept("component")
-    .addConceptRelationship("component", "in", "location", Cardinality.One)
+    .addConceptRelationship("component", "in", ["location"], Cardinality.One)
     .commit();
   model
     .builder()

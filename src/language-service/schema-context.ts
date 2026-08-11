@@ -6,7 +6,7 @@ import { positionToTodl } from "./position.js";
 export interface AssignmentContext {
   concept: string;
   member: string;
-  targetConcept: string | null;
+  targetConcepts: string[];
   cardinality: number;
   isRelationship: boolean;
 }
@@ -32,13 +32,13 @@ export function assignmentContextAt(a: Analysis, uri: string, pos: Position): As
   const schema = a.model.effectiveSchema(concept);
   const rel = schema.relationships.find((r) => r.name === member);
   if (rel !== undefined) {
-    return { concept, member, targetConcept: rel.target, cardinality: rel.cardinality, isRelationship: true };
+    return { concept, member, targetConcepts: rel.targets, cardinality: rel.cardinality, isRelationship: true };
   }
   const field = schema.fields.find((f) => f.name === member);
   if (field !== undefined) {
-    return { concept, member, targetConcept: field.type, cardinality: field.cardinality, isRelationship: false };
+    return { concept, member, targetConcepts: [field.type], cardinality: field.cardinality, isRelationship: false };
   }
-  return { concept, member, targetConcept: null, cardinality: 0, isRelationship: false };
+  return { concept, member, targetConcepts: [], cardinality: 0, isRelationship: false };
 }
 
 // Index of the first token starting at/after the cursor (else the end).

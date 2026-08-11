@@ -154,7 +154,7 @@ export class Builder {
   addConceptRelationship(
     concept: NodeId,
     name: string,
-    target: NodeId,
+    targets: NodeId[],
     cardinality: Cardinality = Cardinality.Many,
     inverse: string | null = null,
   ): this {
@@ -162,7 +162,6 @@ export class Builder {
     const attrs = new Map<string, Scalar>([
       ["name", name],
       ["cardinality", cardinality],
-      ["target", target],
     ]);
     if (inverse !== null) {
       attrs.set("inverse", inverse);
@@ -170,6 +169,9 @@ export class Builder {
     if (this.currentNamespace !== null) attrs.set("namespace", this.currentNamespace);
     this.stagedNodes.push({ id: memberId, tier: Tier.Ontology, typeOf: MetaKind.Relationship, attrs });
     this.stagedEdges.push({ kind: EdgeKind.HasRelationship, via: null, from: concept, to: memberId });
+    for (const target of targets) {
+      this.stagedEdges.push({ kind: EdgeKind.Targets, via: null, from: memberId, to: target });
+    }
     return this;
   }
 

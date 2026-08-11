@@ -10,9 +10,9 @@ const CARD: Record<number, string> = {
 
 export function signatureHelpAt(a: Analysis, uri: string, pos: Position): SignatureHelp | null {
   const ctx = assignmentContextAt(a, uri, pos);
-  if (ctx === null || ctx.targetConcept === null) return null;
+  if (ctx === null || ctx.targetConcepts.length === 0) return null;
   const arrow = ctx.isRelationship ? "->" : ":";
-  const label = `${ctx.member} ${arrow} ${ctx.targetConcept}${CARD[ctx.cardinality] ?? ""}`;
+  const label = `${ctx.member} ${arrow} ${ctx.targetConcepts.join(" | ")}${CARD[ctx.cardinality] ?? ""}`;
   const signature: SignatureInformation = { label };
   return { signatures: [signature], activeSignature: 0, activeParameter: 0 };
 }

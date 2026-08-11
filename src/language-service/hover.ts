@@ -21,7 +21,7 @@ export function hoverAt(a: Analysis, uri: string, pos: Position): Hover | null {
     const schema = a.model.schemaOf(symbol);
     if (schema.extends !== null) lines.push(`extends \`${schema.extends}\``);
     for (const f of schema.fields) lines.push(`- \`${f.name}\`: ${f.type}`);
-    for (const r of schema.relationships) lines.push(`- \`${r.name}\` → ${r.target}`);
+    for (const r of schema.relationships) lines.push(`- \`${r.name}\` → ${r.targets.join(" | ")}`);
   }
   const node = a.model.resolve(symbol);
   const description = node?.attrs.get("description");

@@ -66,10 +66,17 @@ test("emits field schema with cardinality text, omitting required-single", () =>
   assert.match(js, /assignee: \{ type: "string", cardinality: "0\.\.1" \},/);
 });
 
-test("emits relationship schema with target and cardinality", () => {
-  const js = toMetaModule(corpus(), { slug: "bpmn" });
-  assert.match(js, /livesIn: \{ target: "Lane", cardinality: "1\.\.1" \},/);
-  assert.match(js, /incoming: \{ target: "SequenceFlow", cardinality: "\*" \},/);
+test("emits relationship schema with targets and cardinality", () => {
+  // Targets are `Targets` edges to resolved concepts; a self-contained model
+  // keeps `Lane`/`SequenceFlow` defined so the edges survive (unresolved
+  // targets are dropped at commit — see the reference-integrity program).
+  const model = load([
+    `namespace n { concept Lane {} concept SequenceFlow {}
+      concept Task { relationship livesIn -> Lane; relationship incoming -> SequenceFlow[]; } }`,
+  ]);
+  const js = toMetaModule(model, { slug: "n" });
+  assert.match(js, /livesIn: \{ targets: \["Lane"\], cardinality: "1\.\.1" \},/);
+  assert.match(js, /incoming: \{ targets: \["SequenceFlow"\], cardinality: "\*" \},/);
 });
 
 test("emits taxonomy tables with labels and a has() helper", () => {

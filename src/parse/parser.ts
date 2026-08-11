@@ -715,13 +715,13 @@ class Parser {
     const nameTok = this.expect(TokenKind.Identifier);
     this.expect(TokenKind.Arrow);
     const targetStart = this.current();
-    const target = this.parseDottedPath();              // relationship target may be ns-qualified
-    const targetSpan = this.spanFrom(targetStart);
+    const targets = [this.parseDottedPath()];           // relationship target may be ns-qualified
+    const targetSpans = [this.spanFrom(targetStart)];
     const cardinality = this.parseCardinality();
     this.expect(TokenKind.Semicolon);
     return {
-      name: nameTok.value, target, cardinality,
-      nameSpan: tokenSpan(nameTok, this.uri), targetSpan,
+      name: nameTok.value, targets, cardinality,
+      nameSpan: tokenSpan(nameTok, this.uri), targetSpans,
     };
   }
 
