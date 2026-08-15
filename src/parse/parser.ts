@@ -30,6 +30,7 @@ import {
   type AnnotationApplication,
   type PackageDecl,
   type OperatorDecl,
+  type EdgeApplication,
   type AssignmentNode,
   type ValueNode,
   type ObjectValue,
@@ -54,8 +55,6 @@ class ParseError extends Error {
 
 class Parser {
   private pos = 0;
-  /** Monotonic counter for synthesizing ids of id-less edge records. */
-  private edgeSeq = 0;
 
   constructor(
     private readonly tokens: Token[],
@@ -110,7 +109,6 @@ class Parser {
           this.checkKeyword("concept") ||
           this.checkKeyword("internal") ||
           this.checkKeyword("sealed") ||
-          this.checkKeyword("connectors") ||
           kind === TokenKind.Identifier)
       ) {
         return;
@@ -182,11 +180,9 @@ class Parser {
       this.advance(); // class modifier
       return this.parseInstanceFrom(this.expectIdentifier(), start, true);
     }
-    if (this.checkKeyword("connectors")) return this.parseApplicationConnectors(start);
     if (this.check(TokenKind.Identifier)) {
       const cStart = this.current();
       const concept = this.parseDottedPath();           // record concept may be ns-qualified
-      if (this.edgeRecordAhead()) return this.parseEdgeRecord(concept, start);
       return this.parseInstanceFrom(concept, start, false, this.spanFrom(cStart));
     }
     throw this.error(`expected a declaration (primitive / enum / concept / instance)`);
@@ -212,9 +208,9 @@ class Parser {
     }
     const binds = this.match(TokenKind.Colon) ? this.expectIdentifier() : null;
     this.expect(TokenKind.LBrace);
-    const { assignments, children, annotations } = this.parseRecordBody();
+    const { assignments, children, annotations, edges } = this.parseRecordBody();
     this.expect(TokenKind.RBrace);
-    const decl: InstanceDecl = { kind: DeclKind.Instance, concept, id, binds, isClass, instanceOf, assignments, children, annotations, span: this.spanFrom(start) };
+    const decl: InstanceDecl = { kind: DeclKind.Instance, concept, id, binds, isClass, instanceOf, assignments, children, annotations, edges, span: this.spanFrom(start) };
     if (conceptSpan !== undefined) decl.conceptSpan = conceptSpan;
     if (instanceOfSpan !== undefined) decl.instanceOfSpan = instanceOfSpan;
     decl.idSpan = tokenSpan(idTok, this.uri);
@@ -222,33 +218,33 @@ class Parser {
   }
 
   /** Parse a record body (between `{` and `}`, both consumed by the caller):
-   * annotate applications, connector blocks, `name = value` assignments, edge
-   * records, and nested named records. Shared by instance records and inline
-   * objects. */
+   * annotate applications, `name = value` assignments, edge applications
+   * (`a <glyph> b`), and nested named records. Shared by instance records and
+   * inline objects. */
   private parseRecordBody(): {
     assignments: AssignmentNode[];
     children: InstanceDecl[];
     annotations: AnnotationApplication[];
+    edges: EdgeApplication[];
   } {
     const assignments: AssignmentNode[] = [];
     const children: InstanceDecl[] = [];
     const annotations: AnnotationApplication[] = [];
+    const edges: EdgeApplication[] = [];
     while (!this.check(TokenKind.RBrace)) {
       const memberStart = this.startToken();
       if (this.checkKeyword("annotate")) { annotations.push(this.parseAnnotationApplication(memberStart)); continue; }
-      if (this.checkKeyword("connectors")) { children.push(this.parseApplicationConnectors(memberStart)); continue; }
+      if (this.edgeApplicationAhead()) { edges.push(this.parseEdgeApplication(memberStart)); continue; }
       const first = this.expectIdentifier();
       if (this.match(TokenKind.Equals)) {
         const value = this.parseValue();
         this.expect(TokenKind.Semicolon);
         assignments.push({ name: first, value, span: this.spanFrom(memberStart) });
-      } else if (this.edgeRecordAhead()) {
-        children.push(this.parseEdgeRecord(first, memberStart));
       } else {
         children.push(this.parseInstanceFrom(first, memberStart));
       }
     }
-    return { assignments, children, annotations };
+    return { assignments, children, annotations, edges };
   }
 
   /** True when the tokens ahead form `Identifier ( . Identifier )* {` — a typed
@@ -266,9 +262,9 @@ class Parser {
     const concept = this.parseDottedPath();
     const conceptSpan = this.spanFrom(cStart);
     this.expect(TokenKind.LBrace);
-    const { assignments, children, annotations } = this.parseRecordBody();
+    const { assignments, children, annotations, edges } = this.parseRecordBody();
     this.expect(TokenKind.RBrace);
-    return { kind: ValueKind.Object, concept, assignments, children, annotations, conceptSpan, span: this.spanFrom(start) };
+    return { kind: ValueKind.Object, concept, assignments, children, annotations, edges, conceptSpan, span: this.spanFrom(start) };
   }
 
   /**
@@ -304,19 +300,16 @@ class Parser {
       conformsSpan = this.spanFrom(cStart);
     }
     const instances: InstanceDecl[] = [];
+    const edges: EdgeApplication[] = [];
     this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
       const memberStart = this.startToken();
-      if (this.checkKeyword("connectors")) {
-        instances.push(this.parseApplicationConnectors(memberStart));
+      if (this.edgeApplicationAhead()) {
+        edges.push(this.parseEdgeApplication(memberStart));
         continue;
       }
       const cStart = this.current();
       const concept = this.parseDottedPath();           // record concept may be ns-qualified
-      if (this.edgeRecordAhead()) {
-        instances.push(this.parseEdgeRecord(concept, memberStart));
-        continue;
-      }
       instances.push(this.parseInstanceFrom(concept, memberStart, false, this.spanFrom(cStart)));
     }
     this.expect(TokenKind.RBrace);
@@ -326,6 +319,7 @@ class Parser {
       metaModel,
       libraries,
       instances,
+      edges,
       conforms,
       span: this.spanFrom(start),
     };
@@ -440,69 +434,46 @@ class Parser {
   }
 
   /**
-   * Parse an edge-shorthand record whose leading concept identifier is already
-   * consumed: `<concept> &from (-> | -->) &to [ { … } | ; ]`. Materialized as an
-   * instance carrying `from` / `to` reference assignments plus an `operator`
-   * attr, so it flows through the normal instance machinery.
+   * Parse an edge application `<left> <glyph> <right> [ { … } | ; ]`, leading
+   * operand NOT yet consumed. Shape-only: the loader resolves the glyph against
+   * the operator table and materializes the edge (design §3).
    */
-  private parseEdgeRecord(concept: string, start: Token): InstanceDecl {
-    const from = this.parseRef();
-    this.consumeEdgeOperator(); // arrow (-> / -->) is authoring sugar; not stored
-    const to = this.parseRef();
-    // `step` names its endpoints src/dst; connectors use from/to.
-    const [fromField, toField] = concept === "step" ? ["src", "dst"] : ["from", "to"];
-    const assignments: AssignmentNode[] = [
-      { name: fromField, value: { kind: ValueKind.Name, name: from } },
-      { name: toField, value: { kind: ValueKind.Name, name: to } },
-    ];
+  private parseEdgeApplication(start: Token): EdgeApplication {
+    const leftStart = this.current();
+    const left = this.parseDottedPath();
+    const glyphTok = this.expect(TokenKind.SymbolOp);
+    const rightStart = this.current();
+    const right = this.parseDottedPath();
+    const body: AssignmentNode[] = [];
     if (this.match(TokenKind.LBrace)) {
       while (!this.check(TokenKind.RBrace)) {
+        const aStart = this.startToken();
         const name = this.expectIdentifier();
         this.expect(TokenKind.Equals);
         const value = this.parseValue();
         this.expect(TokenKind.Semicolon);
-        assignments.push({ name, value });
+        body.push({ name, value, span: this.spanFrom(aStart) });
       }
       this.expect(TokenKind.RBrace);
+      this.match(TokenKind.Semicolon); // optional trailing `;` after a body
     } else {
-      this.match(TokenKind.Semicolon); // optional terminator (bare in an application-connectors block)
+      this.expect(TokenKind.Semicolon);
     }
-    const id = `${concept}_${(this.edgeSeq += 1)}`;
-    return { kind: DeclKind.Instance, concept, id, binds: null, isClass: false, instanceOf: null, assignments, children: [], annotations: [], span: this.spanFrom(start) };
+    const edge: EdgeApplication = { glyph: glyphTok.value, left, right, body, span: this.spanFrom(start) };
+    edge.glyphSpan = tokenSpan(glyphTok, this.uri);
+    edge.leftSpan = this.spanFrom(leftStart);
+    edge.rightSpan = this.spanFrom(rightStart);
+    return edge;
   }
 
-  /** Parse an `application-connectors { &a --> &b … }` block into a container of connectors. */
-  private parseApplicationConnectors(start: Token): InstanceDecl {
-    this.expectKeyword("connectors");
-    this.expect(TokenKind.LBrace);
-    const children: InstanceDecl[] = [];
-    while (!this.check(TokenKind.RBrace)) {
-      const edgeStart = this.startToken();
-      children.push(this.parseEdgeRecord("connector", edgeStart));
-    }
-    this.expect(TokenKind.RBrace);
-    const id = `application_connectors_${(this.edgeSeq += 1)}`;
-    return { kind: DeclKind.Instance, concept: "connectors", id, binds: null, isClass: false, instanceOf: null, assignments: [], children, annotations: [], span: this.spanFrom(start) };
-  }
-
-  private parseRef(): string {
-    return this.parseDottedPath();
-  }
-
-  /** True when the tokens ahead form an edge-record endpoint: a (possibly
-   * dotted) name immediately followed by an edge operator (`->` / `-->`).
-   * Distinguishes `connector a -> b` from a normal `concept id { … }` record. */
-  private edgeRecordAhead(): boolean {
+  /** True when the tokens ahead form `Identifier ( . Identifier )*` immediately
+   * followed by a SymbolOp — an edge application `a <glyph> b`. */
+  private edgeApplicationAhead(): boolean {
     let i = 0;
     if (this.peekKind(i) !== TokenKind.Identifier) return false;
     i += 1;
     while (this.peekKind(i) === TokenKind.Dot && this.peekKind(i + 1) === TokenKind.Identifier) i += 2;
     return this.peekKind(i) === TokenKind.SymbolOp;
-  }
-
-  private consumeEdgeOperator(): string {
-    if (this.checkSymbol("->") || this.checkSymbol("-->")) return this.advance().value;
-    throw this.error(`expected "->" or "-->"`);
   }
 
   private parseValue(): ValueNode {

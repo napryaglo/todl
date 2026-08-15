@@ -71,6 +71,7 @@ export interface ObjectValue {
   assignments: AssignmentNode[];
   children: InstanceDecl[];
   annotations: AnnotationApplication[];
+  edges: EdgeApplication[];
   conceptSpan?: SourceSpan;
   span: SourceSpan;
 }
@@ -82,6 +83,19 @@ export type ValueNode =
   | CompositeValue
   | BooleanValue
   | ObjectValue;
+
+/** A `left <glyph> right [ { … } | ; ]` edge usage (design §3). Shape-only: the
+ * loader resolves `glyph` against the operator table and materializes the edge. */
+export interface EdgeApplication {
+  glyph: string;
+  left: string;
+  right: string;
+  leftSpan?: SourceSpan;
+  rightSpan?: SourceSpan;
+  glyphSpan?: SourceSpan;
+  body: AssignmentNode[];
+  span: SourceSpan;
+}
 
 export interface AssignmentNode {
   name: string;
@@ -106,6 +120,8 @@ export interface InstanceDecl {
   /** `annotate` applications in this record's body. Staged only for classes;
    * on a concrete instance the loader reports `annotation.invalid-target`. */
   annotations: AnnotationApplication[];
+  /** Edge applications (`a <glyph> b`) in this record's body. */
+  edges: EdgeApplication[];
   span: SourceSpan;
   /** Span of the leading concept identifier (`<concept> <id>`). */
   conceptSpan?: SourceSpan;
@@ -124,6 +140,8 @@ export interface ModelDecl {
   libraries: string[];
   /** The concrete objects this model carries. */
   instances: InstanceDecl[];
+  /** Edge applications (`a <glyph> b`) in the model body. */
+  edges: EdgeApplication[];
   /** The viewpoint this model conforms to (`… conforms <viewpoint>`), or null. */
   conforms: string | null;
   span: SourceSpan;

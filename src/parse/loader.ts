@@ -606,6 +606,7 @@ function termToInstanceDecl(taxonomy: string, t: Term): InstanceDecl {
     assignments: t.assignments,
     children: t.children.map((c) => termToInstanceDecl(taxonomy, c)),
     annotations: [],
+    edges: [],
     span: t.span,
   };
 }
@@ -919,6 +920,7 @@ function realizeInlineObject(
     assignments: value.assignments.filter((a) => a.name !== "id"),
     children: value.children,
     annotations: [],
+    edges: value.edges,
     span: value.span,
   };
   applyInstance(builder, model, synth, null, null, asserted, diagnostics, idGen);
