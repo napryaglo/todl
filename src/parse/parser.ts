@@ -722,9 +722,21 @@ class Parser {
       targetSpans.push(this.spanFrom(nextStart));
     }
     const cardinality = this.parseCardinality();
-    this.expect(TokenKind.Semicolon);
+    const annotations: AnnotationApplication[] = [];
+    if (this.match(TokenKind.LBrace)) {
+      while (!this.check(TokenKind.RBrace)) {
+        if (this.checkKeyword("annotate")) {
+          annotations.push(this.parseAnnotationApplication(this.startToken()));
+        } else {
+          throw this.error('only "annotate" statements are allowed in a relationship body');
+        }
+      }
+      this.expect(TokenKind.RBrace);
+    } else {
+      this.expect(TokenKind.Semicolon);
+    }
     return {
-      name: nameTok.value, targets, cardinality,
+      name: nameTok.value, targets, cardinality, annotations,
       nameSpan: tokenSpan(nameTok, this.uri), targetSpans,
     };
   }

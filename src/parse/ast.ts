@@ -158,6 +158,7 @@ export interface RelationshipDecl {
   name: string;
   targets: string[];
   cardinality: Cardinality;
+  annotations: AnnotationApplication[];
   nameSpan?: SourceSpan;
   targetSpans?: SourceSpan[];
 }
