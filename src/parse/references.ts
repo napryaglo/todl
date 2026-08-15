@@ -169,6 +169,16 @@ function visitValueRefs(
     case ValueKind.List:
       for (const item of value.items) visitValueRefs(item, ownerNode, memberName, memberSpan, scope, visit);
       break;
+    case ValueKind.Object:
+      // An inline object's concept + nested refs must resolve (and qualified
+      // names rewrite flat) like any record. It has no id at parse time, so
+      // nested refs borrow the outer ownerNode for diagnostics.
+      visit({ name: value.concept, span: value.conceptSpan ?? memberSpan, role: RefRole.RecordConcept,
+        ownerNode, memberPath: memberName, rewrite: (r) => { (value as { concept: string }).concept = r; } });
+      // `id` is the object's own identity, not a reference — skip it.
+      for (const a of value.assignments) if (a.name !== "id") visitValueRefs(a.value, ownerNode, a.name, a.span, scope, visit);
+      for (const child of value.children) visitInstanceRefs(child, visit, scope);
+      break;
     case ValueKind.String:
     case ValueKind.Composite:
     case ValueKind.Boolean:
