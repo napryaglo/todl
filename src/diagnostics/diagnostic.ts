@@ -37,6 +37,13 @@ export enum DiagnosticCode {
   InlineObjectTarget = "inline-object.target",
   // An inline object whose concept is not the field's type or a subtype.
   InlineObjectType = "inline-object.type",
+  // Operators (design §5).
+  OperatorUndefined = "operator.undefined",
+  OperatorRedeclared = "operator.redeclared",
+  OperatorMalformedGlyph = "operator.malformed-glyph",
+  OperatorBadEndpoint = "operator.bad-endpoint",
+  OperatorBodyOnRelationship = "operator.body-on-relationship",
+  OperatorSourceType = "operator.source-type",
   // Reference-resolution phase.
   ReferenceUndefined = "reference.undefined",
   // A symbol exists but lives in a namespace this reference's home namespace
