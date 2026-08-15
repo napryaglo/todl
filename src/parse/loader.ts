@@ -309,6 +309,7 @@ export function loadInto(
   // sources and the existing model was flagged above and its edges are skipped
   // by Builder.commit.
   const first = model.builder();
+  const definedOps = new Set<string>(); // glyph → staged once; duplicates diagnosed in validateOperators
   for (const { ns, decl: declaration } of units) {
     first.setNamespace(ns);
     switch (declaration.kind) {
@@ -397,7 +398,12 @@ export function loadInto(
         first.defineAnnotation(declaration.name, declaration.extends ?? null);
         break;
       case DeclKind.Operator:
-        first.defineOperator(declaration.glyph, declaration.concept, declaration.fromMember, declaration.toMember, declaration.relationship);
+        // Stage a glyph once; a redeclaration would collide on the node id, so
+        // it is dropped here and reported by validateOperators.
+        if (!definedOps.has(declaration.glyph)) {
+          definedOps.add(declaration.glyph);
+          first.defineOperator(declaration.glyph, declaration.concept, declaration.fromMember, declaration.toMember, declaration.relationship);
+        }
         break;
       case DeclKind.Instance:
       case DeclKind.Model:
@@ -436,6 +442,9 @@ export function loadInto(
     }
   }
   second.commit(undefinedIds);
+
+  // Operator declarations validate against the now-committed concept schemas.
+  validateOperators(model, units, diagnostics);
 
   // Pass 2b: instances. The schema is committed, so a nested record binds to the
   // parent field typed by its concept (in addition to the structural Contains).
@@ -987,6 +996,59 @@ function operatorTable(model: Repository): OperatorTable {
     });
   }
   return table;
+}
+
+/** Glyph well-formedness, endpoint membership, and duplicate-glyph checks over
+ * the operator declarations, against the committed concept schemas (design §5). */
+function validateOperators(
+  model: Repository,
+  units: readonly { ns: string; decl: Declaration }[],
+  diagnostics: Diagnostic[],
+): void {
+  const seen = new Set<string>();
+  const GLYPH = /^[-~=><!]+$/;
+  for (const { decl } of units) {
+    if (decl.kind !== DeclKind.Operator) continue;
+    if (!GLYPH.test(decl.glyph) || decl.glyph === "=") {
+      diagnostics.push({
+        code: DiagnosticCode.OperatorMalformedGlyph, severity: Severity.Error,
+        message: `operator glyph "${decl.glyph}" must be a run of edge characters ( - ~ = > < ! ) and not a lone "="`,
+        span: decl.glyphSpan ?? decl.span, node: decl.glyph, path: null,
+      });
+    }
+    if (seen.has(decl.glyph)) {
+      diagnostics.push({
+        code: DiagnosticCode.OperatorRedeclared, severity: Severity.Error,
+        message: `operator "${decl.glyph}" is declared more than once`,
+        span: decl.glyphSpan ?? decl.span, node: decl.glyph, path: null,
+      });
+    }
+    seen.add(decl.glyph);
+    if (!model.has(decl.concept)) continue; // undefined concept already diagnosed (reference.undefined)
+    const schema = model.effectiveSchema(decl.concept);
+    // An endpoint is valid iff it is a reference member — a concept/taxonomy-typed
+    // field OR a relationship. Both produce reference edges (the reified from/to
+    // and the relationship-form member alike).
+    const isReferenceMemberName = (member: string): boolean => {
+      const field = schema.fields.find((f) => f.name === member);
+      const rel = schema.relationships.find((r) => r.name === member);
+      return (field !== undefined && isReferenceType(model, field.type)) || rel !== undefined;
+    };
+    const badEndpoint = (member: string): void => {
+      diagnostics.push({
+        code: DiagnosticCode.OperatorBadEndpoint, severity: Severity.Error,
+        message: `operator "${decl.glyph}": "${decl.concept}.${member}" is not a reference member`,
+        span: decl.conceptSpan ?? decl.span, node: decl.glyph, path: null,
+      });
+    };
+    if (decl.relationship !== null) {
+      if (!isReferenceMemberName(decl.relationship)) badEndpoint(decl.relationship);
+    } else {
+      for (const member of [decl.fromMember, decl.toMember]) {
+        if (member !== null && !isReferenceMemberName(member)) badEndpoint(member);
+      }
+    }
+  }
 }
 
 function applyEdges(
