@@ -28,12 +28,13 @@ import {
   type ValueNode,
   type ObjectValue,
   type AssignmentNode,
+  type EdgeApplication,
 } from "./ast.js";
 import { type IdGenerator, SnowflakeIdGenerator } from "../model/id-generator.js";
 import { makeResolver, type Home } from "../resolve/resolver.js";
 import { collectDefinitions, visitReferences } from "./references.js";
 import { PACKAGE_NODE_ID, MetaKind } from "../model/kinds.js";
-import type { NodeId, Scalar } from "../model/graph.js";
+import { EdgeKind, Direction, type NodeId, type Scalar } from "../model/graph.js";
 import type { SourceFile, SourceSpan } from "../diagnostics/span.js";
 import { Severity, DiagnosticCode, type Diagnostic } from "../diagnostics/diagnostic.js";
 
@@ -395,6 +396,9 @@ export function loadInto(
       case DeclKind.Annotation:
         first.defineAnnotation(declaration.name, declaration.extends ?? null);
         break;
+      case DeclKind.Operator:
+        first.defineOperator(declaration.glyph, declaration.concept, declaration.fromMember, declaration.toMember, declaration.relationship);
+        break;
       case DeclKind.Instance:
       case DeclKind.Model:
       case DeclKind.Package:
@@ -437,24 +441,26 @@ export function loadInto(
   // parent field typed by its concept (in addition to the structural Contains).
   const third = model.builder();
   const asserted = new Set<string>();
+  // Operators were committed in Pass 1, so the table sees bases + this load.
+  const ops = operatorTable(model);
   for (const { ns, decl: declaration } of units) {
     third.setNamespace(ns);
     if (declaration.kind === DeclKind.Instance) {
-      applyInstance(third, model, declaration, null, null, asserted, diagnostics, idGenerator);
+      applyInstance(third, model, declaration, null, null, asserted, diagnostics, idGenerator, ops);
     } else if (declaration.kind === DeclKind.Model) {
-      applyModel(third, model, declaration, asserted, diagnostics, idGenerator);
+      applyModel(third, model, declaration, asserted, diagnostics, idGenerator, ops);
     }
   }
   // Composition records nested in taxonomy terms — applied here so they bind to
   // the parent term's field against the now-committed concept schema.
   for (const composition of deferredCompositions) {
     third.setNamespace(composition.ns);
-    applyInstance(third, model, composition.decl, composition.parentId, composition.parentConcept, asserted, diagnostics, idGenerator);
+    applyInstance(third, model, composition.decl, composition.parentId, composition.parentConcept, asserted, diagnostics, idGenerator, ops);
   }
   // Term values classified by the now-committed concept schema (type-directed).
   for (const d of deferredTermValues) {
     third.setNamespace(d.ns);
-    realizeValue(third, model, d.concept, d.termId, d.name, d.value, diagnostics, asserted, idGenerator);
+    realizeValue(third, model, d.concept, d.termId, d.name, d.value, diagnostics, asserted, idGenerator, ops);
   }
   third.commit(undefinedIds);
 
@@ -719,6 +725,7 @@ function applyModel(
   asserted: Set<string>,
   diagnostics: Diagnostic[],
   idGen: IdGenerator,
+  ops: OperatorTable,
 ): void {
   // A model may be split across several files (Option B): same id, one node.
   // Assert the container + its model-level fields only on first sight; later
@@ -732,7 +739,7 @@ function applyModel(
     asserted.add(decl.id);
   }
   for (const child of decl.instances) {
-    applyInstance(builder, model, child, decl.id, null, asserted, diagnostics, idGen);
+    applyInstance(builder, model, child, decl.id, null, asserted, diagnostics, idGen, ops);
     // `conforms` is a per-FILE (per-block) home viewpoint: stamp each concrete
     // top-level entity so a model split across files keeps each entity's own
     // viewpoint after the model nodes merge.
@@ -740,6 +747,8 @@ function applyModel(
       builder.setField(child.id, "conforms", decl.conforms);
     }
   }
+  // Edge applications in the model body are contained by the model container.
+  applyEdges(builder, model, decl.edges, decl.id, ops, asserted, diagnostics, idGen);
 }
 
 function applyInstance(
@@ -751,13 +760,14 @@ function applyInstance(
   asserted: Set<string>,
   diagnostics: Diagnostic[],
   idGen: IdGenerator,
+  ops: OperatorTable,
 ): void {
   // A `technology-library` is a transparent file wrapper (not an EA concept);
   // its members are top-level records. Skipping the container node also avoids
   // a legacy id collision (the aws library names both its container and its
   // root location `aws`).
   if (WRAPPER_CONCEPTS.has(decl.concept)) {
-    for (const child of decl.children) applyInstance(builder, model, child, null, null, asserted, diagnostics, idGen);
+    for (const child of decl.children) applyInstance(builder, model, child, null, null, asserted, diagnostics, idGen, ops);
     return;
   }
 
@@ -778,11 +788,13 @@ function applyInstance(
     }
   }
   for (const assignment of decl.assignments) {
-    realizeValue(builder, model, decl.concept, decl.id, assignment.name, assignment.value, diagnostics, asserted, idGen);
+    realizeValue(builder, model, decl.concept, decl.id, assignment.name, assignment.value, diagnostics, asserted, idGen, ops);
   }
   for (const child of decl.children) {
-    applyInstance(builder, model, child, decl.id, decl.concept, asserted, diagnostics, idGen);
+    applyInstance(builder, model, child, decl.id, decl.concept, asserted, diagnostics, idGen, ops);
   }
+  // Edge applications in this record's body are contained by this instance.
+  applyEdges(builder, model, decl.edges, decl.id, ops, asserted, diagnostics, idGen);
 }
 
 /**
@@ -831,6 +843,7 @@ function realizeValue(
   diagnostics: Diagnostic[],
   asserted: Set<string>,
   idGen: IdGenerator,
+  ops: OperatorTable,
 ): void {
   const reference = isReferenceMember(model, concept, name);
   const mismatch = (msg: string): void => {
@@ -858,10 +871,10 @@ function realizeValue(
       else builder.setField(id, name, value.name);
       break;
     case ValueKind.List:
-      for (const item of value.items) realizeValue(builder, model, concept, id, name, item, diagnostics, asserted, idGen);
+      for (const item of value.items) realizeValue(builder, model, concept, id, name, item, diagnostics, asserted, idGen, ops);
       break;
     case ValueKind.Object:
-      realizeInlineObject(builder, model, concept, id, name, value, diagnostics, asserted, idGen);
+      realizeInlineObject(builder, model, concept, id, name, value, diagnostics, asserted, idGen, ops);
       break;
     case ValueKind.Composite:
       if (reference) {
@@ -890,6 +903,7 @@ function realizeInlineObject(
   diagnostics: Diagnostic[],
   asserted: Set<string>,
   idGen: IdGenerator,
+  ops: OperatorTable,
 ): void {
   const fieldType = referenceMemberType(model, ownerConcept, field);
   if (fieldType === undefined) {
@@ -923,7 +937,7 @@ function realizeInlineObject(
     edges: value.edges,
     span: value.span,
   };
-  applyInstance(builder, model, synth, null, null, asserted, diagnostics, idGen);
+  applyInstance(builder, model, synth, null, null, asserted, diagnostics, idGen, ops);
   builder.addContains(owner, objId);
   builder.addRelationship(owner, field, objId);
 }
@@ -944,6 +958,85 @@ function referenceMemberType(model: Repository, concept: string, name: string): 
   if (field !== undefined) return isReferenceType(model, field.type) ? field.type : undefined;
   const rel = schema.relationships.find((r) => r.name === name);
   return rel?.targets[0];
+}
+
+/** A glyph resolved to its edge concept + endpoint members (design §4). */
+interface ResolvedOperator {
+  glyph: string;
+  concept: string;
+  from: string | null;
+  to: string | null;
+  relationship: string | null;
+}
+
+type OperatorTable = Map<string, ResolvedOperator>;
+
+/** Build the glyph → operator lookup from every committed operator node (the
+ * bases plus this load's Pass-1 operators). */
+function operatorTable(model: Repository): OperatorTable {
+  const table: OperatorTable = new Map();
+  for (const node of model.allNodes()) {
+    if (node.typeOf !== MetaKind.Operator) continue;
+    const concept = model.related(node.id, EdgeKind.Targets, Direction.Out)[0];
+    if (concept === undefined) continue; // dangling concept ref already diagnosed
+    table.set(node.id, {
+      glyph: node.id, concept,
+      from: (node.attrs.get("from") as string | undefined) ?? null,
+      to: (node.attrs.get("to") as string | undefined) ?? null,
+      relationship: (node.attrs.get("relationship") as string | undefined) ?? null,
+    });
+  }
+  return table;
+}
+
+function applyEdges(
+  builder: Builder, model: Repository, edges: readonly EdgeApplication[], ownerId: string | null,
+  ops: OperatorTable, asserted: Set<string>, diagnostics: Diagnostic[], idGen: IdGenerator,
+): void {
+  for (const edge of edges) applyEdge(builder, model, edge, ownerId, ops, asserted, diagnostics, idGen);
+}
+
+/** Materialise one `a <glyph> b` edge: a reified form mints a contained,
+ * endpoint-bound node (via the normal instance machinery); a relationship form
+ * adds a single edge with no node (design §4). */
+function applyEdge(
+  builder: Builder, model: Repository, edge: EdgeApplication, ownerId: string | null,
+  ops: OperatorTable, asserted: Set<string>, diagnostics: Diagnostic[], idGen: IdGenerator,
+): void {
+  const op = ops.get(edge.glyph);
+  if (op === undefined) {
+    diagnostics.push({
+      code: DiagnosticCode.OperatorUndefined, severity: Severity.Error,
+      message: `no operator "${edge.glyph}" is declared in the meta-model`,
+      span: edge.glyphSpan ?? edge.span, node: null, path: null,
+    });
+    return;
+  }
+  if (op.relationship !== null) {
+    if (edge.body.length > 0) {
+      diagnostics.push({
+        code: DiagnosticCode.OperatorBodyOnRelationship, severity: Severity.Error,
+        message: `operator "${edge.glyph}" is a relationship edge and cannot carry a "{ … }" body`,
+        span: edge.span, node: null, path: null,
+      });
+    }
+    builder.addRelationship(edge.left, op.relationship, edge.right);
+    return;
+  }
+  // Reified form: synthesize an instance binding from/to (+ body) and reuse the
+  // instance machinery, so from/to resolve as references and containment/dedup
+  // work exactly as for a written-out record.
+  const idAssign = edge.body.find((a) => a.name === "id");
+  const objId = idAssign !== undefined ? nameOfValue(idAssign.value) : idGen.next();
+  const assignments: AssignmentNode[] = [];
+  if (op.from !== null) assignments.push({ name: op.from, value: { kind: ValueKind.Name, name: edge.left } });
+  if (op.to !== null) assignments.push({ name: op.to, value: { kind: ValueKind.Name, name: edge.right } });
+  for (const a of edge.body) if (a.name !== "id") assignments.push(a);
+  const synth: InstanceDecl = {
+    kind: DeclKind.Instance, concept: op.concept, id: objId, binds: null, isClass: false, instanceOf: null,
+    assignments, children: [], annotations: [], edges: [], span: edge.span,
+  };
+  applyInstance(builder, model, synth, ownerId, null, asserted, diagnostics, idGen, ops);
 }
 
 /** Test-only surface for the type-directed classification helpers. */
