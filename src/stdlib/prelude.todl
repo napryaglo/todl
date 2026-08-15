@@ -13,6 +13,7 @@ namespace todl
     annotation label    { text : string?; }
     annotation toolbox  { visible : boolean?; }
     annotation instance { concept : identifier; via : identifier?; }
+    annotation iconSource { order : number; }
 
     // Universal root concept — implicit supertype of every parent-less concept.
     concept Element
