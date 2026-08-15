@@ -887,6 +887,9 @@ function realizeValue(
     case ValueKind.Object:
       realizeInlineObject(builder, model, concept, id, name, value, diagnostics, asserted, idGen, ops);
       break;
+    case ValueKind.Edge:
+      realizeEdgeValue(builder, model, concept, id, name, value.edge, diagnostics, asserted, idGen, ops);
+      break;
     case ValueKind.Composite:
       if (reference) {
         // A `|`-composed selection of taxonomy terms → one edge per part.
@@ -1087,9 +1090,19 @@ function applyEdge(
     builder.addRelationship(edge.left, op.relationship, edge.right);
     return;
   }
-  // Reified form: synthesize an instance binding from/to (+ body) and reuse the
-  // instance machinery, so from/to resolve as references and containment/dedup
-  // work exactly as for a written-out record.
+  // Reified form: mint the entity, contained by the owner. The statement form
+  // discards the returned id (no field binding).
+  mintReifiedEdge(builder, model, edge, op, ownerId, asserted, diagnostics, idGen, ops);
+}
+
+/** Mint a reified operator edge as a contained instance (endpoints + body),
+ * reusing the instance machinery so from/to resolve as references and
+ * containment/dedup work exactly as for a written-out record. Returns the
+ * minted node id. */
+function mintReifiedEdge(
+  builder: Builder, model: Repository, edge: EdgeApplication, op: ResolvedOperator, ownerId: string | null,
+  asserted: Set<string>, diagnostics: Diagnostic[], idGen: IdGenerator, ops: OperatorTable,
+): string {
   const idAssign = edge.body.find((a) => a.name === "id");
   const objId = idAssign !== undefined ? nameOfValue(idAssign.value) : idGen.next();
   const assignments: AssignmentNode[] = [];
@@ -1101,6 +1114,52 @@ function applyEdge(
     assignments, children: [], annotations: [], edges: [], span: edge.span,
   };
   applyInstance(builder, model, synth, ownerId, null, asserted, diagnostics, idGen, ops);
+  return objId;
+}
+
+/** Materialise an operator application used as a value: mint the reified entity
+ * (contained by the owner) and bind it to `field` — the inline-object path with
+ * the operator supplying the concept + endpoint bindings (design §4). */
+function realizeEdgeValue(
+  builder: Builder, model: Repository, ownerConcept: string, owner: string, field: string,
+  edge: EdgeApplication, diagnostics: Diagnostic[], asserted: Set<string>, idGen: IdGenerator, ops: OperatorTable,
+): void {
+  const op = ops.get(edge.glyph);
+  if (op === undefined) {
+    diagnostics.push({
+      code: DiagnosticCode.OperatorUndefined, severity: Severity.Error,
+      message: `no operator "${edge.glyph}" is declared in the meta-model`,
+      span: edge.glyphSpan ?? edge.span, node: owner, path: null,
+    });
+    return;
+  }
+  if (op.relationship !== null) {
+    diagnostics.push({
+      code: DiagnosticCode.OperatorNotAValue, severity: Severity.Error,
+      message: `operator "${edge.glyph}" is a relationship edge and yields no entity — it cannot be used as a value`,
+      span: edge.span, node: owner, path: null,
+    });
+    return;
+  }
+  const fieldType = referenceMemberType(model, ownerConcept, field);
+  if (fieldType === undefined) {
+    diagnostics.push({
+      code: DiagnosticCode.InlineObjectTarget, severity: Severity.Error,
+      message: `"${ownerConcept}.${field}" is not a concept-typed member — an edge value cannot be assigned to it`,
+      span: edge.span, node: owner, path: `${ownerConcept}.${field}`,
+    });
+    return;
+  }
+  if (op.concept !== fieldType && !model.supertypesOf(op.concept).includes(fieldType)) {
+    diagnostics.push({
+      code: DiagnosticCode.InlineObjectType, severity: Severity.Error,
+      message: `edge of concept "${op.concept}" is not assignable to "${ownerConcept}.${field}" (expects "${fieldType}" or a subtype)`,
+      span: edge.span, node: owner, path: `${ownerConcept}.${field}`,
+    });
+    return;
+  }
+  const id = mintReifiedEdge(builder, model, edge, op, owner, asserted, diagnostics, idGen, ops);
+  builder.addRelationship(owner, field, id);
 }
 
 /** Test-only surface for the type-directed classification helpers. */

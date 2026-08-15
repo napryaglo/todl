@@ -44,6 +44,7 @@ export enum DiagnosticCode {
   OperatorBadEndpoint = "operator.bad-endpoint",
   OperatorBodyOnRelationship = "operator.body-on-relationship",
   OperatorSourceType = "operator.source-type",
+  OperatorNotAValue = "operator.not-a-value",
   // Reference-resolution phase.
   ReferenceUndefined = "reference.undefined",
   // A symbol exists but lives in a namespace this reference's home namespace
