@@ -98,6 +98,9 @@ export function visitReferences(decl: Declaration, visit: Visit): void {
           name: target, span: rel.targetSpans?.[i] ?? decl.span, role: RefRole.RelationshipTarget,
           ownerNode: decl.name, memberPath: rel.name, rewrite: (r) => { rel.targets[i] = r; },
         }));
+        // Annotations on the member resolve like any annotation name (undeclared →
+        // reference.undefined; qualified → rewritten flat), keyed to the member node.
+        annotationRefs(rel.annotations, `${decl.name}.${rel.name}`);
       }
       annotationRefs(decl.annotations, decl.name);
       break;

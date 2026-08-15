@@ -465,6 +465,11 @@ export function loadInto(
     if (decl.kind === DeclKind.Concept) {
       fourth.setNamespace(ns);
       stageApplications(fourth, model, decl.name, decl.annotations, seenApps, diagnostics);
+      // Member-level annotations decorate the member node (`<concept>.<member>@<Ann>`).
+      for (const rel of decl.relationships) {
+        if (rel.annotations.length > 0)
+          stageApplications(fourth, model, `${decl.name}.${rel.name}`, rel.annotations, seenApps, diagnostics);
+      }
     } else if (decl.kind === DeclKind.Package) {
       fourth.setNamespace(ns);
       if (!packageStaged) { fourth.definePackageNode(PACKAGE_NODE_ID); packageStaged = true; }
