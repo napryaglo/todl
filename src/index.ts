@@ -47,6 +47,16 @@ export {
 
 export { EntityBase, type Entity } from "./model/entity.js";
 
+export {
+  toElement,
+  type Element,
+  type ElementSchema,
+  type Provenance,
+  type IncomingRef,
+  type PresentationHint,
+  type ToElementOptions,
+} from "./model/element.js";
+
 export { FrozenRepository } from "./model/frozen.js";
 
 export { generateReadClient, isReferenceType, type ReadClientOptions } from "./codegen/read-client.js";
