@@ -6,9 +6,28 @@
  */
 
 import { MetaKind } from "../model/kinds.js";
-import { type NodeId, type Scalar } from "../model/graph.js";
+import { EdgeKind, Direction, type NodeId, type Scalar } from "../model/graph.js";
 import { Repository } from "../model/model.js";
 import { type TodlDocument, type JsonNode } from "./json.js";
+
+/** A reified-edge operator, keyed by concept for shorthand emit. */
+export interface EmitOperator { glyph: string; from: string; to: string; }
+
+/** Reverse map concept id → the first operator that reifies it (design §6), for
+ * shorthand emit. Deterministic: first operator in allNodes order wins. */
+export function collectOperators(model: Repository): Map<string, EmitOperator> {
+  const byConcept = new Map<string, EmitOperator>();
+  for (const node of model.allNodes()) {
+    if (node.typeOf !== MetaKind.Operator) continue;
+    const from = node.attrs.get("from");
+    const to = node.attrs.get("to");
+    if (typeof from !== "string" || typeof to !== "string") continue; // relationship form: no shorthand here
+    const concept = model.related(node.id, EdgeKind.Targets, Direction.Out)[0];
+    if (concept === undefined || byConcept.has(concept)) continue;    // first declared wins
+    byConcept.set(concept, { glyph: node.id, from, to });
+  }
+  return byConcept;
+}
 
 /** The default-library (prelude) namespace — a base, never a project binding. */
 const PRELUDE_NAMESPACE = "todl";
@@ -70,13 +89,15 @@ interface EmitCtx {
   instanceOf: Map<string, string>;
   rels: Map<string, Array<{ via: string; to: string }>>;
   inline: Set<string>;
+  /** concept id → reified-edge operator, for shorthand emit (design §6). */
+  operators: Map<string, EmitOperator>;
 }
 
 function isClassNode(n: JsonNode): boolean {
   return (n.attrs as Record<string, unknown>).class === true;
 }
 
-export function emitModelTodl(own: TodlDocument, namespace: string, bindings: ModelBindings, conforms?: string): string {
+export function emitModelTodl(own: TodlDocument, namespace: string, bindings: ModelBindings, conforms?: string, operators?: Map<string, EmitOperator>): string {
   const instances = own.nodes;
   const classes = instances.filter(isClassNode);
   const concrete = instances.filter((n) => !isClassNode(n));
@@ -103,7 +124,7 @@ export function emitModelTodl(own: TodlDocument, namespace: string, bindings: Mo
   for (const [from, list] of rels) {
     for (const r of list) if (containedBy.get(r.to) === from && byId.has(r.to)) inline.add(r.to);
   }
-  const ctx: EmitCtx = { byId, instanceOf, rels, inline };
+  const ctx: EmitCtx = { byId, instanceOf, rels, inline, operators: operators ?? new Map() };
 
   const lines: string[] = [`namespace ${namespace}`, "{"];
   for (const ns of bindings.imports) lines.push(`  import ${ns};`);
@@ -128,6 +149,22 @@ export function emitModelTodl(own: TodlDocument, namespace: string, bindings: Mo
 /** Emit a top-level record (head + braced body) at `indent` (levels of 2 spaces). */
 function emitOne(node: JsonNode, ctx: EmitCtx, indent: number): string[] {
   const pad = "  ".repeat(indent);
+  // A reified edge whose concept has an operator, and whose two endpoints are
+  // bound, re-emits as `left <glyph> right [ { …rest } ]` (design §6).
+  const op = ctx.operators.get(node.typeOf);
+  if (op !== undefined && !isClassNode(node) && ctx.instanceOf.get(node.id) === undefined) {
+    const edgeRels = ctx.rels.get(node.id) ?? [];
+    const from = edgeRels.find((r) => r.via === op.from)?.to;
+    const to = edgeRels.find((r) => r.via === op.to)?.to;
+    if (from !== undefined && to !== undefined) {
+      const rest = emitBody(node, ctx, indent + 1, false).filter((l) => {
+        const t = l.trim();
+        return !t.startsWith(`${op.from} =`) && !t.startsWith(`${op.to} =`);
+      });
+      if (rest.length === 0) return [`${pad}${from} ${op.glyph} ${to};`];
+      return [`${pad}${from} ${op.glyph} ${to} {`, ...rest, `${pad}};`];
+    }
+  }
   const concept = localName(node.typeOf);
   const cls = ctx.instanceOf.get(node.id);
   const head = isClassNode(node)

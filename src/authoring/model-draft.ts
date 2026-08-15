@@ -18,7 +18,7 @@ import { checkAgainst } from "../api.js";
 import { parse } from "../parse/parser.js";
 import { collectDefinitions } from "../parse/references.js";
 import { preludeDocument } from "../stdlib/prelude.js";
-import { deriveBindings, emitModelTodl } from "../emit/todl.js";
+import { collectOperators, deriveBindings, emitModelTodl } from "../emit/todl.js";
 import type { Diagnostic } from "../diagnostics/diagnostic.js";
 
 const INSTANCE_TIER = Tier[Tier.Instance];
@@ -219,7 +219,7 @@ export class ModelDraft {
   toTodl(): string {
     const own = this.toJSON();
     const bindings = deriveBindings(this.model, this.baseIds, this.namespace, own);
-    return emitModelTodl(own, this.namespace, bindings, this.conformsOf(own));
+    return emitModelTodl(own, this.namespace, bindings, this.conformsOf(own), collectOperators(this.model));
   }
 
   /** Serialize the overlay as one `.todl` per home file (Option B multi-file):
@@ -240,7 +240,7 @@ export class ModelDraft {
     const result = new Map<string, string>();
     for (const [uri, doc] of files) {
       const bindings = deriveBindings(this.model, this.baseIds, this.namespace, doc);
-      result.set(uri, emitModelTodl(doc, this.namespace, bindings, this.conformsOf(doc)));
+      result.set(uri, emitModelTodl(doc, this.namespace, bindings, this.conformsOf(doc), collectOperators(this.model)));
     }
     return result;
   }
