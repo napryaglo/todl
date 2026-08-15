@@ -146,24 +146,31 @@ export function emitModelTodl(own: TodlDocument, namespace: string, bindings: Mo
   return lines.join("\n") + "\n";
 }
 
+/** If `node` is a reified edge whose concept has an operator and whose two
+ * endpoint members are bound, return `left <glyph> right` plus any non-endpoint
+ * body lines; else null. Shared by emitOne (statement) and emitInline (value). */
+function edgeShorthand(node: JsonNode, ctx: EmitCtx, indent: number): { head: string; rest: string[] } | null {
+  const op = ctx.operators.get(node.typeOf);
+  if (op === undefined || isClassNode(node) || ctx.instanceOf.get(node.id) !== undefined) return null;
+  const rels = ctx.rels.get(node.id) ?? [];
+  const from = rels.find((r) => r.via === op.from)?.to;
+  const to = rels.find((r) => r.via === op.to)?.to;
+  if (from === undefined || to === undefined) return null;
+  const rest = emitBody(node, ctx, indent + 1, false).filter((l) => {
+    const t = l.trim();
+    return !t.startsWith(`${op.from} =`) && !t.startsWith(`${op.to} =`);
+  });
+  return { head: `${from} ${op.glyph} ${to}`, rest };
+}
+
 /** Emit a top-level record (head + braced body) at `indent` (levels of 2 spaces). */
 function emitOne(node: JsonNode, ctx: EmitCtx, indent: number): string[] {
   const pad = "  ".repeat(indent);
-  // A reified edge whose concept has an operator, and whose two endpoints are
-  // bound, re-emits as `left <glyph> right [ { …rest } ]` (design §6).
-  const op = ctx.operators.get(node.typeOf);
-  if (op !== undefined && !isClassNode(node) && ctx.instanceOf.get(node.id) === undefined) {
-    const edgeRels = ctx.rels.get(node.id) ?? [];
-    const from = edgeRels.find((r) => r.via === op.from)?.to;
-    const to = edgeRels.find((r) => r.via === op.to)?.to;
-    if (from !== undefined && to !== undefined) {
-      const rest = emitBody(node, ctx, indent + 1, false).filter((l) => {
-        const t = l.trim();
-        return !t.startsWith(`${op.from} =`) && !t.startsWith(`${op.to} =`);
-      });
-      if (rest.length === 0) return [`${pad}${from} ${op.glyph} ${to};`];
-      return [`${pad}${from} ${op.glyph} ${to} {`, ...rest, `${pad}};`];
-    }
+  // A reified edge whose concept has an operator re-emits as shorthand (design §6).
+  const sh = edgeShorthand(node, ctx, indent);
+  if (sh !== null) {
+    if (sh.rest.length === 0) return [`${pad}${sh.head};`];
+    return [`${pad}${sh.head} {`, ...sh.rest, `${pad}};`];
   }
   const concept = localName(node.typeOf);
   const cls = ctx.instanceOf.get(node.id);
@@ -203,8 +210,15 @@ function emitBody(node: JsonNode, ctx: EmitCtx, indent: number, inlineChild: boo
   return lines;
 }
 
-/** Render a field-bound contained child as an inline object value `concept { … }`. */
+/** Render a field-bound contained child as a value: operator shorthand
+ * `left <glyph> right` when it is a reified edge, else an inline object
+ * `concept { … }`. */
 function emitInline(node: JsonNode, ctx: EmitCtx, indent: number): string {
+  const sh = edgeShorthand(node, ctx, indent);
+  if (sh !== null) {
+    if (sh.rest.length === 0) return sh.head;
+    return `${sh.head} {\n${sh.rest.join("\n")}\n${"  ".repeat(indent)}}`;
+  }
   const concept = localName(node.typeOf);
   const body = emitBody(node, ctx, indent + 1, true);
   if (body.length === 0) return `${concept} {}`;
