@@ -482,34 +482,34 @@ export function loadInto(
   for (const { ns, decl } of units) {
     if (decl.kind === DeclKind.Concept) {
       fourth.setNamespace(ns);
-      stageApplications(fourth, model, decl.name, decl.annotations, seenApps, diagnostics, asserted, idGenerator);
+      stageApplications(fourth, model, decl.name, decl.annotations, seenApps, diagnostics, asserted, idGenerator, ops);
       // Member-level annotations decorate the member node (`<concept>.<member>@<Ann>`).
       for (const rel of decl.relationships) {
         if (rel.annotations.length > 0)
-          stageApplications(fourth, model, `${decl.name}.${rel.name}`, rel.annotations, seenApps, diagnostics, asserted, idGenerator);
+          stageApplications(fourth, model, `${decl.name}.${rel.name}`, rel.annotations, seenApps, diagnostics, asserted, idGenerator, ops);
       }
     } else if (decl.kind === DeclKind.Package) {
       fourth.setNamespace(ns);
       if (!packageStaged) { fourth.definePackageNode(PACKAGE_NODE_ID); packageStaged = true; }
-      stageApplications(fourth, model, PACKAGE_NODE_ID, decl.annotations, seenApps, diagnostics, asserted, idGenerator);
+      stageApplications(fourth, model, PACKAGE_NODE_ID, decl.annotations, seenApps, diagnostics, asserted, idGenerator, ops);
     } else if (decl.kind === DeclKind.Taxonomy) {
       fourth.setNamespace(ns);
       // Taxonomy-level annotations decorate the taxonomy node itself
       // (`<taxonomy>@<name>`), exactly like a concept.
-      stageApplications(fourth, model, decl.name, decl.annotations, seenApps, diagnostics, asserted, idGenerator);
+      stageApplications(fourth, model, decl.name, decl.annotations, seenApps, diagnostics, asserted, idGenerator, ops);
       const walkTerm = (t: Term): void => {
         if (t.annotations.length > 0) {
-          stageApplications(fourth, model, `${decl.name}.${t.id}`, t.annotations, seenApps, diagnostics, asserted, idGenerator);
+          stageApplications(fourth, model, `${decl.name}.${t.id}`, t.annotations, seenApps, diagnostics, asserted, idGenerator, ops);
         }
         t.children.forEach(walkTerm);
       };
       decl.terms.forEach(walkTerm);
     } else if (decl.kind === DeclKind.Instance) {
       fourth.setNamespace(ns);
-      stageInstanceAnnotations(fourth, model, decl, seenApps, diagnostics, asserted, idGenerator);
+      stageInstanceAnnotations(fourth, model, decl, seenApps, diagnostics, asserted, idGenerator, ops);
     } else if (decl.kind === DeclKind.Model) {
       fourth.setNamespace(ns);
-      for (const inst of decl.instances) stageInstanceAnnotations(fourth, model, inst, seenApps, diagnostics, asserted, idGenerator);
+      for (const inst of decl.instances) stageInstanceAnnotations(fourth, model, inst, seenApps, diagnostics, asserted, idGenerator, ops);
     }
   }
   fourth.commit(undefinedIds);
@@ -675,6 +675,7 @@ function stageApplications(
   diagnostics: Diagnostic[],
   asserted: Set<string>,
   idGen: IdGenerator,
+  ops: OperatorTable,
 ): void {
   for (const app of apps) {
     const appId = `${target}@${app.name}`;
@@ -692,7 +693,7 @@ function stageApplications(
     seen.add(appId);
     builder.annotate(target, app.name);
     model.recordSpan(appId, app.span);
-    for (const a of app.assignments) realizeValue(builder, model, app.name, appId, a.name, a.value, diagnostics, asserted, idGen);
+    for (const a of app.assignments) realizeValue(builder, model, app.name, appId, a.name, a.value, diagnostics, asserted, idGen, ops);
   }
 }
 
@@ -706,10 +707,11 @@ function stageInstanceAnnotations(
   diagnostics: Diagnostic[],
   asserted: Set<string>,
   idGen: IdGenerator,
+  ops: OperatorTable,
 ): void {
   if (decl.annotations.length > 0) {
     if (decl.isClass) {
-      stageApplications(builder, model, decl.id, decl.annotations, seen, diagnostics, asserted, idGen);
+      stageApplications(builder, model, decl.id, decl.annotations, seen, diagnostics, asserted, idGen, ops);
     } else {
       for (const app of decl.annotations) {
         diagnostics.push({
@@ -723,7 +725,7 @@ function stageInstanceAnnotations(
       }
     }
   }
-  for (const child of decl.children) stageInstanceAnnotations(builder, model, child, seen, diagnostics, asserted, idGen);
+  for (const child of decl.children) stageInstanceAnnotations(builder, model, child, seen, diagnostics, asserted, idGen, ops);
 }
 
 /** Stage a model container node and its contained objects (rooted via Contains). */
