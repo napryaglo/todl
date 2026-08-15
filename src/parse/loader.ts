@@ -890,6 +890,23 @@ function realizeInlineObject(
   asserted: Set<string>,
   idGen: IdGenerator,
 ): void {
+  const fieldType = referenceMemberType(model, ownerConcept, field);
+  if (fieldType === undefined) {
+    diagnostics.push({
+      code: DiagnosticCode.InlineObjectTarget, severity: Severity.Error,
+      message: `"${ownerConcept}.${field}" is not a concept-typed member — an inline object cannot be assigned to it`,
+      span: value.span, node: owner, path: `${ownerConcept}.${field}`,
+    });
+    return;
+  }
+  if (value.concept !== fieldType && !model.supertypesOf(value.concept).includes(fieldType)) {
+    diagnostics.push({
+      code: DiagnosticCode.InlineObjectType, severity: Severity.Error,
+      message: `inline object of concept "${value.concept}" is not assignable to "${ownerConcept}.${field}" (expects "${fieldType}" or a subtype)`,
+      span: value.span, node: owner, path: `${ownerConcept}.${field}`,
+    });
+    return;
+  }
   const idAssign = value.assignments.find((a) => a.name === "id");
   const objId = idAssign !== undefined ? nameOfValue(idAssign.value) : idGen.next();
   const synth: InstanceDecl = {
@@ -914,6 +931,17 @@ function nameOfValue(v: ValueNode): string {
   if (v.kind === ValueKind.Name) return v.name;
   if (v.kind === ValueKind.String) return v.text;
   return "";
+}
+
+/** The declared concept type a reference member targets (a concept-typed field's
+ * type, or a relationship's single target), or undefined when `name` is not a
+ * concept-typed member. */
+function referenceMemberType(model: Repository, concept: string, name: string): string | undefined {
+  const schema = model.effectiveSchema(concept);
+  const field = schema.fields.find((f) => f.name === name);
+  if (field !== undefined) return isReferenceType(model, field.type) ? field.type : undefined;
+  const rel = schema.relationships.find((r) => r.name === name);
+  return rel?.targets[0];
 }
 
 /** Test-only surface for the type-directed classification helpers. */
