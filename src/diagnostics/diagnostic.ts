@@ -33,6 +33,10 @@ export enum DiagnosticCode {
   // A member's value shape does not match its declared type (e.g. a reference
   // member given a quoted string, or a value member given a list).
   MemberValueKind = "member.value-kind",
+  // An inline object assigned to a non-concept-typed member.
+  InlineObjectTarget = "inline-object.target",
+  // An inline object whose concept is not the field's type or a subtype.
+  InlineObjectType = "inline-object.type",
   // Reference-resolution phase.
   ReferenceUndefined = "reference.undefined",
   // A symbol exists but lives in a namespace this reference's home namespace

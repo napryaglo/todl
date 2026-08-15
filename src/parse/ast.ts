@@ -26,6 +26,7 @@ export enum ValueKind {
   List,
   Composite,
   Boolean,
+  Object,
 }
 
 export interface StringValue {
@@ -60,12 +61,26 @@ export interface CompositeValue {
   parts: string[];
 }
 
+/** A typed inline object literal — `concept { … }` — assignable to a
+ * concept/taxonomy-typed field. Materialised by the loader as a contained,
+ * field-bound node with a minted (or `id =`-supplied) id. */
+export interface ObjectValue {
+  kind: ValueKind.Object;
+  concept: string;
+  assignments: AssignmentNode[];
+  children: InstanceDecl[];
+  annotations: AnnotationApplication[];
+  conceptSpan?: SourceSpan;
+  span: SourceSpan;
+}
+
 export type ValueNode =
   | StringValue
   | NameValue
   | ListValue
   | CompositeValue
-  | BooleanValue;
+  | BooleanValue
+  | ObjectValue;
 
 export interface AssignmentNode {
   name: string;

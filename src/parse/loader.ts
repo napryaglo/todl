@@ -26,8 +26,10 @@ import {
   type AnnotationApplication,
   type Term,
   type ValueNode,
+  type ObjectValue,
   type AssignmentNode,
 } from "./ast.js";
+import { type IdGenerator, SnowflakeIdGenerator } from "../model/id-generator.js";
 import { makeResolver, type Home } from "../resolve/resolver.js";
 import { collectDefinitions, visitReferences } from "./references.js";
 import { PACKAGE_NODE_ID, MetaKind } from "../model/kinds.js";
@@ -62,9 +64,9 @@ interface PendingInvariant {
   description: string;
 }
 
-export function load(sources: SourceFile[]): LoadResult {
+export function load(sources: SourceFile[], idGenerator: IdGenerator = new SnowflakeIdGenerator()): LoadResult {
   const model = new Repository();
-  const diagnostics = loadInto(model, sources);
+  const diagnostics = loadInto(model, sources, new Set(), idGenerator);
   return { model, diagnostics };
 }
 
@@ -76,6 +78,7 @@ export function loadInto(
   model: Repository,
   sources: SourceFile[],
   reserved: ReadonlySet<string> = new Set(),
+  idGenerator: IdGenerator = new SnowflakeIdGenerator(),
 ): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   const units: { ns: string; imports: readonly string[]; uri: string; decl: Declaration }[] = [];
@@ -437,21 +440,21 @@ export function loadInto(
   for (const { ns, decl: declaration } of units) {
     third.setNamespace(ns);
     if (declaration.kind === DeclKind.Instance) {
-      applyInstance(third, model, declaration, null, null, asserted, diagnostics);
+      applyInstance(third, model, declaration, null, null, asserted, diagnostics, idGenerator);
     } else if (declaration.kind === DeclKind.Model) {
-      applyModel(third, model, declaration, asserted, diagnostics);
+      applyModel(third, model, declaration, asserted, diagnostics, idGenerator);
     }
   }
   // Composition records nested in taxonomy terms — applied here so they bind to
   // the parent term's field against the now-committed concept schema.
   for (const composition of deferredCompositions) {
     third.setNamespace(composition.ns);
-    applyInstance(third, model, composition.decl, composition.parentId, composition.parentConcept, asserted, diagnostics);
+    applyInstance(third, model, composition.decl, composition.parentId, composition.parentConcept, asserted, diagnostics, idGenerator);
   }
   // Term values classified by the now-committed concept schema (type-directed).
   for (const d of deferredTermValues) {
     third.setNamespace(d.ns);
-    realizeValue(third, model, d.concept, d.termId, d.name, d.value, diagnostics);
+    realizeValue(third, model, d.concept, d.termId, d.name, d.value, diagnostics, asserted, idGenerator);
   }
   third.commit(undefinedIds);
 
@@ -464,34 +467,34 @@ export function loadInto(
   for (const { ns, decl } of units) {
     if (decl.kind === DeclKind.Concept) {
       fourth.setNamespace(ns);
-      stageApplications(fourth, model, decl.name, decl.annotations, seenApps, diagnostics);
+      stageApplications(fourth, model, decl.name, decl.annotations, seenApps, diagnostics, asserted, idGenerator);
       // Member-level annotations decorate the member node (`<concept>.<member>@<Ann>`).
       for (const rel of decl.relationships) {
         if (rel.annotations.length > 0)
-          stageApplications(fourth, model, `${decl.name}.${rel.name}`, rel.annotations, seenApps, diagnostics);
+          stageApplications(fourth, model, `${decl.name}.${rel.name}`, rel.annotations, seenApps, diagnostics, asserted, idGenerator);
       }
     } else if (decl.kind === DeclKind.Package) {
       fourth.setNamespace(ns);
       if (!packageStaged) { fourth.definePackageNode(PACKAGE_NODE_ID); packageStaged = true; }
-      stageApplications(fourth, model, PACKAGE_NODE_ID, decl.annotations, seenApps, diagnostics);
+      stageApplications(fourth, model, PACKAGE_NODE_ID, decl.annotations, seenApps, diagnostics, asserted, idGenerator);
     } else if (decl.kind === DeclKind.Taxonomy) {
       fourth.setNamespace(ns);
       // Taxonomy-level annotations decorate the taxonomy node itself
       // (`<taxonomy>@<name>`), exactly like a concept.
-      stageApplications(fourth, model, decl.name, decl.annotations, seenApps, diagnostics);
+      stageApplications(fourth, model, decl.name, decl.annotations, seenApps, diagnostics, asserted, idGenerator);
       const walkTerm = (t: Term): void => {
         if (t.annotations.length > 0) {
-          stageApplications(fourth, model, `${decl.name}.${t.id}`, t.annotations, seenApps, diagnostics);
+          stageApplications(fourth, model, `${decl.name}.${t.id}`, t.annotations, seenApps, diagnostics, asserted, idGenerator);
         }
         t.children.forEach(walkTerm);
       };
       decl.terms.forEach(walkTerm);
     } else if (decl.kind === DeclKind.Instance) {
       fourth.setNamespace(ns);
-      stageInstanceAnnotations(fourth, model, decl, seenApps, diagnostics);
+      stageInstanceAnnotations(fourth, model, decl, seenApps, diagnostics, asserted, idGenerator);
     } else if (decl.kind === DeclKind.Model) {
       fourth.setNamespace(ns);
-      for (const inst of decl.instances) stageInstanceAnnotations(fourth, model, inst, seenApps, diagnostics);
+      for (const inst of decl.instances) stageInstanceAnnotations(fourth, model, inst, seenApps, diagnostics, asserted, idGenerator);
     }
   }
   fourth.commit(undefinedIds);
@@ -654,6 +657,8 @@ function stageApplications(
   apps: readonly AnnotationApplication[],
   seen: Set<string>,
   diagnostics: Diagnostic[],
+  asserted: Set<string>,
+  idGen: IdGenerator,
 ): void {
   for (const app of apps) {
     const appId = `${target}@${app.name}`;
@@ -671,7 +676,7 @@ function stageApplications(
     seen.add(appId);
     builder.annotate(target, app.name);
     model.recordSpan(appId, app.span);
-    for (const a of app.assignments) realizeValue(builder, model, app.name, appId, a.name, a.value, diagnostics);
+    for (const a of app.assignments) realizeValue(builder, model, app.name, appId, a.name, a.value, diagnostics, asserted, idGen);
   }
 }
 
@@ -683,10 +688,12 @@ function stageInstanceAnnotations(
   decl: InstanceDecl,
   seen: Set<string>,
   diagnostics: Diagnostic[],
+  asserted: Set<string>,
+  idGen: IdGenerator,
 ): void {
   if (decl.annotations.length > 0) {
     if (decl.isClass) {
-      stageApplications(builder, model, decl.id, decl.annotations, seen, diagnostics);
+      stageApplications(builder, model, decl.id, decl.annotations, seen, diagnostics, asserted, idGen);
     } else {
       for (const app of decl.annotations) {
         diagnostics.push({
@@ -700,7 +707,7 @@ function stageInstanceAnnotations(
       }
     }
   }
-  for (const child of decl.children) stageInstanceAnnotations(builder, model, child, seen, diagnostics);
+  for (const child of decl.children) stageInstanceAnnotations(builder, model, child, seen, diagnostics, asserted, idGen);
 }
 
 /** Stage a model container node and its contained objects (rooted via Contains). */
@@ -710,6 +717,7 @@ function applyModel(
   decl: ModelDecl,
   asserted: Set<string>,
   diagnostics: Diagnostic[],
+  idGen: IdGenerator,
 ): void {
   // A model may be split across several files (Option B): same id, one node.
   // Assert the container + its model-level fields only on first sight; later
@@ -723,7 +731,7 @@ function applyModel(
     asserted.add(decl.id);
   }
   for (const child of decl.instances) {
-    applyInstance(builder, model, child, decl.id, null, asserted, diagnostics);
+    applyInstance(builder, model, child, decl.id, null, asserted, diagnostics, idGen);
     // `conforms` is a per-FILE (per-block) home viewpoint: stamp each concrete
     // top-level entity so a model split across files keeps each entity's own
     // viewpoint after the model nodes merge.
@@ -741,13 +749,14 @@ function applyInstance(
   parentConcept: string | null,
   asserted: Set<string>,
   diagnostics: Diagnostic[],
+  idGen: IdGenerator,
 ): void {
   // A `technology-library` is a transparent file wrapper (not an EA concept);
   // its members are top-level records. Skipping the container node also avoids
   // a legacy id collision (the aws library names both its container and its
   // root location `aws`).
   if (WRAPPER_CONCEPTS.has(decl.concept)) {
-    for (const child of decl.children) applyInstance(builder, model, child, null, null, asserted, diagnostics);
+    for (const child of decl.children) applyInstance(builder, model, child, null, null, asserted, diagnostics, idGen);
     return;
   }
 
@@ -768,10 +777,10 @@ function applyInstance(
     }
   }
   for (const assignment of decl.assignments) {
-    realizeValue(builder, model, decl.concept, decl.id, assignment.name, assignment.value, diagnostics);
+    realizeValue(builder, model, decl.concept, decl.id, assignment.name, assignment.value, diagnostics, asserted, idGen);
   }
   for (const child of decl.children) {
-    applyInstance(builder, model, child, decl.id, decl.concept, asserted, diagnostics);
+    applyInstance(builder, model, child, decl.id, decl.concept, asserted, diagnostics, idGen);
   }
 }
 
@@ -819,6 +828,8 @@ function realizeValue(
   name: string,
   value: ValueNode,
   diagnostics: Diagnostic[],
+  asserted: Set<string>,
+  idGen: IdGenerator,
 ): void {
   const reference = isReferenceMember(model, concept, name);
   const mismatch = (msg: string): void => {
@@ -846,7 +857,10 @@ function realizeValue(
       else builder.setField(id, name, value.name);
       break;
     case ValueKind.List:
-      for (const item of value.items) realizeValue(builder, model, concept, id, name, item, diagnostics);
+      for (const item of value.items) realizeValue(builder, model, concept, id, name, item, diagnostics, asserted, idGen);
+      break;
+    case ValueKind.Object:
+      realizeInlineObject(builder, model, concept, id, name, value, diagnostics, asserted, idGen);
       break;
     case ValueKind.Composite:
       if (reference) {
@@ -859,6 +873,75 @@ function realizeValue(
       }
       break;
   }
+}
+
+/** Materialise a typed inline object assigned to `owner.field`: a contained node
+ * bound to the explicitly-named field, with an id from the `id =` assignment or
+ * the injected generator. Reuses `applyInstance` for the body (assignments +
+ * nested records); annotations inside an inline object are the v1 deferral. */
+function realizeInlineObject(
+  builder: Builder,
+  model: Repository,
+  ownerConcept: string,
+  owner: string,
+  field: string,
+  value: ObjectValue,
+  diagnostics: Diagnostic[],
+  asserted: Set<string>,
+  idGen: IdGenerator,
+): void {
+  const fieldType = referenceMemberType(model, ownerConcept, field);
+  if (fieldType === undefined) {
+    diagnostics.push({
+      code: DiagnosticCode.InlineObjectTarget, severity: Severity.Error,
+      message: `"${ownerConcept}.${field}" is not a concept-typed member — an inline object cannot be assigned to it`,
+      span: value.span, node: owner, path: `${ownerConcept}.${field}`,
+    });
+    return;
+  }
+  if (value.concept !== fieldType && !model.supertypesOf(value.concept).includes(fieldType)) {
+    diagnostics.push({
+      code: DiagnosticCode.InlineObjectType, severity: Severity.Error,
+      message: `inline object of concept "${value.concept}" is not assignable to "${ownerConcept}.${field}" (expects "${fieldType}" or a subtype)`,
+      span: value.span, node: owner, path: `${ownerConcept}.${field}`,
+    });
+    return;
+  }
+  const idAssign = value.assignments.find((a) => a.name === "id");
+  const objId = idAssign !== undefined ? nameOfValue(idAssign.value) : idGen.next();
+  const synth: InstanceDecl = {
+    kind: DeclKind.Instance,
+    concept: value.concept,
+    id: objId,
+    binds: null,
+    isClass: false,
+    instanceOf: null,
+    assignments: value.assignments.filter((a) => a.name !== "id"),
+    children: value.children,
+    annotations: [],
+    span: value.span,
+  };
+  applyInstance(builder, model, synth, null, null, asserted, diagnostics, idGen);
+  builder.addContains(owner, objId);
+  builder.addRelationship(owner, field, objId);
+}
+
+/** The bare string of a name/string value — used to read an inline object's `id =`. */
+function nameOfValue(v: ValueNode): string {
+  if (v.kind === ValueKind.Name) return v.name;
+  if (v.kind === ValueKind.String) return v.text;
+  return "";
+}
+
+/** The declared concept type a reference member targets (a concept-typed field's
+ * type, or a relationship's single target), or undefined when `name` is not a
+ * concept-typed member. */
+function referenceMemberType(model: Repository, concept: string, name: string): string | undefined {
+  const schema = model.effectiveSchema(concept);
+  const field = schema.fields.find((f) => f.name === name);
+  if (field !== undefined) return isReferenceType(model, field.type) ? field.type : undefined;
+  const rel = schema.relationships.find((r) => r.name === name);
+  return rel?.targets[0];
 }
 
 /** Test-only surface for the type-directed classification helpers. */

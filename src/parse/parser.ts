@@ -31,6 +31,7 @@ import {
   type PackageDecl,
   type AssignmentNode,
   type ValueNode,
+  type ObjectValue,
 } from "./ast.js";
 
 export interface ParseResult {
@@ -208,20 +209,32 @@ class Parser {
       instanceOfSpan = this.spanFrom(startTok);
     }
     const binds = this.match(TokenKind.Colon) ? this.expectIdentifier() : null;
+    this.expect(TokenKind.LBrace);
+    const { assignments, children, annotations } = this.parseRecordBody();
+    this.expect(TokenKind.RBrace);
+    const decl: InstanceDecl = { kind: DeclKind.Instance, concept, id, binds, isClass, instanceOf, assignments, children, annotations, span: this.spanFrom(start) };
+    if (conceptSpan !== undefined) decl.conceptSpan = conceptSpan;
+    if (instanceOfSpan !== undefined) decl.instanceOfSpan = instanceOfSpan;
+    decl.idSpan = tokenSpan(idTok, this.uri);
+    return decl;
+  }
+
+  /** Parse a record body (between `{` and `}`, both consumed by the caller):
+   * annotate applications, connector blocks, `name = value` assignments, edge
+   * records, and nested named records. Shared by instance records and inline
+   * objects. */
+  private parseRecordBody(): {
+    assignments: AssignmentNode[];
+    children: InstanceDecl[];
+    annotations: AnnotationApplication[];
+  } {
     const assignments: AssignmentNode[] = [];
     const children: InstanceDecl[] = [];
     const annotations: AnnotationApplication[] = [];
-    this.expect(TokenKind.LBrace);
     while (!this.check(TokenKind.RBrace)) {
       const memberStart = this.startToken();
-      if (this.checkKeyword("annotate")) {
-        annotations.push(this.parseAnnotationApplication(memberStart));
-        continue;
-      }
-      if (this.checkKeyword("connectors")) {
-        children.push(this.parseApplicationConnectors(memberStart));
-        continue;
-      }
+      if (this.checkKeyword("annotate")) { annotations.push(this.parseAnnotationApplication(memberStart)); continue; }
+      if (this.checkKeyword("connectors")) { children.push(this.parseApplicationConnectors(memberStart)); continue; }
       const first = this.expectIdentifier();
       if (this.match(TokenKind.Equals)) {
         const value = this.parseValue();
@@ -233,12 +246,27 @@ class Parser {
         children.push(this.parseInstanceFrom(first, memberStart));
       }
     }
+    return { assignments, children, annotations };
+  }
+
+  /** True when the tokens ahead form `Identifier ( . Identifier )* {` — a typed
+   * inline object, distinct from a bare name value. */
+  private objectAhead(): boolean {
+    let i = 0;
+    if (this.peekKind(i) !== TokenKind.Identifier) return false;
+    i += 1;
+    while (this.peekKind(i) === TokenKind.Dot && this.peekKind(i + 1) === TokenKind.Identifier) i += 2;
+    return this.peekKind(i) === TokenKind.LBrace;
+  }
+
+  private parseInlineObject(start: Token): ObjectValue {
+    const cStart = this.current();
+    const concept = this.parseDottedPath();
+    const conceptSpan = this.spanFrom(cStart);
+    this.expect(TokenKind.LBrace);
+    const { assignments, children, annotations } = this.parseRecordBody();
     this.expect(TokenKind.RBrace);
-    const decl: InstanceDecl = { kind: DeclKind.Instance, concept, id, binds, isClass, instanceOf, assignments, children, annotations, span: this.spanFrom(start) };
-    if (conceptSpan !== undefined) decl.conceptSpan = conceptSpan;
-    if (instanceOfSpan !== undefined) decl.instanceOfSpan = instanceOfSpan;
-    decl.idSpan = tokenSpan(idTok, this.uri);
-    return decl;
+    return { kind: ValueKind.Object, concept, assignments, children, annotations, conceptSpan, span: this.spanFrom(start) };
   }
 
   /**
@@ -444,6 +472,9 @@ class Parser {
   }
 
   private parseValue(): ValueNode {
+    if (this.check(TokenKind.Identifier) && this.objectAhead()) {
+      return this.parseInlineObject(this.startToken());
+    }
     if (this.check(TokenKind.String) || this.check(TokenKind.RawString)) {
       return { kind: ValueKind.String, text: this.advance().value };
     }

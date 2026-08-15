@@ -63,16 +63,31 @@ function literal(v: Scalar): string {
   return typeof v === "string" ? JSON.stringify(v) : String(v);
 }
 
+/** Shared emit context: node lookup, instanceof map, relationship edges, and the
+ * set of ids to render inline (a field-bound contained child). */
+interface EmitCtx {
+  byId: Map<string, JsonNode>;
+  instanceOf: Map<string, string>;
+  rels: Map<string, Array<{ via: string; to: string }>>;
+  inline: Set<string>;
+}
+
+function isClassNode(n: JsonNode): boolean {
+  return (n.attrs as Record<string, unknown>).class === true;
+}
+
 export function emitModelTodl(own: TodlDocument, namespace: string, bindings: ModelBindings, conforms?: string): string {
   const instances = own.nodes;
-  const classes = instances.filter((n) => (n.attrs as Record<string, unknown>).class === true);
-  const concrete = instances.filter((n) => (n.attrs as Record<string, unknown>).class !== true);
+  const classes = instances.filter(isClassNode);
+  const concrete = instances.filter((n) => !isClassNode(n));
 
   const instanceOf = new Map<string, string>();
   const rels = new Map<string, Array<{ via: string; to: string }>>();
+  const containedBy = new Map<string, string>();
   for (const e of own.edges) {
     const from = String(e.from);
     if (e.kind === "InstanceOf") instanceOf.set(from, String(e.to));
+    else if (e.kind === "Contains") containedBy.set(String(e.to), from);
     else if (e.kind === "Relationship" && e.via !== null) {
       const list = rels.get(from) ?? [];
       list.push({ via: String(e.via), to: String(e.to) });
@@ -80,9 +95,19 @@ export function emitModelTodl(own: TodlDocument, namespace: string, bindings: Mo
     }
   }
 
+  const byId = new Map(instances.map((n) => [n.id, n] as const));
+  // A child is INLINE when its container both Contains it AND points a field
+  // relationship at it — it is that field's value, so it is rendered inside the
+  // parent (with its id) and skipped at top level.
+  const inline = new Set<string>();
+  for (const [from, list] of rels) {
+    for (const r of list) if (containedBy.get(r.to) === from && byId.has(r.to)) inline.add(r.to);
+  }
+  const ctx: EmitCtx = { byId, instanceOf, rels, inline };
+
   const lines: string[] = [`namespace ${namespace}`, "{"];
   for (const ns of bindings.imports) lines.push(`  import ${ns};`);
-  for (const n of classes) lines.push(...emitOne(n, instanceOf.get(n.id), rels.get(n.id) ?? []));
+  for (const n of classes) lines.push(...emitOne(n, ctx, 1));
   if (concrete.length > 0) {
     const uses = bindings.uses.length > 0 ? ` uses ${bindings.uses.join(", ")}` : "";
     // The model id must be a bare C-like identifier (no dots); a dotted namespace
@@ -91,7 +116,8 @@ export function emitModelTodl(own: TodlDocument, namespace: string, bindings: Mo
     const conf = conforms !== undefined ? ` conforms ${conforms}` : "";
     lines.push(`  model ${modelId} : ${bindings.metaModel}${uses}${conf} {`);
     for (const n of concrete) {
-      for (const l of emitOne(n, instanceOf.get(n.id), rels.get(n.id) ?? [])) lines.push(`  ${l}`);
+      if (ctx.inline.has(n.id)) continue; // emitted inline inside its parent
+      for (const l of emitOne(n, ctx, 2)) lines.push(l);
     }
     lines.push("  }");
   }
@@ -99,30 +125,51 @@ export function emitModelTodl(own: TodlDocument, namespace: string, bindings: Mo
   return lines.join("\n") + "\n";
 }
 
-function emitOne(node: JsonNode, cls: string | undefined, relEdges: Array<{ via: string; to: string }>): string[] {
+/** Emit a top-level record (head + braced body) at `indent` (levels of 2 spaces). */
+function emitOne(node: JsonNode, ctx: EmitCtx, indent: number): string[] {
+  const pad = "  ".repeat(indent);
   const concept = localName(node.typeOf);
-  const isClass = (node.attrs as Record<string, unknown>).class === true;
-  const head = isClass
+  const cls = ctx.instanceOf.get(node.id);
+  const head = isClassNode(node)
     ? `class ${concept} ${localName(node.id)}`
     : cls !== undefined
       ? `${concept} ${localName(node.id)} instanceof ${localName(cls)}`
       : `${concept} ${localName(node.id)}`;
+  const body = emitBody(node, ctx, indent + 1, false);
+  if (body.length === 0) return [`${pad}${head} {}`];
+  return [`${pad}${head} {`, ...body, `${pad}}`];
+}
 
-  const body: string[] = [];
+/** The attr + member lines of a node. `inlineChild` keeps the `id` attr (the
+ * object's persisted identity) rather than dropping it as a marker. */
+function emitBody(node: JsonNode, ctx: EmitCtx, indent: number, inlineChild: boolean): string[] {
+  const pad = "  ".repeat(indent);
+  const lines: string[] = [];
   for (const [name, value] of Object.entries(node.attrs)) {
+    if (name === "id") { if (inlineChild) lines.push(`${pad}id = ${literal(value as Scalar)};`); continue; }
     if (MARKER_ATTRS.has(name)) continue;
-    body.push(`${name} = ${literal(value as Scalar)};`);
+    lines.push(`${pad}${name} = ${literal(value as Scalar)};`);
   }
   const byMember = new Map<string, string[]>();
-  for (const r of relEdges) {
+  for (const r of ctx.rels.get(node.id) ?? []) {
     const list = byMember.get(r.via) ?? [];
     list.push(r.to);
     byMember.set(r.via, list);
   }
   for (const [member, targets] of byMember) {
-    body.push(targets.length === 1 ? `${member} = ${targets[0]};` : `${member} = [${targets.join(", ")}];`);
+    const allInline = targets.length > 0 && targets.every((t) => ctx.inline.has(t) && ctx.byId.has(t));
+    const render = allInline
+      ? targets.map((t) => emitInline(ctx.byId.get(t)!, ctx, indent))
+      : targets;
+    lines.push(render.length === 1 ? `${pad}${member} = ${render[0]};` : `${pad}${member} = [${render.join(", ")}];`);
   }
+  return lines;
+}
 
-  if (body.length === 0) return [`  ${head} {}`];
-  return [`  ${head} {`, ...body.map((b) => `    ${b}`), "  }"];
+/** Render a field-bound contained child as an inline object value `concept { … }`. */
+function emitInline(node: JsonNode, ctx: EmitCtx, indent: number): string {
+  const concept = localName(node.typeOf);
+  const body = emitBody(node, ctx, indent + 1, true);
+  if (body.length === 0) return `${concept} {}`;
+  return `${concept} {\n${body.join("\n")}\n${"  ".repeat(indent)}}`;
 }

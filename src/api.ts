@@ -1,4 +1,5 @@
 import { loadInto } from "./parse/loader.js";
+import { type IdGenerator, SnowflakeIdGenerator } from "./model/id-generator.js";
 import { validate } from "./validate/validate.js";
 import { Graph, Tier, EdgeKind } from "./model/graph.js";
 import { Repository } from "./model/model.js";
@@ -12,8 +13,8 @@ import { preludeDocument, preludeNames } from "./stdlib/prelude.js";
  * default library (prelude) is injected as the implicit foundation base, so
  * standard names (`identifier`, `icon`, `element`, …) resolve everywhere.
  */
-export function check(sources: SourceFile[]): { model: Repository; diagnostics: Diagnostic[] } {
-  return checkAgainst([], sources);
+export function check(sources: SourceFile[], idGenerator?: IdGenerator): { model: Repository; diagnostics: Diagnostic[] } {
+  return checkAgainst([], sources, idGenerator);
 }
 
 /**
@@ -25,9 +26,10 @@ export function check(sources: SourceFile[]): { model: Repository; diagnostics: 
 export function checkAgainst(
   bases: TodlDocument[],
   sources: SourceFile[],
+  idGenerator: IdGenerator = new SnowflakeIdGenerator(),
 ): { model: Repository; diagnostics: Diagnostic[] } {
   const model = new Repository(mergeBases([preludeDocument(), ...bases]));
-  const diagnostics = loadInto(model, sources, preludeNames());
+  const diagnostics = loadInto(model, sources, preludeNames(), idGenerator);
   return { model, diagnostics: [...diagnostics, ...validate(model)] };
 }
 
