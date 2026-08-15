@@ -29,6 +29,7 @@ import {
   type AnnotationDecl,
   type AnnotationApplication,
   type PackageDecl,
+  type OperatorDecl,
   type AssignmentNode,
   type ValueNode,
   type ObjectValue,
@@ -176,6 +177,7 @@ class Parser {
     if (this.checkKeyword("model")) return this.parseModel(start);
     if (this.checkKeyword("annotation")) return this.parseAnnotation(start);
     if (this.checkKeyword("package")) return this.parsePackage(start);
+    if (this.checkKeyword("operator")) return this.parseOperator(start);
     if (this.checkKeyword("class")) {
       this.advance(); // class modifier
       return this.parseInstanceFrom(this.expectIdentifier(), start, true);
@@ -402,6 +404,39 @@ class Parser {
     }
     this.expect(TokenKind.RBrace);
     return { kind: DeclKind.Package, annotations, span: this.spanFrom(start) };
+  }
+
+  /** `operator <glyph> : <concept> (<from>, <to>);`  (reified edge) or
+   *  `operator <glyph> : <concept>.<relationship>;`   (relationship member). */
+  private parseOperator(start: Token): OperatorDecl {
+    this.expectKeyword("operator");
+    const glyphTok = this.expect(TokenKind.SymbolOp);
+    this.expect(TokenKind.Colon);
+    const conceptStart = this.current();
+    const path = this.parseDottedPath();               // `connector` or `component.depends_on`
+    let concept = path;
+    let relationship: string | null = null;
+    let fromMember: string | null = null;
+    let toMember: string | null = null;
+    if (this.match(TokenKind.LParen)) {                // reified form: (from, to)
+      fromMember = this.expectIdentifier();
+      this.expect(TokenKind.Comma);
+      toMember = this.expectIdentifier();
+      this.expect(TokenKind.RParen);
+    } else {                                           // relationship form: split last segment
+      const dot = path.lastIndexOf(".");
+      if (dot < 0) throw this.error(`operator "${glyphTok.value}" needs endpoints "(from, to)" or a "concept.relationship" target`);
+      concept = path.slice(0, dot);
+      relationship = path.slice(dot + 1);
+    }
+    this.expect(TokenKind.Semicolon);
+    const decl: OperatorDecl = {
+      kind: DeclKind.Operator, glyph: glyphTok.value, concept, fromMember, toMember, relationship,
+      span: this.spanFrom(start),
+    };
+    decl.glyphSpan = tokenSpan(glyphTok, this.uri);
+    decl.conceptSpan = this.spanFrom(conceptStart);
+    return decl;
   }
 
   /**

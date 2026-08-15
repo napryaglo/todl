@@ -18,6 +18,7 @@ export enum DeclKind {
   Model,
   Annotation,
   Package,
+  Operator,
 }
 
 export enum ValueKind {
@@ -161,6 +162,23 @@ export interface PackageDecl {
   span: SourceSpan;
 }
 
+/** An `operator <glyph> : <concept> (<from>, <to>);` (reified edge) or
+ * `operator <glyph> : <concept>.<relationship>;` (relationship member)
+ * declaration — binds an infix glyph to edge materialization (design §1). */
+export interface OperatorDecl {
+  kind: DeclKind.Operator;
+  glyph: string;
+  glyphSpan?: SourceSpan;
+  concept: string;
+  conceptSpan?: SourceSpan;
+  /** Reified form: the two endpoint member names; null for the relationship form. */
+  fromMember: string | null;
+  toMember: string | null;
+  /** Relationship form: the relationship member on `concept`; null for the reified form. */
+  relationship: string | null;
+  span: SourceSpan;
+}
+
 export interface FieldDecl {
   name: string;
   type: string;
@@ -264,7 +282,7 @@ export interface PrimitiveDecl {
 
 export type Declaration =
   | ConceptDecl | TaxonomyDecl | ViewpointDecl | PrimitiveDecl | InstanceDecl | ModelDecl
-  | AnnotationDecl | PackageDecl;
+  | AnnotationDecl | PackageDecl | OperatorDecl;
 
 export interface NamespaceNode {
   path: string;
