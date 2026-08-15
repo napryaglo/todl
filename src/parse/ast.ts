@@ -28,6 +28,7 @@ export enum ValueKind {
   Composite,
   Boolean,
   Object,
+  Edge,
 }
 
 export interface StringValue {
@@ -76,13 +77,22 @@ export interface ObjectValue {
   span: SourceSpan;
 }
 
+/** An operator application used as a value — `a <glyph> b` on the RHS of `=` or
+ * as an array element (design §2). Materialised by the loader as the minted
+ * reified entity, contained by the owner and bound to the field. */
+export interface EdgeValue {
+  kind: ValueKind.Edge;
+  edge: EdgeApplication;
+}
+
 export type ValueNode =
   | StringValue
   | NameValue
   | ListValue
   | CompositeValue
   | BooleanValue
-  | ObjectValue;
+  | ObjectValue
+  | EdgeValue;
 
 /** A `left <glyph> right [ { … } | ; ]` edge usage (design §3). Shape-only: the
  * loader resolves `glyph` against the operator table and materializes the edge. */

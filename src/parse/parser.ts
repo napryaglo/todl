@@ -434,18 +434,32 @@ class Parser {
   }
 
   /**
-   * Parse an edge application `<left> <glyph> <right> [ { … } | ; ]`, leading
-   * operand NOT yet consumed. Shape-only: the loader resolves the glyph against
-   * the operator table and materializes the edge (design §3).
+   * Parse an edge application STATEMENT `<left> <glyph> <right> [ { … } ] ;`,
+   * leading operand NOT yet consumed. The trailing terminator is consumed here
+   * (optional after a body, required otherwise). Shape-only: the loader resolves
+   * the glyph against the operator table and materializes the edge (design §3).
    */
   private parseEdgeApplication(start: Token): EdgeApplication {
+    const { edge, sawBody } = this.parseEdgeExpr(start);
+    if (sawBody) this.match(TokenKind.Semicolon); // optional trailing `;` after a body
+    else this.expect(TokenKind.Semicolon);
+    return edge;
+  }
+
+  /** Parse the edge core `<left> <glyph> <right> [ { … } ]` WITHOUT a trailing
+   * terminator — shared by the statement form (which adds `;`) and the value
+   * form (`a ==> b` on the RHS of `=` / in a list, where `;`/`,`/`]` belongs to
+   * the enclosing context). `sawBody` records whether a `{ … }` block appeared. */
+  private parseEdgeExpr(start: Token): { edge: EdgeApplication; sawBody: boolean } {
     const leftStart = this.current();
     const left = this.parseDottedPath();
     const glyphTok = this.expect(TokenKind.SymbolOp);
     const rightStart = this.current();
     const right = this.parseDottedPath();
     const body: AssignmentNode[] = [];
+    let sawBody = false;
     if (this.match(TokenKind.LBrace)) {
+      sawBody = true;
       while (!this.check(TokenKind.RBrace)) {
         const aStart = this.startToken();
         const name = this.expectIdentifier();
@@ -455,15 +469,12 @@ class Parser {
         body.push({ name, value, span: this.spanFrom(aStart) });
       }
       this.expect(TokenKind.RBrace);
-      this.match(TokenKind.Semicolon); // optional trailing `;` after a body
-    } else {
-      this.expect(TokenKind.Semicolon);
     }
     const edge: EdgeApplication = { glyph: glyphTok.value, left, right, body, span: this.spanFrom(start) };
     edge.glyphSpan = tokenSpan(glyphTok, this.uri);
     edge.leftSpan = this.spanFrom(leftStart);
     edge.rightSpan = this.spanFrom(rightStart);
-    return edge;
+    return { edge, sawBody };
   }
 
   /** True when the tokens ahead form `Identifier ( . Identifier )*` immediately
@@ -477,6 +488,9 @@ class Parser {
   }
 
   private parseValue(): ValueNode {
+    if (this.edgeApplicationAhead()) {
+      return { kind: ValueKind.Edge, edge: this.parseEdgeExpr(this.startToken()).edge };
+    }
     if (this.check(TokenKind.Identifier) && this.objectAhead()) {
       return this.parseInlineObject(this.startToken());
     }
