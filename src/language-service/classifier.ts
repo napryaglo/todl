@@ -39,7 +39,7 @@ export function classifyPosition(a: Analysis, uri: string, pos: Position): Curso
   // Empty slot after a syntactic cue.
   if (prev !== null) {
     if (prev.kind === TokenKind.Colon) return { kind: ContextKind.TypeSlot, word: wordAt(tokens, idx) };
-    if (prev.kind === TokenKind.Arrow) return { kind: ContextKind.RelationshipTarget, word: wordAt(tokens, idx) };
+    if (prev.kind === TokenKind.SymbolOp && prev.value === "->") return { kind: ContextKind.RelationshipTarget, word: wordAt(tokens, idx) };
     if (prev.kind === TokenKind.Amp) return { kind: ContextKind.RefValue, word: wordAt(tokens, idx) };
     if (prev.kind === TokenKind.Identifier && prev.value === "import")
       return { kind: ContextKind.ImportPath, word: wordAt(tokens, idx) };

@@ -462,12 +462,11 @@ class Parser {
     if (this.peekKind(i) !== TokenKind.Identifier) return false;
     i += 1;
     while (this.peekKind(i) === TokenKind.Dot && this.peekKind(i + 1) === TokenKind.Identifier) i += 2;
-    return this.peekKind(i) === TokenKind.Arrow || this.peekKind(i) === TokenKind.DoubleArrow;
+    return this.peekKind(i) === TokenKind.SymbolOp;
   }
 
   private consumeEdgeOperator(): string {
-    if (this.match(TokenKind.Arrow)) return "->";
-    if (this.match(TokenKind.DoubleArrow)) return "-->";
+    if (this.checkSymbol("->") || this.checkSymbol("-->")) return this.advance().value;
     throw this.error(`expected "->" or "-->"`);
   }
 
@@ -743,7 +742,7 @@ class Parser {
   private parseRelationship(): RelationshipDecl {
     this.expectKeyword("relationship");
     const nameTok = this.expect(TokenKind.Identifier);
-    this.expect(TokenKind.Arrow);
+    this.expectSymbol("->");
     const targetStart = this.current();
     const targets = [this.parseDottedPath()];           // relationship target may be ns-qualified
     const targetSpans = [this.spanFrom(targetStart)];
@@ -885,6 +884,25 @@ class Parser {
   private checkKeyword(word: string): boolean {
     const token = this.current();
     return token.kind === TokenKind.Identifier && token.value === word;
+  }
+
+  /** True when the current token is a SymbolOp with exactly `value`. */
+  private checkSymbol(value: string): boolean {
+    const t = this.current();
+    return t.kind === TokenKind.SymbolOp && t.value === value;
+  }
+
+  private matchSymbol(value: string): boolean {
+    if (this.checkSymbol(value)) {
+      this.advance();
+      return true;
+    }
+    return false;
+  }
+
+  private expectSymbol(value: string): Token {
+    if (!this.checkSymbol(value)) throw this.error(`expected "${value}"`);
+    return this.advance();
   }
 
   private match(kind: TokenKind): boolean {

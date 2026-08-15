@@ -64,8 +64,8 @@ class PredicateParser {
 
   private parseComparison(): Expr {
     const left = this.parsePostfix();
-    if (this.match(TokenKind.EqEq)) return eq(left, this.parsePostfix());
-    if (this.match(TokenKind.NotEq)) return neq(left, this.parsePostfix());
+    if (this.matchSymbol("==")) return eq(left, this.parsePostfix());
+    if (this.matchSymbol("!=")) return neq(left, this.parsePostfix());
     if (this.matchKeyword("in")) return isIn(left, this.parsePostfix());
     return left;
   }
@@ -117,6 +117,16 @@ class PredicateParser {
 
   private match(kind: TokenKind): boolean {
     if (this.check(kind)) {
+      this.pos += 1;
+      return true;
+    }
+    return false;
+  }
+
+  /** Match a SymbolOp token with exactly `value` (e.g. `==`, `!=`). */
+  private matchSymbol(value: string): boolean {
+    const token = this.current();
+    if (token?.kind === TokenKind.SymbolOp && token.value === value) {
       this.pos += 1;
       return true;
     }
