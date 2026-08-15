@@ -206,6 +206,13 @@ function visitValueRefs(
       for (const child of value.children) visitInstanceRefs(child, visit, scope);
       for (const edge of value.edges) visitEdgeRefs(edge, visit, scope);
       break;
+    case ValueKind.Edge:
+      // An operator application used as a value: operands resolve like any value
+      // reference; the glyph is resolved against the operator table by the loader.
+      // Body value refs resolve too (skip the object's own `id`).
+      visitEdgeRefs(value.edge, visit, scope);
+      for (const a of value.edge.body) if (a.name !== "id") visitValueRefs(a.value, ownerNode, a.name, a.span, scope, visit);
+      break;
     case ValueKind.String:
     case ValueKind.Composite:
     case ValueKind.Boolean:
