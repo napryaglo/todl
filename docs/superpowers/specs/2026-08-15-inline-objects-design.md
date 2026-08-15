@@ -94,7 +94,10 @@ export type ValueNode = StringValue | NameValue | ListValue | CompositeValue | B
 - The id, when present, is an ordinary `id = <value>;` **assignment** in the
   body (not a positional slot). Absent → the loader mints one.
 - The body reuses the full record grammar, so inline objects nest inline
-  objects, named records, edge records, and annotations.
+  objects, named records, and edge records. **v1 deferral:** an `annotate`
+  *inside* an inline object parses but is **not staged** by the loader in v1
+  (inline nodes are synthesized after the source-unit annotation pass) — a
+  noted follow-up; annotations on the owning record are unaffected.
 
 ## 3. Parser
 
