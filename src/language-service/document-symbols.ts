@@ -31,6 +31,8 @@ function toSymbol(decl: Declaration): DocumentSymbol | null {
       return leaf(decl.name, SymbolKind.Interface, range, nameRange(decl.nameSpan, range));
     case DeclKind.Package:
       return null; // a package block has no name to surface as a symbol
+    case DeclKind.Operator:
+      return leaf(decl.glyph, SymbolKind.Operator, range, nameRange(decl.glyphSpan, range));
   }
 }
 

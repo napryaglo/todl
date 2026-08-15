@@ -15,6 +15,7 @@
 import {
   DeclKind, ValueKind,
   type Declaration, type InstanceDecl, type Term, type ValueNode, type AnnotationApplication,
+  type EdgeApplication,
 } from "./ast.js";
 import type { SourceSpan } from "../diagnostics/span.js";
 import { PACKAGE_NODE_ID } from "../model/kinds.js";
@@ -122,14 +123,38 @@ export function visitReferences(decl: Declaration, visit: Visit): void {
       // array the loader normalizes qualified→flat in place before resolution.
       const scope = { taxonomy: "", uses: decl.libraries };
       for (const inst of decl.instances) visitInstanceRefs(inst, visit, scope);
+      for (const edge of decl.edges) visitEdgeRefs(edge, visit, scope);
       break;
     }
     case DeclKind.Package:
       annotationRefs(decl.annotations, PACKAGE_NODE_ID);
       break;
+    case DeclKind.Operator:
+      // The target concept resolves like a record concept (qualified → flat,
+      // undefined → reference.undefined). Endpoint member names are validated
+      // against the concept schema by the loader, not here.
+      visit({ name: decl.concept, span: decl.conceptSpan ?? decl.span, role: RefRole.RecordConcept,
+        ownerNode: decl.glyph, memberPath: null, rewrite: (r) => { (decl as { concept: string }).concept = r; } });
+      break;
     case DeclKind.Primitive:
       break;
   }
+}
+
+/** Yield the endpoint references of an edge application (`a <glyph> b`). The
+ * glyph itself is resolved against the operator table by the loader
+ * (operator.undefined), not through symbol resolution. */
+function visitEdgeRefs(
+  edge: EdgeApplication,
+  visit: Visit,
+  scope?: { taxonomy: string; uses: readonly string[] },
+): void {
+  visit({ name: edge.left, span: edge.leftSpan ?? edge.span, role: RefRole.RefValue,
+    ownerNode: edge.left, memberPath: null, rewrite: (r) => { (edge as { left: string }).left = r; },
+    ...(scope ? { scope } : {}) });
+  visit({ name: edge.right, span: edge.rightSpan ?? edge.span, role: RefRole.RefValue,
+    ownerNode: edge.left, memberPath: null, rewrite: (r) => { (edge as { right: string }).right = r; },
+    ...(scope ? { scope } : {}) });
 }
 
 function visitInstanceRefs(
@@ -150,6 +175,7 @@ function visitInstanceRefs(
   }
   for (const a of decl.assignments) visitValueRefs(a.value, decl.id, a.name, a.span, scope, visit);
   for (const child of decl.children) visitInstanceRefs(child, visit, scope);
+  for (const edge of decl.edges) visitEdgeRefs(edge, visit, scope);
 }
 
 function visitValueRefs(
@@ -178,6 +204,7 @@ function visitValueRefs(
       // `id` is the object's own identity, not a reference — skip it.
       for (const a of value.assignments) if (a.name !== "id") visitValueRefs(a.value, ownerNode, a.name, a.span, scope, visit);
       for (const child of value.children) visitInstanceRefs(child, visit, scope);
+      for (const edge of value.edges) visitEdgeRefs(edge, visit, scope);
       break;
     case ValueKind.String:
     case ValueKind.Composite:
@@ -219,6 +246,11 @@ export function collectDefinitions(
       for (const inst of decl.instances) defineInstance(inst, ns, defined, sourceNs);
       break;
     case DeclKind.Package:
+      break;
+    case DeclKind.Operator:
+      // An operator does NOT define a namespaced symbol — its glyph is resolved
+      // via the operator table, not name resolution. Edge applications mint
+      // their ids in the loader, so they define nothing here either.
       break;
   }
 }

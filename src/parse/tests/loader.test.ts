@@ -81,22 +81,6 @@ test("loads a meta-model descriptor with numeric and list members", () => {
   assert.equal(model.resolve("EnterpriseArchitecture")?.attrs.get("version"), "5");
 });
 
-test("edge-shorthand connector loads from/to as relationship edges", () => {
-  const model = load([
-    `namespace d {
-      concept Component { label : string; }
-      concept Connector { from : Component; to : Component; kind : string; }
-      Component businessAgent { label = "x"; }
-      Component agentOrchestrator { label = "y"; }
-      Connector businessAgent -> agentOrchestrator { kind = enabledBy; }
-    }`,
-  ]);
-  const conn = model.allNodes().find((n) => n.typeOf === "Connector");
-  assert.ok(conn);
-  assert.deepEqual(model.related(conn!.id, EdgeKind.Relationship, Direction.Out, "from"), ["businessAgent"]);
-  assert.deepEqual(model.related(conn!.id, EdgeKind.Relationship, Direction.Out, "to"), ["agentOrchestrator"]);
-});
-
 test("nested instances load with contains edges and a meta-model binding", () => {
   const model = load([
     `namespace d {

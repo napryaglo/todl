@@ -209,6 +209,24 @@ export class Builder {
     return this;
   }
 
+  /** Define an operator node (Ontology-tier): its glyph is the node id, a
+   * `Targets` edge points at the bound concept, and `from`/`to`/`relationship`
+   * attrs record the endpoint members (design §4). */
+  defineOperator(
+    glyph: NodeId,
+    concept: NodeId,
+    fromMember: string | null,
+    toMember: string | null,
+    relationship: string | null,
+  ): this {
+    this.stageNode(glyph, Tier.Ontology, MetaKind.Operator);
+    if (fromMember !== null) this.stagedAttrs.push({ id: glyph, name: "from", value: fromMember });
+    if (toMember !== null) this.stagedAttrs.push({ id: glyph, name: "to", value: toMember });
+    if (relationship !== null) this.stagedAttrs.push({ id: glyph, name: "relationship", value: relationship });
+    this.stagedEdges.push({ kind: EdgeKind.Targets, via: null, from: glyph, to: concept });
+    return this;
+  }
+
   /** Define a viewpoint node framing the given concepts (one Frames edge each). */
   defineViewpoint(name: NodeId, frames: readonly NodeId[]): this {
     this.stageNode(name, Tier.Ontology, MetaKind.Viewpoint);

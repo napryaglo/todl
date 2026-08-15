@@ -20,23 +20,19 @@ export enum TokenKind {
   RBracket = "]",
   LParen = "(",
   RParen = ")",
-  LAngle = "<",
-  RAngle = ">",
   Semicolon = ";",
   Comma = ",",
   Colon = ":",
   Equals = "=",
-  Arrow = "->",
-  DoubleArrow = "-->",
+  /** A maximal run of edge characters (`- ~ = > < !`) — an author-defined
+   * operator glyph (`~>`, `==>`, `->`) or a predicate operator (`==`, `!=`). */
+  SymbolOp = "symbol-op",
   Pipe = "|",
   Amp = "&",
   Question = "?",
   Plus = "+",
   Star = "*",
   Dot = ".",
-  Bang = "!",
-  EqEq = "==",
-  NotEq = "!=",
   And = "&&",
   Or = "||",
   EOF = "eof",
@@ -61,6 +57,10 @@ export function lex(source: string, uri: string): { tokens: Token[]; diagnostics
   return { tokens, diagnostics: lexer.diagnostics };
 }
 
+/** Characters that compose an author-defined operator glyph (design §2). A
+ * maximal run of these becomes one SymbolOp token; a lone "=" is assignment. */
+const EDGE_CHARS: ReadonlySet<string> = new Set(["-", "~", "=", ">", "<", "!"]);
+
 const SINGLE_CHAR: ReadonlyMap<string, TokenKind> = new Map([
   ["{", TokenKind.LBrace],
   ["}", TokenKind.RBrace],
@@ -68,8 +68,6 @@ const SINGLE_CHAR: ReadonlyMap<string, TokenKind> = new Map([
   ["]", TokenKind.RBracket],
   ["(", TokenKind.LParen],
   [")", TokenKind.RParen],
-  ["<", TokenKind.LAngle],
-  [">", TokenKind.RAngle],
   [";", TokenKind.Semicolon],
   [",", TokenKind.Comma],
   [":", TokenKind.Colon],
@@ -131,24 +129,28 @@ class Lexer {
 
   private readOperator(line: number, column: number): void {
     const char = this.peek();
-    const next = this.peek(1);
 
-    const three = char + next + this.peek(2);
-    if (three === "-->") return this.push(TokenKind.DoubleArrow, "-->", line, column, 3);
+    // A maximal run of edge characters is one SymbolOp — an operator glyph or a
+    // predicate operator (`==`, `!=`). A lone `=` is assignment, not a SymbolOp.
+    if (EDGE_CHARS.has(char)) {
+      let run = "";
+      while (EDGE_CHARS.has(this.peek())) {
+        run += this.peek();
+        this.advance();
+      }
+      const kind = run === "=" ? TokenKind.Equals : TokenKind.SymbolOp;
+      this.tokens.push({ kind, value: run, line, column, endLine: this.line, endColumn: this.column });
+      return;
+    }
 
-    const two = char + next;
-    if (two === "->") return this.push(TokenKind.Arrow, "->", line, column, 2);
-    if (two === "==") return this.push(TokenKind.EqEq, "==", line, column, 2);
-    if (two === "!=") return this.push(TokenKind.NotEq, "!=", line, column, 2);
+    const two = char + this.peek(1);
     if (two === "&&") return this.push(TokenKind.And, "&&", line, column, 2);
     if (two === "||") return this.push(TokenKind.Or, "||", line, column, 2);
 
     const single = SINGLE_CHAR.get(char);
     if (single !== undefined) return this.push(single, char, line, column, 1);
-    if (char === "=") return this.push(TokenKind.Equals, "=", line, column, 1);
     if (char === "&") return this.push(TokenKind.Amp, "&", line, column, 1);
     if (char === "|") return this.push(TokenKind.Pipe, "|", line, column, 1);
-    if (char === "!") return this.push(TokenKind.Bang, "!", line, column, 1);
 
     this.report(DiagnosticCode.UnexpectedCharacter, `unexpected character "${char}"`, line, column, column + 1);
     this.advance(); // skip the offending character and continue

@@ -107,32 +107,17 @@ test("rejects a `{ … }` object value literal — no anonymous records", () => 
   assert.ok(diagnostics.some((d) => d.code === DiagnosticCode.UnexpectedToken));
 });
 
-test("parses concept-prefixed edge-shorthand with a body", () => {
-  const { namespace: ns } = parse(`namespace d { Connector businessAgent -> agentOrchestrator { type = enabledBy; } }`);
-  const edge = ns.declarations[0];
-  assert.ok(edge && edge.kind === DeclKind.Instance);
-  if (edge.kind === DeclKind.Instance) {
-    assert.equal(edge.concept, "Connector");
-    const from = edge.assignments.find((a) => a.name === "from")?.value;
-    const to = edge.assignments.find((a) => a.name === "to")?.value;
-    assert.equal(from?.kind, ValueKind.Name);
-    assert.equal((from as NameValue).name, "businessAgent");
-    assert.equal((to as NameValue).name, "agentOrchestrator");
-    assert.ok(edge.assignments.find((a) => a.name === "type"));
-  }
-});
-
-test("parses an application-connectors block of --> edges inside a model", () => {
+test("parses edge applications inside a model body", () => {
   const { namespace: ns } = parse(`namespace d {
     model m : ea {
-      connectors { externalAgentBridge --> agentService }
+      externalAgentBridge --> agentService;
     }
   }`);
   const model = ns.declarations[0] as ModelDecl;
-  const block = model.instances.find((c) => c.concept === "connectors");
-  assert.ok(block);
-  assert.equal(block?.children.length, 1);
-  assert.equal(block?.children[0]?.concept, "connector");
+  assert.equal(model.edges.length, 1);
+  assert.equal(model.edges[0]?.left, "externalAgentBridge");
+  assert.equal(model.edges[0]?.glyph, "-->");
+  assert.equal(model.edges[0]?.right, "agentService");
 });
 
 test("parses a model with a meta-model binding and nested instances", () => {
