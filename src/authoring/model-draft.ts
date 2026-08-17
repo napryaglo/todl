@@ -15,8 +15,6 @@ import { Repository, type FieldSchema } from "../model/model.js";
 import { type Entity } from "../model/entity.js";
 import { toJSON, fromJSON, type TodlDocument } from "../emit/json.js";
 import { checkAgainst } from "../api.js";
-import { parse } from "../parse/parser.js";
-import { collectDefinitions } from "../parse/references.js";
 import { preludeDocument } from "../stdlib/prelude.js";
 import { collectOperators, deriveBindings, emitModelTodl } from "../emit/todl.js";
 import type { Diagnostic } from "../diagnostics/diagnostic.js";
@@ -79,21 +77,18 @@ export class ModelDraft {
     opts: { namespace: string },
   ): ModelDraft {
     const draft = new ModelDraft([preludeDocument(), ...bases.map((b) => toJSON(b))], opts.namespace);
-    const compiled = toJSON(checkAgainst([...draft.baseDocs], sources.map((s) => ({ uri: s.uri, text: s.text }))).model);
+    const result = checkAgainst([...draft.baseDocs], sources.map((s) => ({ uri: s.uri, text: s.text })));
+    const compiled = toJSON(result.model);
     const modelIds = new Set(compiled.nodes.filter((n) => n.typeOf === MODEL_TYPEOF).map((n) => n.id));
     draft.own = {
       nodes: compiled.nodes.filter((n) => !draft.baseIds.has(n.id) && !modelIds.has(n.id)),
       edges: compiled.edges.filter((e) => !draft.baseIds.has(String(e.from)) && !modelIds.has(String(e.from))),
     };
-    // Provenance: which file defined each own id (re-parse — cheap; the model
-    // container id is skipped since it's not an own node).
+    // Home every own id from the loader's authoritative provenance (covers named
+    // instances AND loader-minted reified edges / inline objects). The model
+    // container id is skipped since it is not an own node.
     const ownIds = new Set(draft.own.nodes.map((n) => n.id));
-    for (const s of sources) {
-      const { namespace } = parse(s.text, s.uri);
-      const defined = new Set<string>();
-      for (const decl of namespace.declarations) collectDefinitions(decl, namespace.path, defined, new Map());
-      for (const id of defined) if (ownIds.has(id)) draft.home.set(id, s.uri);
-    }
+    for (const [id, uri] of result.provenance) if (ownIds.has(id)) draft.home.set(id, uri);
     return draft;
   }
 
