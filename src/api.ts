@@ -13,7 +13,7 @@ import { preludeDocument, preludeNames } from "./stdlib/prelude.js";
  * default library (prelude) is injected as the implicit foundation base, so
  * standard names (`identifier`, `icon`, `element`, …) resolve everywhere.
  */
-export function check(sources: SourceFile[], idGenerator?: IdGenerator): { model: Repository; diagnostics: Diagnostic[] } {
+export function check(sources: SourceFile[], idGenerator?: IdGenerator): { model: Repository; diagnostics: Diagnostic[]; provenance: Map<string, string> } {
   return checkAgainst([], sources, idGenerator);
 }
 
@@ -27,10 +27,11 @@ export function checkAgainst(
   bases: TodlDocument[],
   sources: SourceFile[],
   idGenerator: IdGenerator = new SnowflakeIdGenerator(),
-): { model: Repository; diagnostics: Diagnostic[] } {
+): { model: Repository; diagnostics: Diagnostic[]; provenance: Map<string, string> } {
   const model = new Repository(mergeBases([preludeDocument(), ...bases]));
-  const diagnostics = loadInto(model, sources, preludeNames(), idGenerator);
-  return { model, diagnostics: [...diagnostics, ...validate(model)] };
+  const provenance = new Map<string, string>();
+  const diagnostics = loadInto(model, sources, preludeNames(), idGenerator, provenance);
+  return { model, diagnostics: [...diagnostics, ...validate(model)], provenance };
 }
 
 /**
