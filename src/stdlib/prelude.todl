@@ -14,6 +14,7 @@ namespace todl
     annotation toolbox  { visible : boolean?; }
     annotation instance { concept : identifier; via : identifier?; }
     annotation iconSource { order : number; }
+    annotation wiki { path : string?; }
 
     // Universal root concept — implicit supertype of every parent-less concept.
     concept Element
