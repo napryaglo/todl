@@ -781,8 +781,9 @@ function applyModel(
       builder.setField(child.id, "conforms", decl.conforms);
     }
   }
-  // Edge applications in the model body are contained by the model container.
-  applyEdges(builder, model, decl.edges, decl.id, ops, asserted, diagnostics, idGen, rec);
+  // Edge applications in the model body are contained by the model container;
+  // there is no domain record member to join, so no field binding (null).
+  applyEdges(builder, model, decl.edges, decl.id, null, ops, asserted, diagnostics, idGen, rec);
 }
 
 function applyInstance(
@@ -829,8 +830,9 @@ function applyInstance(
   for (const child of decl.children) {
     applyInstance(builder, model, child, decl.id, decl.concept, asserted, diagnostics, idGen, ops, rec);
   }
-  // Edge applications in this record's body are contained by this instance.
-  applyEdges(builder, model, decl.edges, decl.id, ops, asserted, diagnostics, idGen, rec);
+  // Edge applications in this record's body are contained by this instance, and
+  // a reified edge binds to the matching array member (like a nested record).
+  applyEdges(builder, model, decl.edges, decl.id, decl.concept, ops, asserted, diagnostics, idGen, rec);
 }
 
 /**
@@ -847,23 +849,42 @@ function bindToField(
   decl: InstanceDecl,
   diagnostics: Diagnostic[],
 ): void {
-  const fields = model.effectiveSchema(parentConcept).fields.filter((field) => field.type === decl.concept);
+  bindEntityToField(builder, model, parent, parentConcept, decl.concept, decl.id, decl.span, diagnostics);
+}
+
+/**
+ * Append a materialised child of `concept` to the single parent field whose
+ * declared type matches, adding the field-named relationship. Shared by nested
+ * records (bindToField) and bare reified-edge statements (applyEdge). No match
+ * → containment only; more than one → ambiguous, diagnosed and left unbound.
+ */
+function bindEntityToField(
+  builder: Builder,
+  model: Repository,
+  parent: string,
+  parentConcept: string,
+  concept: string,
+  id: string,
+  span: SourceSpan,
+  diagnostics: Diagnostic[],
+): void {
+  const fields = model.effectiveSchema(parentConcept).fields.filter((field) => field.type === concept);
   const [only] = fields;
   if (only === undefined) return;
   if (fields.length > 1) {
     diagnostics.push({
       code: DiagnosticCode.AmbiguousFieldBinding,
       severity: Severity.Error,
-      message: `nested "${decl.concept}" record "${decl.id}" in "${parent}" matches multiple ${parentConcept} fields (${fields
+      message: `"${concept}" record "${id}" in "${parent}" matches multiple ${parentConcept} fields (${fields
         .map((field) => field.name)
         .join(", ")}); left as containment only`,
-      span: decl.span,
-      node: decl.id,
+      span,
+      node: id,
       path: parentConcept,
     });
     return;
   }
-  builder.addRelationship(parent, only.name, decl.id);
+  builder.addRelationship(parent, only.name, id);
 }
 
 /** Realize one authored assignment onto `id`, choosing attr vs edge from the
@@ -1085,9 +1106,9 @@ function validateOperators(
 
 function applyEdges(
   builder: Builder, model: Repository, edges: readonly EdgeApplication[], ownerId: string | null,
-  ops: OperatorTable, asserted: Set<string>, diagnostics: Diagnostic[], idGen: IdGenerator, rec?: HomeRecorder,
+  ownerConcept: string | null, ops: OperatorTable, asserted: Set<string>, diagnostics: Diagnostic[], idGen: IdGenerator, rec?: HomeRecorder,
 ): void {
-  for (const edge of edges) applyEdge(builder, model, edge, ownerId, ops, asserted, diagnostics, idGen, rec);
+  for (const edge of edges) applyEdge(builder, model, edge, ownerId, ownerConcept, ops, asserted, diagnostics, idGen, rec);
 }
 
 /** Materialise one `a <glyph> b` edge: a reified form mints a contained,
@@ -1095,7 +1116,7 @@ function applyEdges(
  * adds a single edge with no node (design §4). */
 function applyEdge(
   builder: Builder, model: Repository, edge: EdgeApplication, ownerId: string | null,
-  ops: OperatorTable, asserted: Set<string>, diagnostics: Diagnostic[], idGen: IdGenerator, rec?: HomeRecorder,
+  ownerConcept: string | null, ops: OperatorTable, asserted: Set<string>, diagnostics: Diagnostic[], idGen: IdGenerator, rec?: HomeRecorder,
 ): void {
   const op = ops.get(edge.glyph);
   if (op === undefined) {
@@ -1117,9 +1138,16 @@ function applyEdge(
     builder.addRelationship(edge.left, op.relationship, edge.right);
     return;
   }
-  // Reified form: mint the entity, contained by the owner. The statement form
-  // discards the returned id (no field binding).
-  mintReifiedEdge(builder, model, edge, op, ownerId, asserted, diagnostics, idGen, ops, rec);
+  // Reified form: mint the entity, contained by the owner, then bind it to the
+  // enclosing record's matching array member — the same append a bare nested
+  // record gets (bindToField). Model-body edges (ownerConcept null) have no
+  // domain member to join and stay containment-only. The value form
+  // (`steps = [ a ==> b ]`) goes through realizeEdgeValue, not here, so there's
+  // no double bind.
+  const mintedId = mintReifiedEdge(builder, model, edge, op, ownerId, asserted, diagnostics, idGen, ops, rec);
+  if (ownerId !== null && ownerConcept !== null) {
+    bindEntityToField(builder, model, ownerId, ownerConcept, op.concept, mintedId, edge.span, diagnostics);
+  }
 }
 
 /** Mint a reified operator edge as a contained instance (endpoints + body),
