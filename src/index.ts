@@ -113,6 +113,7 @@ export { check, checkAgainst } from "./api.js";
 
 export {
   toJSON,
+  toJSONOwn,
   fromJSON,
   graphFromJSON,
   type TodlDocument,

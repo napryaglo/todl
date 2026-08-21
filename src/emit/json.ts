@@ -46,6 +46,32 @@ export function toJSON(model: Repository): TodlDocument {
   return { nodes, edges };
 }
 
+/**
+ * Own-scoped emit: serialise only the nodes in `ownIds` and their out-edges.
+ * An out-edge whose `to` is not in `ownIds` (a reference to a base node) is
+ * kept as a dangling id — resolved at load when the base package is also
+ * loaded. Bases never reference own nodes, so no own-relevant edge is missed.
+ */
+export function toJSONOwn(model: Repository, ownIds: ReadonlySet<NodeId>): TodlDocument {
+  const nodes: JsonNode[] = [];
+  const edges: JsonEdge[] = [];
+
+  for (const node of model.allNodes()) {
+    if (!ownIds.has(node.id)) continue;
+    nodes.push({
+      id: node.id,
+      tier: Tier[node.tier],
+      typeOf: node.typeOf,
+      attrs: Object.fromEntries(node.attrs),
+    });
+    for (const edge of model.outEdges(node.id)) {
+      edges.push({ kind: EdgeKind[edge.kind], via: edge.via, from: edge.from, to: edge.to });
+    }
+  }
+
+  return { nodes, edges };
+}
+
 export function graphFromJSON(doc: TodlDocument): Graph {
   const graph = new Graph();
 
