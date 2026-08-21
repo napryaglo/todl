@@ -69,7 +69,10 @@ export { deriveBindings, emitModelTodl, type ModelBindings } from "./emit/todl.j
 export {
   compilePackage,
   publish,
+  PackageKind,
+  type PackageRef,
   type PackageIdentity,
+  type PackageDocument,
   type CompiledPackage,
   type CompileOutcome,
   type PublishOutcome,

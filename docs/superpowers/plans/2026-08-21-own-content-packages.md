@@ -309,11 +309,14 @@ Expected: FAIL — `PackageKind` not exported / `fullDocument` missing / `widget
 
 Replace the types + `compilePackage` + `publish` in `TODL/src/publish/publish.ts`:
 
+> **Correction (discovered during T1):** `checkAgainst`'s `provenance` map only homes *instance/model* declarations, NOT taxonomies/concepts/annotations — so `provenance.keys()` is NOT the own-node set. The robust own-set is **set-difference**: every node the compile added beyond the seeded base (`prelude ∪ bases`). `preludeDocument()` is importable from `../stdlib/prelude.js`. The `toJSONOwn(model, ownIds)` primitive is unchanged; only how the caller computes `ownIds` changes.
+
 ```ts
 import { checkAgainst } from "../api.js";
 import { toJSON, toJSONOwn, type TodlDocument } from "../emit/json.js";
 import { Severity, type Diagnostic } from "../diagnostics/diagnostic.js";
 import type { SourceFile } from "../diagnostics/span.js";
+import { preludeDocument } from "../stdlib/prelude.js";
 import { deriveClasses, type PublishedClass } from "./reflect.js";
 import type { PackageStore } from "./stores.js";
 
@@ -365,11 +368,14 @@ export function compilePackage(
   identity: PackageIdentity,
   dependencies?: readonly PackageRef[],
 ): CompileOutcome {
-  const { model, diagnostics, provenance } = checkAgainst([...bases], [...sources]);
+  const { model, diagnostics } = checkAgainst([...bases], [...sources]);
   const errors = diagnostics.filter((d) => d.severity === Severity.Error);
   if (errors.length > 0) return { ok: false, diagnostics, errors };
 
-  const ownIds = new Set(provenance.keys());
+  // Own = every node beyond the seeded base graph (prelude + bases).
+  const baseIds = new Set<string>();
+  for (const b of [preludeDocument(), ...bases]) for (const n of b.nodes) baseIds.add(n.id);
+  const ownIds = new Set(model.allNodes().map((n) => n.id).filter((id) => !baseIds.has(id)));
   const fullDocument = toJSON(model);
   const document: PackageDocument = toJSONOwn(model, ownIds);
   if (dependencies !== undefined && dependencies.length > 0) {
