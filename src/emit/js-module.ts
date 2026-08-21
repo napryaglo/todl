@@ -4,22 +4,24 @@
  * runtime (`todl-runtime` / Mural / Plexus) consumes. Faithful to the legacy
  * `tools/todl/js_emit.py` contract:
  *
- *   - `export class <Pascal> extends ModelElement` per concept, carrying a
- *     `static schema = { kind, fields, relationships }`.
+ *   - `export class <Pascal> extends Observable` per concept, carrying a
+ *     `static schema = { kind, fields, relationships }` plus a bindable
+ *     getter/setter and hydrating constructor per member.
  *   - `export const <Pascal>` per enum: an `{ slug, values, has() }` table.
  *   - `export const <camel>` registry aggregating concept schemas,
  *     data-driven constructors, and enum tables — what the runtime queries.
  *
- * Generated code is machine output: no JSDoc, no typed getters. Classes are
- * thin schema vehicles over the hand-authored `ModelElement` base.
+ * Generated code is machine output: no JSDoc. Classes extend the
+ * `Observable` base from `@pragmatic-lab/todl-runtime`, exposing each member as
+ * a name/setter bindable property so mural can data-bind a realized node.
  */
 
 import { Cardinality } from "../model/graph.js";
 import { MetaKind } from "../model/kinds.js";
 import type { Repository, FieldSchema, RelationshipSchema } from "../model/model.js";
 
-/** Default relative import to the `ModelElement` base the emitted classes extend. */
-const DEFAULT_RUNTIME_IMPORT = "todl-runtime/model-element.js";
+/** Default import specifier for the `Observable` base the emitted classes extend. */
+const DEFAULT_RUNTIME_IMPORT = "@pragmatic-lab/todl-runtime";
 
 export interface MetaModuleOptions {
   /** The meta-model slug, e.g. `bpmn`. Names the registry and the `slug` field. */
@@ -49,7 +51,7 @@ export function toMetaModule(model: Repository, options: MetaModuleOptions): str
     "// typed-class declarations, taxonomy tables, and a registry export the runtime",
     "// queries to introspect the schema.",
     "",
-    `import { ModelElement } from ${jsStr(runtimeImport)};`,
+    `import { Observable } from ${jsStr(runtimeImport)};`,
     "",
     "// ── Concepts ──────────────────────────────────────────────",
     "",
@@ -84,7 +86,7 @@ function emitConcept(model: Repository, concept: string): string {
   const cls = pascalCase(concept);
   const i = "    ";
   const lines: string[] = [];
-  lines.push(`export class ${cls} extends ModelElement {`);
+  lines.push(`export class ${cls} extends Observable {`);
   lines.push(`${i}static schema = {`);
   lines.push(`${i}${i}kind: ${jsStr(concept)},`);
 
@@ -105,8 +107,57 @@ function emitConcept(model: Repository, concept: string): string {
   }
 
   lines.push(`${i}};`);
+
+  const names = memberNames(schema);
+  if (names.length > 0) {
+    lines.push("");
+    lines.push(...emitAccessors(names, i));
+    lines.push("");
+    lines.push(...emitConstructor(names, i));
+  }
+
   lines.push("}");
   return lines.join("\n");
+}
+
+// Members that become bindable accessors: fields + relationships, in a stable
+// order (fields first, then relationships). A member literally named
+// `constructor` would shadow the class constructor — reject it loudly rather
+// than emit broken code.
+function memberNames(schema: { fields: FieldSchema[]; relationships: RelationshipSchema[] }): string[] {
+  const names = [...schema.fields.map((f) => f.name), ...schema.relationships.map((r) => r.name)];
+  for (const n of names) {
+    if (n === "constructor") throw new Error(`Concept member may not be named 'constructor'.`);
+  }
+  return names;
+}
+
+// One private backing field + getter + change-guarded setter per member. The
+// setter fires `RaisePropertyChanged` (protected on Observable) so mural's
+// binding — which reads `node[name]` and subscribes by name — reacts to writes.
+function emitAccessors(names: string[], i: string): string[] {
+  const lines: string[] = [];
+  for (const name of names) {
+    lines.push(`${i}#${name};`);
+    lines.push(`${i}get ${name}() { return this.#${name}; }`);
+    lines.push(
+      `${i}set ${name}(v) { const o = this.#${name}; if (o === v) return; ` +
+        `this.#${name} = v; this.RaisePropertyChanged(${jsStr(name)}, o, v); }`,
+    );
+  }
+  return lines;
+}
+
+// Hydrates a realized node from a plain data object, assigning each known
+// member through its setter. Init assignments fire RaisePropertyChanged, but
+// no listeners are attached at construction, so they are harmless.
+function emitConstructor(names: string[], i: string): string[] {
+  const lines: string[] = [`${i}constructor(init = {}) {`, `${i}${i}super();`];
+  for (const name of names) {
+    lines.push(`${i}${i}if (${jsStr(name)} in init) this.${name} = init.${name};`);
+  }
+  lines.push(`${i}}`);
+  return lines;
 }
 
 function fieldEntries(field: FieldSchema): string[] {
@@ -189,10 +240,7 @@ function emitRegistry(
   lines.push(`${i}constructors: {`);
   for (const concept of concepts) {
     const cls = pascalCase(concept);
-    lines.push(
-      `${i}${i}${jsKey(concept)}: data => { const o = new ${cls}(); ` +
-        `if (data) for (const [k, v] of Object.entries(data)) o.set(k, v); return o; },`,
-    );
+    lines.push(`${i}${i}${jsKey(concept)}: data => new ${cls}(data ?? {}),`);
   }
   lines.push(`${i}},`);
 

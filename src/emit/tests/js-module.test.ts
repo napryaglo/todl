@@ -27,12 +27,28 @@ function corpus() {
   ]);
 }
 
-test("emits ModelElement subclasses for each concept", () => {
+test("emits Observable subclasses for each concept", () => {
   const js = toMetaModule(corpus(), { slug: "bpmn" });
-  assert.match(js, /import \{ ModelElement \} from "todl-runtime\/model-element\.js";/);
-  assert.match(js, /export class Task extends ModelElement \{/);
-  assert.match(js, /export class Event extends ModelElement \{/);
+  assert.match(js, /import \{ Observable \} from "@pragmatic-lab\/todl-runtime";/);
+  assert.match(js, /export class Task extends Observable \{/);
+  assert.match(js, /export class Event extends Observable \{/);
   assert.match(js, /kind: "Task",/);
+});
+
+test("emits a private field, getter, guarded setter, and hydrating constructor per member", () => {
+  const model = load([
+    `namespace n { concept Task { label : string; assignee : string?; } }`,
+  ]);
+  const js = toMetaModule(model, { slug: "n" });
+  assert.match(js, /#label;/);
+  assert.match(js, /get label\(\) \{ return this\.#label; \}/);
+  assert.match(
+    js,
+    /set label\(v\) \{ const o = this\.#label; if \(o === v\) return; this\.#label = v; this\.RaisePropertyChanged\("label", o, v\); \}/,
+  );
+  assert.match(js, /constructor\(init = \{\}\) \{/);
+  assert.match(js, /if \("label" in init\) this\.label = init\.label;/);
+  assert.match(js, /if \("assignee" in init\) this\.assignee = init\.assignee;/);
 });
 
 test("emits a taxonomy table (terms with parent) and a taxonomies registry key", () => {
@@ -93,7 +109,7 @@ test("emits the registry aggregating concepts, constructors, and enums", () => {
   assert.match(js, /slug: "bpmn",/);
   assert.match(js, /rootConcept: "process",/);
   assert.match(js, /Task: Task\.schema,/);
-  assert.match(js, /Task: data => \{ const o = new Task\(\);/);
+  assert.match(js, /Task: data => new Task\(data \?\? \{\}\),/);
   assert.match(js, /TaskType: TaskType,/);
 });
 
