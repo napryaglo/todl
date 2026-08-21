@@ -71,7 +71,12 @@ export function projectAnnotations(model: TodlDocument, targetId: string): Recor
  * further instantiation. `tier` compares to the "Instance" member-name string
  * because `toJSON` emits the Tier enum by name.
  */
-export function deriveClasses(model: TodlDocument): PublishedClass[] {
+export function deriveClasses(model: TodlDocument, annotationsFrom?: TodlDocument): PublishedClass[] {
+  // Classes are enumerated from `model`, but annotations are projected from
+  // `annotationsFrom` when given — so a caller can enumerate an OWN-only document
+  // while still resolving icons that inherit from base annotation declarations in
+  // the full closure (the special→icon chain).
+  const annModel = annotationsFrom ?? model;
   const out: PublishedClass[] = [];
   for (const n of model.nodes) {
     const attrs = n.attrs as Record<string, unknown>;
@@ -79,7 +84,7 @@ export function deriveClasses(model: TodlDocument): PublishedClass[] {
     const cls: PublishedClass = { id: n.id, concept: n.typeOf };
     if (typeof attrs.id === "string") cls.localId = attrs.id;
     if (typeof attrs.label === "string") cls.label = attrs.label;
-    const iconAnn = projectAnnotations(model, n.id).icon;
+    const iconAnn = projectAnnotations(annModel, n.id).icon;
     const iconPath = iconAnn === undefined ? undefined : iconAnn.path;
     if (typeof iconPath === "string") cls.icon = iconPath;
     out.push(cls);
