@@ -16,12 +16,14 @@ namespace todl
     annotation iconSource { order : number; }
     annotation wiki { path : string?; }
 
-    // Container / containment (diagram nesting). `container` marks a concept
-    // whose nodes render as a container (a box that holds children).
-    // `containment` marks a relationship member whose refs project as visual
-    // NESTING instead of a connector (the ref points from the contained
-    // entity to its container, e.g. `component --in--> location`).
-    annotation container { label : string?; }
+    // Diagram nesting markers. `has_children` marks a concept whose nodes render
+    // as a container (a box that holds children) — deliberately NOT named
+    // `container`, which is a common domain concept (e.g. the C4 Container), so
+    // the marker never squats on a meta-model's own vocabulary. `containment`
+    // marks a relationship member whose refs project as visual NESTING instead
+    // of a connector (the ref points from the contained entity to its container,
+    // e.g. `component --in--> location`).
+    annotation has_children { label : string?; }
     annotation containment { member : string?; }
 
     // Universal root concept — implicit supertype of every parent-less concept.
