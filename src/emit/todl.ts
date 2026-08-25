@@ -155,7 +155,18 @@ function edgeShorthand(node: JsonNode, ctx: EmitCtx, indent: number): { head: st
   const rels = ctx.rels.get(node.id) ?? [];
   const from = rels.find((r) => r.via === op.from)?.to;
   const to = rels.find((r) => r.via === op.to)?.to;
-  if (from === undefined || to === undefined) return null;
+  // A reified-edge instance MUST bind both endpoints. If one is missing, its
+  // reference target was undefined and dropped on load — emitting the node as a
+  // plain `concept { id }` record would silently DESTROY the authored edge (the
+  // scenario-step corruption bug). Refuse to write a lossy record: throw so the
+  // save fails loudly and the author fixes the bad reference instead of losing it.
+  if (from === undefined || to === undefined)
+    throw new Error(
+      `cannot emit reified "${node.typeOf}" "${node.id}" as "${op.glyph}": ` +
+        `endpoint(s) unresolved (${op.from}=${from ?? "MISSING"}, ${op.to}=${to ?? "MISSING"}). ` +
+        `A reference to an undefined entity was dropped on load; define the missing ` +
+        `endpoint before saving so the "${op.glyph}" edge round-trips.`,
+    );
   const rest = emitBody(node, ctx, indent + 1, false).filter((l) => {
     const t = l.trim();
     return !t.startsWith(`${op.from} =`) && !t.startsWith(`${op.to} =`);
