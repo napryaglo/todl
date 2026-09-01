@@ -61,9 +61,10 @@ cp app/package.json app/package.json.bak
 npm --prefix app pkg set "dependencies.@pragmatic-tech-ai/mural=^0.45.0"
 ```
 
-- [ ] **Step 3: Create the CI-parity app/.npmrc (kept — this is Task 3's file)**
+- [ ] **Step 3: Create a temporary app/.npmrc for the local install**
 
-Write `app/.npmrc`:
+`.npmrc` is gitignored, so this file is throwaway (never committed — the deploy
+workflow writes its own at runtime). Write `app/.npmrc`:
 
 ```
 @pragmatic-tech-ai:registry=https://npm.pkg.github.com
@@ -103,25 +104,19 @@ Expected: at least one `/todl/assets/...` reference. If assets are referenced
 as `/assets/...` (no `/todl/`), the base flag did not take — stop and fix
 before proceeding.
 
-- [ ] **Step 7: Restore the committed manifest, keep dist ignored**
+- [ ] **Step 7: Restore the committed manifest and delete the temp .npmrc**
 
 ```bash
 mv app/package.json.bak app/package.json
+rm -f app/.npmrc
 # reinstall the file: link so local dev is back to the sibling
 npm --prefix app install
 ```
 
-Verify `app/package.json` again reads `"@pragmatic-tech-ai/mural": "file:../../Mural"`.
-
-- [ ] **Step 8: Commit only app/.npmrc**
-
-```bash
-git add app/.npmrc
-git commit -m "chore(demos): app/.npmrc maps @pragmatic-tech-ai to GitHub Packages (CI installs)"
-```
-
-(No workflow yet; `app/.npmrc` is inert locally because the committed dep is
-`file:`.)
+Verify `app/package.json` again reads `"@pragmatic-tech-ai/mural": "file:../../Mural"`,
+`app/node_modules/@pragmatic-tech-ai/mural` is a symlink again, and
+`git status --porcelain` is clean (no committed artifact from this task — it is
+a pure verification gate).
 
 ---
 
@@ -190,8 +185,7 @@ git commit -m "ci(demos): test gate — typecheck + tests + goldens on push/PR"
 ### Task 3: Root `app:build:pages` script
 
 A committed, local reproduction of the Pages base build (used by the spec's
-verification and future manual checks). `app/.npmrc` was already created and
-committed in Task 1.
+verification and future manual checks).
 
 **Files:**
 - Modify: `package.json` (root) — `scripts`
@@ -231,8 +225,8 @@ git commit -m "chore(demos): add app:build:pages (Pages base build repro)"
 - Create: `.github/workflows/deploy.yml`
 
 **Interfaces:**
-- Consumes: workflow name `CI` from Task 2; `app/.npmrc` from Task 1; the
-  `--base=/todl/` build proven in Task 1.
+- Consumes: workflow name `CI` from Task 2; the `--base=/todl/` build proven in
+  Task 1. Writes its own `app/.npmrc` at runtime (`.npmrc` is gitignored).
 
 - [ ] **Step 1: Write `.github/workflows/deploy.yml`**
 
@@ -276,6 +270,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # .npmrc is gitignored — write the scope→GitHub Packages mapping at runtime
+      # so the app install resolves @pragmatic-tech-ai/* (default registry stays npmjs).
+      - name: Configure GitHub Packages auth for the app install
+        run: |
+          printf '@pragmatic-tech-ai:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${PACKAGES_TOKEN}\n' > app/.npmrc
       # Ephemeral: use published Mural instead of the file: sibling (absent on CI).
       - run: npm --prefix app pkg set "dependencies.@pragmatic-tech-ai/mural=^0.45.0"
       - run: npm --prefix app install
@@ -416,12 +415,14 @@ one-time Settings → Pages → "GitHub Actions" source set by the owner).
 
 ## Self-review
 
-- **Spec coverage:** ci.yml (Task 2), deploy.yml (Task 4), app/.npmrc (Task 1),
-  base-path build (Tasks 1/3/4), app:build:pages (Task 3), README incl. Pages
-  setup + token fallback (Task 6), verification incl. the deploy-build proof
-  (Task 1) and gate parity (Task 2) — all mapped. Parent-spec phasing (Task 7).
+- **Spec coverage:** ci.yml (Task 2), deploy.yml incl. runtime-written
+  `app/.npmrc` (Task 4), base-path build (Tasks 1/3/4), app:build:pages
+  (Task 3), README incl. Pages setup + token fallback (Task 6), verification
+  incl. the deploy-build proof (Task 1) and gate parity (Task 2) — all mapped.
+  Parent-spec phasing (Task 7).
 - **Placeholders:** none — every workflow file is given in full.
 - **Consistency:** workflow name `CI` is defined in Task 2 and referenced by
   Task 4's `workflows: [CI]`; `--base=/todl/` identical in Tasks 1, 3, 4;
-  `^0.45.0` identical in Tasks 1 and 4; `app/.npmrc` created once (Task 1),
-  consumed by Task 4.
+  `^0.45.0` identical in Tasks 1 and 4; `.npmrc` is gitignored, so Task 1 uses a
+  throwaway copy and Task 4 writes its own at runtime — nothing scoped is
+  committed.

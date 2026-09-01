@@ -31,11 +31,13 @@ design.
   but the **GitHub Packages npm registry always requires a token**, even for
   public-visibility packages.
 - **No drift today:** local Mural is `0.45.0`, published Mural is `0.45.0`.
-- **Repo `.npmrc`** already maps `@pragmatic-tech-ai:registry=https://npm.pkg.github.com`
-  with `_authToken=${PACKAGES_TOKEN}` (used for publishing). `app/` has no
-  `.npmrc`, and `npm --prefix app install` does **not** inherit the repo-root
-  `.npmrc` scope mapping — so a dedicated `app/.npmrc` is required for CI to
-  resolve the scope.
+- **`.npmrc` is gitignored repo-wide** (`.gitignore` line 6) and **untracked**
+  — the repo-root `.npmrc` (which maps `@pragmatic-tech-ai` → GitHub Packages
+  with `_authToken=${PACKAGES_TOKEN}`) exists only on local disk, never in git,
+  so tokens never land in the repo. Consequence: CI cannot rely on any
+  committed `.npmrc`. The deploy workflow must **write `app/.npmrc` at runtime**
+  before the app install, because `npm --prefix app install` does not inherit
+  the repo-root scope mapping.
 
 ## Decisions (from brainstorming)
 
@@ -102,25 +104,29 @@ concurrency:
      `npm --prefix app pkg set "dependencies.@pragmatic-tech-ai/mural=^0.45.0"`
      — mutates `app/package.json` in the runner only; never committed.
   6. `npm --prefix app install` — resolves published Mural + transitive
-     `todl-runtime` from GitHub Packages, authed via the committed `app/.npmrc`
-     and `env: { PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }} }`.
+     `todl-runtime` from GitHub Packages, authed via a **runtime-written**
+     `app/.npmrc` (a workflow step, since `.npmrc` is gitignored) and
+     `env: { PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }} }`.
   7. `npm --prefix app run build -- --base=/todl/` — production bundle to
      `app/dist` with the project-site base path.
   8. `actions/upload-pages-artifact@v3` with `path: app/dist`.
 - Deploy job: `needs: build`, `environment: github-pages`,
   `actions/deploy-pages@v4`.
 
-### `app/.npmrc` (new, committed)
+### `app/.npmrc` (written at deploy time, never committed)
+
+`.npmrc` is gitignored repo-wide, so the deploy workflow writes it as a step
+before the app install:
 
 ```
 @pragmatic-tech-ai:registry=https://npm.pkg.github.com
 //npm.pkg.github.com/:_authToken=${PACKAGES_TOKEN}
 ```
 
-Mirrors the repo-root `.npmrc` scope mapping so `npm --prefix app install`
-resolves `@pragmatic-tech-ai/*` from GitHub Packages. Harmless for local dev:
-the committed dependency is `file:../../Mural`, which never hits the registry,
-and `${PACKAGES_TOKEN}` unset is inert when nothing scoped installs.
+This maps only the `@pragmatic-tech-ai` scope to GitHub Packages, leaving the
+default registry at npmjs so the app's public deps (monaco, vscode-*) resolve
+normally. It never enters git; local dev uses the sibling `file:` link and
+never reads it.
 
 ### Vite base path
 
@@ -196,8 +202,7 @@ gate that de-risks it.
 ## Files
 
 - **Create** `.github/workflows/ci.yml`
-- **Create** `.github/workflows/deploy.yml`
-- **Create** `app/.npmrc`
+- **Create** `.github/workflows/deploy.yml` (writes `app/.npmrc` at runtime)
 - **Modify** root `package.json` — add `app:build:pages` script
 - **Modify** root `README.md` (or `app/README.md`) — CI badge, live URL,
   one-time Pages-source instruction, token-fallback note
