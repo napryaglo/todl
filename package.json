@@ -51,6 +51,7 @@
     "app:build": "npm run build && npm --prefix app run build",
     "app:dev": "npm --prefix app run dev",
     "app:verify": "node app/src/ui-verify/render-check.mjs",
+    "app:build:pages": "npm run build && npm --prefix app run build -- --base=/todl/",
     "build": "npm run gen:prelude && tsc -p tsconfig.build.json",
     "clean": "rimraf dist",
     "prepublishOnly": "npm run clean && npm run build"
