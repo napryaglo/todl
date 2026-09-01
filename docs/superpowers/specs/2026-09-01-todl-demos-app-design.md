@@ -257,7 +257,9 @@ examples, `gen-corpus.mjs`, `shared/corpus` + `shared/verify`, `todl-demo`
 output panels, Playground + Gallery + Docs. Delivers use cases 1 + 4.
 
 **Phase 3 — Graph view + docs export.** `Diagram` view in `ExampleRunnerVM`; `todl-demo docs`
-static-markdown emit.
+static-markdown emit. — **DONE 2026-09-01** (typed-graph view: pure `shared/graph-layout.ts` +
+imperative Mural `Canvas`/`Line` render behind a JSON/Graph toggle; `todl-demo docs [--out]`
+driven by pure `shared/docs-markdown.ts`).
 
 ## Seed corpus (Phase 1)
 

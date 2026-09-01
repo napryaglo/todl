@@ -5,16 +5,22 @@ docs) built with the **Mural** UI framework and bundled by **Vite**. It consumes
 the same `shared/` verify core and `examples/` corpus as the CLI and tests — one
 corpus, many surfaces.
 
-> Status: **full app** (Phase 2 complete, per
-> `docs/superpowers/plans/2026-09-01-todl-demos-phase2.md`). Three pages behind a
-> nav rail, all driven by the same corpus and running the todl compiler live in
-> the browser.
+> Status: **full app** (Phases 2–3 complete, per
+> `docs/superpowers/plans/2026-09-01-todl-demos-phase2.md` and `…-phase3.md`).
+> Three pages behind a nav rail, all driven by the same corpus and running the
+> todl compiler live in the browser, with a typed-graph view alongside the JSON.
+> (Phase 3 also added a CLI `todl-demo docs [--out <dir>]` static-markdown export
+> of the corpus — outside this app.)
 
 ## Pages
 
 - **Playground** — pick a corpus example (or start from a blank/editable one) and
   edit its source; a 300ms-debounced compile shows the emitted JSON and
-  diagnostics side by side.
+  diagnostics side by side. The output panel toggles **JSON ↔ Graph**: the graph
+  is an imperatively-built `Canvas` of `Border` nodes + `Line` edges, laid out by
+  the pure `shared/graph-layout.ts` (attached-property bindings don't flow through
+  item containers, so the visual tree is built in TS and hosted via
+  `ContentControl [ Content = $Graph ]`).
 - **Gallery** — a card per example with its title, tags, and a pass/fail badge
   from `verifyExample`; clicking a card opens it in the playground.
 - **Docs** — a master-detail showcase: heading list on the left, and a detail
