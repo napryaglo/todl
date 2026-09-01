@@ -4,7 +4,6 @@ import GalleryVM from "./pages/gallery/gallery-vm.ts"
 import DocsVM from "./pages/docs/docs-vm.ts"
 
 resources AppShell {
-    DataTemplate [DataType = PlaygroundVM] { Border [ Fill = @Surface ] { TextBlock [ Margin = (24,24,24,24), FontSize = 20, Text = $Title ] } }
     DataTemplate [DataType = GalleryVM]    { Border [ Fill = @Surface ] { TextBlock [ Margin = (24,24,24,24), FontSize = 20, Text = $Title ] } }
     DataTemplate [DataType = DocsVM]       { Border [ Fill = @Surface ] { TextBlock [ Margin = (24,24,24,24), FontSize = 20, Text = $Title ] } }
 
