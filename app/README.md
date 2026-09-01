@@ -14,8 +14,15 @@ corpus, many surfaces.
 
 ## Pages
 
-- **Playground** — pick a corpus example (or start from a blank/editable one) and
-  edit its source; a 300ms-debounced compile drives a **six-tab pipeline view**:
+- **Playground** — a **Monaco editor** with real TODL language intelligence from
+  the actual **TODL language server running in a Web Worker** (LSP over JSON-RPC):
+  Monarch syntax highlighting, live diagnostics (squiggles), hover, and
+  completion. The editor is mounted via Mural's `DomHost` (an SVG `<foreignObject>`)
+  and its text drives the rest of the pipeline. (The server core was made
+  transport-neutral + fs-free — `src/language-server/workspace-fs.ts` — so
+  `createServer` runs in the browser worker with a `PushedSourceProvider`; the
+  client bridge lives in `src/editor/`.) A 300ms-debounced compile drives a
+  **six-tab pipeline view**:
   **Tokens → AST → Model → Diagnostics → JSON → Graph**, each a real compiler
   artifact (`tokenize`/`parse`/`check`/`toJSON`). The Graph tab is an
   imperatively-built `Canvas` of `Border` nodes + `Line` edges (Phase 3), laid out

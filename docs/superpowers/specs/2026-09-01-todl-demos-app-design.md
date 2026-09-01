@@ -271,6 +271,12 @@ Arrowheads + edge-kind labels; click-to-select node inspector (id·tier·typeOf�
 `LaidOutNode` enriched in pure `shared/graph-layout.ts` + a `SelectableNodeBorder`); pan/zoom
 (`+`/`−`/`Fit` buttons + Ctrl+wheel + drag-pan via a `GraphCanvas`/`ScrollViewer` in `buildGraphView`).
 
+**Phase 6 — Monaco + TODL LSP in a Web Worker.** — **DONE 2026-09-02** (own spec:
+`…-phase6-design.md`). Monaco editor via Mural `DomHost` (`<foreignObject>`); the real TODL
+language server runs in a Web Worker (`vscode-languageserver/browser` + `PushedSourceProvider`)
+after a transport-neutral, fs-free core refactor (`workspace-fs.ts`); a client bridge in
+`app/src/editor/` gives Monaco Monarch highlighting, live LSP diagnostics, hover, and completion.
+
 ## Seed corpus (Phase 1)
 
 Curated from proven, known-good language features (their behavior is already established, so
