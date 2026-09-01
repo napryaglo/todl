@@ -1,26 +1,28 @@
-// TEMP Phase-6 Task-2 boot spike — proves the Monaco + Web-Worker-LSP stack
-// bundles and boots in the app before deeper wiring. Deleted in Task 6.
+// TEMP Phase-6 boot/wiring spike — proves the Monaco + Web-Worker-LSP stack
+// (highlighting + live diagnostics) before the real playground swap (Task 6),
+// which deletes this file.
+import * as monaco from "monaco-editor";
 import type { Border } from "@pragmatic-tech-ai/mural/basic";
-import { BrowserMessageReader, BrowserMessageWriter } from "vscode-jsonrpc/browser";
-import { createMessageConnection } from "vscode-jsonrpc";
 import { MonacoEditorHost } from "./monaco-editor-host.js";
 import { registerTodlLanguage } from "./todl-monarch.js";
+import { TodlLanguageClient, PLAYGROUND_URI } from "./todl-language-client.js";
 
 export function runBootSpike(root: Border): void {
   registerTodlLanguage();
+  const client = new TodlLanguageClient();
 
   const editor = new MonacoEditorHost();
-  editor.Text = "namespace app { concept C { label : string; } }";
-  root.SetChild(editor);   // replace the AppVM host with the editor (Root already set)
+  editor.useModelUri(PLAYGROUND_URI);   // diagnostics land on this model
+  editor.Text = "namespace app { concept Component { label : string; } model M : app { Component c { } } }";
+  root.SetChild(editor);
 
-  const worker = new Worker(new URL("./todl-lsp.worker.ts", import.meta.url), { type: "module" });
-  const conn = createMessageConnection(new BrowserMessageReader(worker), new BrowserMessageWriter(worker));
-  conn.listen();
-  void conn
-    .sendRequest("initialize", { processId: null, rootUri: null, capabilities: {}, initializationOptions: { mode: "pushed" } })
-    .then((r) => {
-      const hover = (r as { capabilities?: { hoverProvider?: unknown } })?.capabilities?.hoverProvider;
-      console.log("[lsp] initialized hoverProvider=", JSON.stringify(hover));
-    })
-    .catch((e) => console.error("[lsp] initialize failed", e));
+  // Push the live text to the server (debounced) so it republishes diagnostics.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const push = () => { if (timer) clearTimeout(timer); timer = setTimeout(() => void client.openOrUpdate(editor.Text), 250); };
+  editor.AddPropertyChangedListener(MonacoEditorHost.TextKey, push);
+  push();   // initial open
+
+  // TEMP test hook: current marker count for the playground model.
+  (window as unknown as { __todlMarkers?: () => number }).__todlMarkers = () =>
+    monaco.editor.getModelMarkers({}).length;
 }
