@@ -19,7 +19,10 @@ page.on("pageerror", (e) => errors.push(e.message));
 await page.goto(url, { waitUntil: "networkidle" });
 await page.waitForTimeout(1500);
 if (clickLabel) {
-  await page.locator("#app svg text", { hasText: clickLabel }).first().click({ force: true });
+  // Exact match (anchored) so a label like "Model" doesn't also hit editor text
+  // such as "model AppModel". SVG text fails actionability, hence force.
+  const rx = new RegExp("^" + clickLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$");
+  await page.locator("#app svg text", { hasText: rx }).first().click({ force: true });
   await page.waitForTimeout(800);
 }
 const texts = await page.evaluate(() =>
