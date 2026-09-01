@@ -17,7 +17,11 @@ resources ExampleRunner {
                   FontSize      = 13,
                   Text          = $Source ]
             DockPanel [ Margin = (8,8,8,8) ] {
-                TextBlock [ DockPanel.Dock = Top, FontWeight = Bold, Margin = (0,0,0,6), Text = $Status ]
+                DockPanel [ DockPanel.Dock = Top, Margin = (0,0,0,6) ] {
+                    Button [ DockPanel.Dock = Right, Command = $Download ] { TextBlock [ Text = "Download" ] }
+                    Button [ DockPanel.Dock = Right, Command = $Copy, Margin = (0,0,4,0) ] { TextBlock [ Text = "Copy JSON" ] }
+                    TextBlock [ FontWeight = Bold, Text = $Status ]
+                }
                 StackPanel [ DockPanel.Dock = Top, Orientation = Horizontal, Margin = (0,0,0,6) ] {
                     Button [ Command = $ShowTokens, Margin = (0,0,3,0) ] { TextBlock [ Text = "Tokens" ] }
                     Button [ Command = $ShowAst,    Margin = (0,0,3,0) ] { TextBlock [ Text = "AST" ] }

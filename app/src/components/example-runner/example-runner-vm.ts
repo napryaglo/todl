@@ -5,6 +5,7 @@ import { compileStages } from "../../../../shared/compile-stages.js";
 import { layoutGraph } from "../../../../shared/graph-layout.js";
 import { DiagnosticVM } from "./diagnostic-vm.js";
 import { buildGraphCanvas } from "./graph-view.js";
+import { downloadText, copyText } from "./download.js";
 
 type Stage = "tokens" | "ast" | "model" | "diag" | "json" | "graph";
 
@@ -34,6 +35,8 @@ export class ExampleRunnerVM extends MuralBase {
   static ShowDiagKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "ShowDiag", undefined, MetaData.None);
   static ShowJsonKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "ShowJson", undefined, MetaData.None);
   static ShowGraphKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "ShowGraph", undefined, MetaData.None);
+  static DownloadKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "Download", undefined, MetaData.None);
+  static CopyKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "Copy", undefined, MetaData.None);
 
   get Source(): string { return this.get_property_value(ExampleRunnerVM.SourceKey); }
   set Source(v: string) { this.set_property_value(ExampleRunnerVM.SourceKey, v); }
@@ -60,6 +63,8 @@ export class ExampleRunnerVM extends MuralBase {
   get ShowDiag(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.ShowDiagKey); }
   get ShowJson(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.ShowJsonKey); }
   get ShowGraph(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.ShowGraphKey); }
+  get Download(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.DownloadKey); }
+  get Copy(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.CopyKey); }
 
   private fileName = "playground.todl";
 
@@ -86,6 +91,8 @@ export class ExampleRunnerVM extends MuralBase {
     this.set_property_value(ExampleRunnerVM.ShowDiagKey, new RelayCommand(() => this.setStage("diag")));
     this.set_property_value(ExampleRunnerVM.ShowJsonKey, new RelayCommand(() => this.setStage("json")));
     this.set_property_value(ExampleRunnerVM.ShowGraphKey, new RelayCommand(() => this.setStage("graph")));
+    this.set_property_value(ExampleRunnerVM.DownloadKey, new RelayCommand(() => downloadText(this.fileName.replace(/\.todl$/, "") + ".json", this.Json)));
+    this.set_property_value(ExampleRunnerVM.CopyKey, new RelayCommand(() => copyText(this.Json)));
     // Debounced auto-run on edit.
     let timer: ReturnType<typeof setTimeout> | undefined;
     this.AddPropertyChangedListener(ExampleRunnerVM.SourceKey, () => {
