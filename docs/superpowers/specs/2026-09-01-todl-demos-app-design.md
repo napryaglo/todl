@@ -277,6 +277,15 @@ language server runs in a Web Worker (`vscode-languageserver/browser` + `PushedS
 after a transport-neutral, fs-free core refactor (`workspace-fs.ts`); a client bridge in
 `app/src/editor/` gives Monaco Monarch highlighting, live LSP diagnostics, hover, and completion.
 
+**Phase 7 — CI gate + GitHub Pages deploy.** — **DONE 2026-09-02** (own spec:
+`…-phase7-design.md`). Two GitHub Actions workflows: `ci.yml` runs
+`build + test + test:corpus` (secret-free) on every push/PR; `deploy.yml` builds the app
+with `--base=/todl/` and publishes it to GitHub Pages after a green CI run on `main`. The
+deploy install swaps the app's `file:` Mural dep for published `@pragmatic-tech-ai/mural`
+(GitHub Packages, via a runtime-written `app/.npmrc`). Live at
+`https://pragmatic-tech-ai.github.io/todl/` once the repo's Pages source is set to
+"GitHub Actions". This closes the roadmap.
+
 ## Seed corpus (Phase 1)
 
 Curated from proven, known-good language features (their behavior is already established, so
