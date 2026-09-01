@@ -6,7 +6,8 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { TextDocuments } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { PushedSourceProvider, FsSourceProvider, ProjectRegistry } from "../workspace.js";
+import { PushedSourceProvider, ProjectRegistry } from "../workspace.js";
+import { FsSourceProvider } from "../workspace-fs.js";
 
 // A TextDocuments stub exposing just `all()` (the only method providers use).
 function docsWith(...docs: TextDocument[]): TextDocuments<TextDocument> {

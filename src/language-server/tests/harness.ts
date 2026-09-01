@@ -2,13 +2,14 @@ import { PassThrough } from "node:stream";
 import { createConnection } from "vscode-languageserver/node.js";
 import { StreamMessageReader, StreamMessageWriter, createMessageConnection, type MessageConnection } from "vscode-jsonrpc/node.js";
 import { createServer } from "../server.js";
+import { FsSourceProvider } from "../workspace-fs.js";
 
 // An in-memory client↔server pair over two pipes — no child process.
 export function startServer(): { client: MessageConnection; dispose: () => void } {
   const c2s = new PassThrough();
   const s2c = new PassThrough();
   const server = createConnection(new StreamMessageReader(c2s), new StreamMessageWriter(s2c));
-  createServer(server);
+  createServer(server, () => new FsSourceProvider());
   server.listen();
   const client = createMessageConnection(new StreamMessageReader(s2c), new StreamMessageWriter(c2s));
   client.listen();

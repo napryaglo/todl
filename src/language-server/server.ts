@@ -1,7 +1,7 @@
 import {
-  createConnection, TextDocuments, TextDocumentSyncKind, ResponseError, ErrorCodes,
+  TextDocuments, TextDocumentSyncKind, ResponseError, ErrorCodes,
   type Connection, type InitializeParams, type InitializeResult,
-} from "vscode-languageserver/node.js";
+} from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
   SEMANTIC_LEGEND, analyze, type Analysis,
@@ -9,11 +9,9 @@ import {
   documentSymbols, foldingRanges, workspaceSymbols, semanticTokens, codeActions,
   formatDocument, signatureHelpAt,
 } from "@pragmatic-tech-ai/todl/language-service";
-import { ProjectRegistry, PushedSourceProvider, FsSourceProvider, type SourceProvider } from "./workspace.js";
+import { ProjectRegistry, PushedSourceProvider, type SourceProvider } from "./workspace.js";
 
-export { createConnection };
-
-export function createServer(connection: Connection): void {
+export function createServer(connection: Connection, makeFsProvider?: () => SourceProvider): void {
   const documents = new TextDocuments(TextDocument);
   const registry = new ProjectRegistry();
   let provider: SourceProvider = new PushedSourceProvider();
@@ -22,7 +20,7 @@ export function createServer(connection: Connection): void {
     const folders = (params.workspaceFolders ?? []).map((f) => f.uri);
     const opts = params.initializationOptions as { mode?: string } | undefined;
     const mode = opts?.mode ?? (folders.length > 0 ? "fs" : "pushed");
-    provider = mode === "fs" ? new FsSourceProvider() : new PushedSourceProvider();
+    provider = mode === "fs" ? (makeFsProvider?.() ?? new PushedSourceProvider()) : new PushedSourceProvider();
     for (const root of provider.initialRoots(folders)) registry.register(root);
     scheduleRevalidate();   // FS mode: analyze the scanned roots once after init
     return {
