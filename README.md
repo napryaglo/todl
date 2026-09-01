@@ -45,11 +45,11 @@ error; the CI gate is unaffected.
 
 ### Deploy token note
 
-The deploy build installs Mural from GitHub Packages (Mural → `todl-runtime`)
-using the Actions `GITHUB_TOKEN` with `packages: read`. If those packages are
-org-*private*, the install returns 401 — add a `PACKAGES_TOKEN` repo secret (a
-PAT with `read:packages`) and point the deploy job's `PACKAGES_TOKEN` at
-`${{ secrets.PACKAGES_TOKEN }}`.
+The deploy build installs Mural from GitHub Packages (Mural → `todl-runtime`).
+These packages live in a different repo, so the Actions `GITHUB_TOKEN` cannot
+read them (`403 permission_denied`). The deploy job therefore authenticates
+with a **`PACKAGES_TOKEN`** repo secret — a PAT with `read:packages`. If you
+rotate that PAT, update the secret (`gh secret set PACKAGES_TOKEN`).
 
 ## License
 

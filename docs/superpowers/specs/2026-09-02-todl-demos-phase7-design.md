@@ -174,16 +174,20 @@ Build and deployment → Source = "GitHub Actions"**. This cannot be scripted;
 it is documented in the README. Until it is set, `deploy-pages` fails with a
 clear "Pages not enabled" error and the CI gate is unaffected.
 
-## Token fallback
+## Token (resolved during implementation)
 
-The plan uses the ephemeral `GITHUB_TOKEN` with `packages: read`. This works
-if the `mural` and `todl-runtime` packages are **public-visibility** on GitHub
-Packages. If they are org-*private*, `npm --prefix app install` fails with a
-401; the fix is a one-line switch of the deploy job's
-`PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}` to
-`PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}` (a classic PAT with
-`read:packages`, added under repo secrets). Documented in the deploy workflow
-as a comment.
+The ephemeral `GITHUB_TOKEN` **cannot** read `mural` / `todl-runtime`: they are
+published from a *different* repo's GitHub Packages, so a todl-repo workflow
+token gets `403 permission_denied: read_package` (confirmed on the first deploy
+run). The deploy job therefore authenticates with a **`PACKAGES_TOKEN`** repo
+secret — a PAT with `read:packages` — set via `gh secret set PACKAGES_TOKEN`.
+The deploy job reads it as `PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}`.
+
+Note: the 403 only appears once the install actually hits the registry. A bare
+`npm install` against the committed `link:true` lock silently kept the sibling
+symlink and never contacted the registry (so it looked green while producing a
+dangling symlink on CI) — hence the explicit-by-name install above, which both
+fixes the symlink and surfaces the real auth requirement.
 
 ## Testing / verification strategy
 

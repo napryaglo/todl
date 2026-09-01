@@ -25,10 +25,10 @@ jobs:
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     env:
-      # Public-visibility GitHub Packages install with the ephemeral token.
-      # If mural/todl-runtime are org-PRIVATE, this 401s — switch to
-      # ${{ secrets.PACKAGES_TOKEN }} (a PAT with read:packages).
-      PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # mural + todl-runtime live in a different repo's GitHub Packages, which
+      # the ephemeral GITHUB_TOKEN cannot read (403 permission_denied). Use a
+      # PAT with read:packages, stored as the PACKAGES_TOKEN repo secret.
+      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
