@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { layoutGraph, nodeLabel } from "../graph-layout.js";
+import { layoutGraph, nodeLabel, edgeGeometry } from "../graph-layout.js";
 import type { TodlDocument } from "@pragmatic-tech-ai/todl";
 
 const doc: TodlDocument = {
@@ -53,4 +53,28 @@ test("nodeLabel prefers a name/label attr, else falls back", () => {
   assert.equal(nodeLabel({ id: 5, tier: "instance", typeOf: 9, attrs: { name: "svc" } }), "svc");
   const fallback = nodeLabel({ id: 7, tier: "concept", typeOf: 0, attrs: {} });
   assert.ok(fallback.length > 0);
+});
+
+test("laid-out nodes carry attrs and typeOf from the source", () => {
+  const d: TodlDocument = { nodes: [{ id: 1, tier: "instance", typeOf: 10, attrs: { name: "a", n: 2 } }], edges: [] };
+  const g = layoutGraph(d);
+  assert.equal(g.nodes[0].typeOf, "10");
+  assert.equal(g.nodes[0].attrs.name, "a");
+  assert.equal(g.nodes[0].attrs.n, 2);
+});
+
+test("edgeGeometry gives center-to-center endpoints, midpoint, and angle", () => {
+  const from = { id: "1", x: 0, y: 0, w: 100, h: 40, label: "", sub: "", typeOf: "", attrs: {} };
+  const to = { id: "2", x: 200, y: 0, w: 100, h: 40, label: "", sub: "", typeOf: "", attrs: {} };
+  const e = edgeGeometry(from, to);
+  assert.equal(e.x1, 50); assert.equal(e.y1, 20);
+  assert.equal(e.x2, 250); assert.equal(e.y2, 20);
+  assert.equal(e.midX, 150); assert.equal(e.midY, 20);
+  assert.equal(Math.round(e.angleDeg), 0);
+});
+
+test("edgeGeometry angle is 90 for a downward edge", () => {
+  const from = { id: "1", x: 0, y: 0, w: 40, h: 40, label: "", sub: "", typeOf: "", attrs: {} };
+  const to = { id: "2", x: 0, y: 200, w: 40, h: 40, label: "", sub: "", typeOf: "", attrs: {} };
+  assert.equal(Math.round(edgeGeometry(from, to).angleDeg), 90);
 });

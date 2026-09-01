@@ -1,8 +1,17 @@
-import type { TodlDocument, JsonNode } from "@pragmatic-tech-ai/todl";
+import type { TodlDocument, JsonNode, Scalar } from "@pragmatic-tech-ai/todl";
 
-export interface LaidOutNode { id: string; x: number; y: number; w: number; h: number; label: string; sub: string }
+export interface LaidOutNode { id: string; x: number; y: number; w: number; h: number; label: string; sub: string; typeOf: string; attrs: Record<string, Scalar> }
 export interface LaidOutEdge { from: string; to: string; label: string }
 export interface GraphLayout { nodes: LaidOutNode[]; edges: LaidOutEdge[]; width: number; height: number }
+
+export interface EdgeGeometry { x1: number; y1: number; x2: number; y2: number; midX: number; midY: number; angleDeg: number }
+
+/** Center-to-center endpoints, midpoint, and heading angle (degrees) for an edge. Pure. */
+export function edgeGeometry(from: LaidOutNode, to: LaidOutNode): EdgeGeometry {
+  const x1 = from.x + from.w / 2, y1 = from.y + from.h / 2;
+  const x2 = to.x + to.w / 2, y2 = to.y + to.h / 2;
+  return { x1, y1, x2, y2, midX: (x1 + x2) / 2, midY: (y1 + y2) / 2, angleDeg: Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI };
+}
 
 const NODE_W = 150, NODE_H = 48, H_GAP = 70, V_GAP = 26, PAD = 24;
 
@@ -59,16 +68,16 @@ export function layoutGraph(doc: TodlDocument): GraphLayout {
     const col = byRank.get(r) ?? (byRank.set(r, []), byRank.get(r)!);
     col.push(id);
   }
-  const labelOf = new Map(doc.nodes.map((n) => [String(n.id), { label: nodeLabel(n), sub: n.tier ?? "" }]));
+  const metaOf = new Map(doc.nodes.map((n) => [String(n.id), { label: nodeLabel(n), sub: n.tier ?? "", typeOf: String(n.typeOf), attrs: n.attrs ?? {} }]));
 
   const nodes: LaidOutNode[] = [];
   let maxRow = 0;
   for (const [r, col] of [...byRank.entries()].sort((a, b) => a[0] - b[0])) {
     col.sort((a, b) => a.localeCompare(b));
     col.forEach((id, row) => {
-      const meta = labelOf.get(id)!;
+      const meta = metaOf.get(id)!;
       nodes.push({
-        id, label: meta.label, sub: meta.sub, w: NODE_W, h: NODE_H,
+        id, label: meta.label, sub: meta.sub, typeOf: meta.typeOf, attrs: meta.attrs, w: NODE_W, h: NODE_H,
         x: PAD + r * (NODE_W + H_GAP),
         y: PAD + row * (NODE_H + V_GAP),
       });
