@@ -19,7 +19,9 @@ corpus, many surfaces.
   **Tokens → AST → Model → Diagnostics → JSON → Graph**, each a real compiler
   artifact (`tokenize`/`parse`/`check`/`toJSON`). The Graph tab is an
   imperatively-built `Canvas` of `Border` nodes + `Line` edges (Phase 3), laid out
-  by the pure `shared/graph-layout.ts`. Phase-4 additions:
+  by the pure `shared/graph-layout.ts`, with **arrowheads + edge-kind labels**, a
+  **click-to-select node inspector** (id · tier · typeOf · attrs), and **pan/zoom**
+  (`+`/`−`/`Fit`, Ctrl+wheel, drag-to-pan) — Phase 5. Phase-4 additions:
   - **Permalinks** — the editor source round-trips through the URL hash
     (`#s=<base64url>`), so a playground state is bookmarkable/shareable ("Copy
     link"); loading a hashed URL seeds the editor.

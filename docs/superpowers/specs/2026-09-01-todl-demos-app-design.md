@@ -266,6 +266,11 @@ driven by pure `shared/docs-markdown.ts`).
 `shared/compile-stages.ts`); URL-hash permalinks (pure `shared/permalink.ts` + `permalink-sync`);
 live vs-golden chip (pure `shared/golden-compare.ts`); emitted-JSON download/copy.
 
+**Phase 5 — Graph view depth.** — **DONE 2026-09-01** (own spec: `…-phase5-design.md`).
+Arrowheads + edge-kind labels; click-to-select node inspector (id·tier·typeOf·attrs, via
+`LaidOutNode` enriched in pure `shared/graph-layout.ts` + a `SelectableNodeBorder`); pan/zoom
+(`+`/`−`/`Fit` buttons + Ctrl+wheel + drag-pan via a `GraphCanvas`/`ScrollViewer` in `buildGraphView`).
+
 ## Seed corpus (Phase 1)
 
 Curated from proven, known-good language features (their behavior is already established, so
