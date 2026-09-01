@@ -23,6 +23,30 @@ function toMarkerSeverity(s?: number): monaco.MarkerSeverity {
   }
 }
 
+export interface LspHover { contents: unknown; range?: LspRange }
+export interface LspCompletionItem { label: string; kind?: number; detail?: string; documentation?: unknown; insertText?: string; sortText?: string }
+
+/** Flatten an LSP hover `contents` (string | MarkupContent | MarkedString | array) to markdown. */
+export function hoverMarkdown(h: LspHover): string {
+  const one = (c: unknown): string =>
+    typeof c === "string" ? c
+    : c && typeof c === "object" && "value" in (c as Record<string, unknown>) ? String((c as { value: unknown }).value)
+    : "";
+  return Array.isArray(h.contents) ? h.contents.map(one).filter(Boolean).join("\n\n") : one(h.contents);
+}
+
+// LSP CompletionItemKind → Monaco CompletionItemKind (best-effort; both are ~parallel enums).
+export function toMonacoCompletion(it: LspCompletionItem, range: monaco.IRange): monaco.languages.CompletionItem {
+  return {
+    label: it.label,
+    kind: (it.kind ?? 1) as unknown as monaco.languages.CompletionItemKind,
+    detail: it.detail,
+    insertText: it.insertText ?? it.label,
+    sortText: it.sortText,
+    range,
+  };
+}
+
 export function toMarker(d: LspDiagnostic): monaco.editor.IMarkerData {
   const r = toMonacoRange(d.range);
   return {

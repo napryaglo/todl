@@ -1,7 +1,10 @@
 import * as monaco from "monaco-editor";
 import { BrowserMessageReader, BrowserMessageWriter } from "vscode-jsonrpc/browser";
 import { createMessageConnection, type MessageConnection } from "vscode-jsonrpc";
-import { toMarker, type LspDiagnostic, type LspPosition } from "./lsp-monaco.js";
+import {
+  toMarker, toMonacoRange, toLspPosition, hoverMarkdown, toMonacoCompletion,
+  type LspDiagnostic, type LspPosition, type LspHover, type LspCompletionItem,
+} from "./lsp-monaco.js";
 
 /** Fixed in-browser document URI the playground edits, and the project root it
  *  lives under (registered so the server analyzes it in pushed mode). */
@@ -63,4 +66,31 @@ export class TodlLanguageClient {
       textDocument: { uri: PLAYGROUND_URI }, ...(position ? { position } : {}),
     })) as T | null;
   }
+
+  /** Register Monaco hover + completion providers backed by LSP requests. Idempotent. */
+  registerProviders(): void {
+    if (TodlLanguageClient.providersRegistered) return;
+    TodlLanguageClient.providersRegistered = true;
+
+    monaco.languages.registerHoverProvider("todl", {
+      provideHover: async (_model, pos) => {
+        const h = await this.request<LspHover>("textDocument/hover", toLspPosition(pos));
+        if (!h) return null;
+        return { contents: [{ value: hoverMarkdown(h) }], range: h.range ? toMonacoRange(h.range) : undefined };
+      },
+    });
+
+    monaco.languages.registerCompletionItemProvider("todl", {
+      triggerCharacters: ["&", ":", "-", " "],
+      provideCompletionItems: async (model, pos) => {
+        const res = await this.request<LspCompletionItem[] | { items: LspCompletionItem[] }>("textDocument/completion", toLspPosition(pos));
+        const items = Array.isArray(res) ? res : res?.items ?? [];
+        const word = model.getWordUntilPosition(pos);
+        const range = { startLineNumber: pos.lineNumber, endLineNumber: pos.lineNumber, startColumn: word.startColumn, endColumn: word.endColumn };
+        return { suggestions: items.map((it) => toMonacoCompletion(it, range)) };
+      },
+    });
+  }
+
+  private static providersRegistered = false;
 }

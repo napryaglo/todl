@@ -10,6 +10,7 @@ import { TodlLanguageClient, PLAYGROUND_URI } from "./todl-language-client.js";
 export function runBootSpike(root: Border): void {
   registerTodlLanguage();
   const client = new TodlLanguageClient();
+  client.registerProviders();
 
   const editor = new MonacoEditorHost();
   editor.useModelUri(PLAYGROUND_URI);   // diagnostics land on this model
@@ -22,7 +23,11 @@ export function runBootSpike(root: Border): void {
   editor.AddPropertyChangedListener(MonacoEditorHost.TextKey, push);
   push();   // initial open
 
-  // TEMP test hook: current marker count for the playground model.
-  (window as unknown as { __todlMarkers?: () => number }).__todlMarkers = () =>
-    monaco.editor.getModelMarkers({}).length;
+  // TEMP test hooks: marker count + a completion round-trip.
+  const w = window as unknown as { __todlMarkers?: () => number; __todlCompletion?: () => Promise<number> };
+  w.__todlMarkers = () => monaco.editor.getModelMarkers({}).length;
+  w.__todlCompletion = async () => {
+    const res = await client.request<unknown[]>("textDocument/completion", { line: 0, character: 10 });
+    return Array.isArray(res) ? res.length : (res as { items?: unknown[] } | null)?.items?.length ?? 0;
+  };
 }
