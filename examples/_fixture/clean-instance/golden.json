@@ -4,8 +4,27 @@
     "nodes": [
       {
         "id": "#n0",
-        "tier": "Instance",
+        "tier": "Ontology",
         "typeOf": "#r0",
+        "attrs": {
+          "namespace": "app"
+        }
+      },
+      {
+        "id": "#n1",
+        "tier": "Ontology",
+        "typeOf": "#r1",
+        "attrs": {
+          "name": "label",
+          "cardinality": 0,
+          "type": "string",
+          "namespace": "app"
+        }
+      },
+      {
+        "id": "#n2",
+        "tier": "Instance",
+        "typeOf": "#r2",
         "attrs": {
           "namespace": "app",
           "id": "M",
@@ -14,9 +33,9 @@
         }
       },
       {
-        "id": "#n1",
+        "id": "#n3",
         "tier": "Instance",
-        "typeOf": "#r1",
+        "typeOf": "#n0",
         "attrs": {
           "namespace": "app",
           "id": "c",
@@ -26,10 +45,22 @@
     ],
     "edges": [
       {
-        "kind": "Contains",
+        "kind": "Extends",
+        "via": null,
+        "from": "#n0",
+        "to": "#r3"
+      },
+      {
+        "kind": "HasField",
         "via": null,
         "from": "#n0",
         "to": "#n1"
+      },
+      {
+        "kind": "Contains",
+        "via": null,
+        "from": "#n2",
+        "to": "#n3"
       }
     ]
   }
