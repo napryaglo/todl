@@ -7,15 +7,7 @@ resources ExampleRunner {
     }
     DataTemplate [DataType = ExampleRunnerVM] {
         UniformGrid [ Columns = 2 ] {
-            TextBox
-                [ Margin        = (8,8,8,8),
-                  AcceptsReturn = true,
-                  AcceptsTab    = true,
-                  TextWrapping  = NoWrap,
-                  IsReadOnly    = $ReadOnly,
-                  FontFamily    = "Cascadia Mono, Consolas, monospace",
-                  FontSize      = 13,
-                  Text          = $Source ]
+            Border [ Margin = (8,8,8,8) ] { ContentControl [ Content = $Editor ] }
             DockPanel [ Margin = (8,8,8,8) ] {
                 DockPanel [ DockPanel.Dock = Top, Margin = (0,0,0,6) ] {
                     Button [ DockPanel.Dock = Right, Command = $Download ] { TextBlock [ Text = "Download" ] }

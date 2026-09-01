@@ -6,6 +6,9 @@ import { layoutGraph, type LaidOutNode } from "../../../../shared/graph-layout.j
 import { DiagnosticVM } from "./diagnostic-vm.js";
 import { buildGraphView, type GraphController } from "./graph-view.js";
 import { downloadText, copyText } from "./download.js";
+import { MonacoEditorHost } from "../../editor/monaco-editor-host.js";
+import { initTodlEditor } from "../../editor/todl-editor.js";
+import { PLAYGROUND_URI } from "../../editor/todl-language-client.js";
 
 type Stage = "tokens" | "ast" | "model" | "diag" | "json" | "graph";
 
@@ -22,6 +25,7 @@ export class ExampleRunnerVM extends MuralBase {
   static RunKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "Run", undefined, MetaData.None);
   static GraphKey = MuralBase.RegisterProperty<Visual | undefined>(ExampleRunnerVM, "Graph", undefined, MetaData.None);
   static SelectedNodeTextKey = MuralBase.RegisterProperty<string>(ExampleRunnerVM, "SelectedNodeText", "Click a node to inspect it.", MetaData.None);
+  static EditorKey = MuralBase.RegisterProperty<MonacoEditorHost | undefined>(ExampleRunnerVM, "Editor", undefined, MetaData.None);
   static ZoomInKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "ZoomIn", undefined, MetaData.None);
   static ZoomOutKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "ZoomOut", undefined, MetaData.None);
   static FitKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "Fit", undefined, MetaData.None);
@@ -55,6 +59,7 @@ export class ExampleRunnerVM extends MuralBase {
   get Run(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.RunKey); }
   get Graph(): Visual | undefined { return this.get_property_value(ExampleRunnerVM.GraphKey); }
   get SelectedNodeText(): string { return this.get_property_value(ExampleRunnerVM.SelectedNodeTextKey); }
+  get Editor(): MonacoEditorHost | undefined { return this.get_property_value(ExampleRunnerVM.EditorKey); }
   get ZoomIn(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.ZoomInKey); }
   get ZoomOut(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.ZoomOutKey); }
   get Fit(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.FitKey); }
@@ -111,7 +116,31 @@ export class ExampleRunnerVM extends MuralBase {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => this.compile(), 300);
     });
+
+    // Monaco editor host bound to Source, backed by the TODL language server.
+    const client = initTodlEditor();
+    const host = new MonacoEditorHost();
+    host.useModelUri(PLAYGROUND_URI);
+    host.ReadOnly = !editable;
+    host.Text = this.Source;
+    this.set_property_value(ExampleRunnerVM.EditorKey, host);
+    // Two-way, echo-guarded: editor edits → Source (drives the pipeline); external
+    // Source changes (load example / permalink) → editor. Push to the LSP on both.
+    let pushTimer: ReturnType<typeof setTimeout> | undefined;
+    const pushToLsp = () => { if (pushTimer) clearTimeout(pushTimer); pushTimer = setTimeout(() => void client.openOrUpdate(this.Source), 250); };
+    host.AddPropertyChangedListener(MonacoEditorHost.TextKey, () => {
+      if (this.syncing || host.Text === this.Source) return;
+      this.syncing = true; this.set_property_value(ExampleRunnerVM.SourceKey, host.Text); this.syncing = false;
+      pushToLsp();
+    });
+    this.AddPropertyChangedListener(ExampleRunnerVM.SourceKey, () => {
+      if (!this.syncing && host.Text !== this.Source) { this.syncing = true; host.Text = this.Source; this.syncing = false; }
+      pushToLsp();
+    });
+    pushToLsp();   // initial open
   }
+
+  private syncing = false;
 
   load(entry: CorpusEntry): void {
     this.fileName = entry.sources[0]?.name ?? "example.todl";
