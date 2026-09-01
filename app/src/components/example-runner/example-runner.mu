@@ -37,10 +37,15 @@ resources ExampleRunner {
                     ScrollViewer [ Visibility = $DiagVisibility ]   { ListBox [ Items = $Diagnostics ] }
                     ScrollViewer [ Visibility = $JsonVisibility ]   { TextBlock [ FontFamily = "Cascadia Mono, Consolas, monospace", FontSize = 12, TextWrapping = NoWrap, Text = $Json ] }
                     DockPanel [ Visibility = $GraphVisibility ] {
+                        StackPanel [ DockPanel.Dock = Top, Orientation = Horizontal, Margin = (0,0,0,6) ] {
+                            Button [ Command = $ZoomOut, Margin = (0,0,4,0) ] { TextBlock [ Text = "−" ] }
+                            Button [ Command = $ZoomIn,  Margin = (0,0,4,0) ] { TextBlock [ Text = "+" ] }
+                            Button [ Command = $Fit ]                         { TextBlock [ Text = "Fit" ] }
+                        }
                         Border [ DockPanel.Dock = Bottom, Fill = @SurfaceVariant, Margin = (0,6,0,0) ] {
                             TextBlock [ Margin = (6,4,6,4), FontFamily = "Cascadia Mono, Consolas, monospace", FontSize = 11, TextWrapping = NoWrap, Text = $SelectedNodeText ]
                         }
-                        ScrollViewer { ContentControl [ Content = $Graph ] }
+                        ContentControl [ Content = $Graph ]
                     }
                 }
             }

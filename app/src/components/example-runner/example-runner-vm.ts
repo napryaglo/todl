@@ -1,10 +1,10 @@
 import { MuralBase, MetaData, RelayCommand, Visibility, type ICommand } from "@pragmatic-tech-ai/mural/runtime";
-import { Canvas } from "@pragmatic-tech-ai/mural/basic";
+import type { Visual } from "@pragmatic-tech-ai/mural/visual-engine";
 import type { CorpusEntry } from "../../../../shared/corpus-types.js";
 import { compileStages } from "../../../../shared/compile-stages.js";
 import { layoutGraph, type LaidOutNode } from "../../../../shared/graph-layout.js";
 import { DiagnosticVM } from "./diagnostic-vm.js";
-import { buildGraphCanvas } from "./graph-view.js";
+import { buildGraphView, type GraphController } from "./graph-view.js";
 import { downloadText, copyText } from "./download.js";
 
 type Stage = "tokens" | "ast" | "model" | "diag" | "json" | "graph";
@@ -20,8 +20,11 @@ export class ExampleRunnerVM extends MuralBase {
   static DiagnosticsKey = MuralBase.RegisterProperty<DiagnosticVM[]>(ExampleRunnerVM, "Diagnostics", [], MetaData.None);
   static StatusKey = MuralBase.RegisterProperty<string>(ExampleRunnerVM, "Status", "", MetaData.None);
   static RunKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "Run", undefined, MetaData.None);
-  static GraphKey = MuralBase.RegisterProperty<Canvas | undefined>(ExampleRunnerVM, "Graph", undefined, MetaData.None);
+  static GraphKey = MuralBase.RegisterProperty<Visual | undefined>(ExampleRunnerVM, "Graph", undefined, MetaData.None);
   static SelectedNodeTextKey = MuralBase.RegisterProperty<string>(ExampleRunnerVM, "SelectedNodeText", "Click a node to inspect it.", MetaData.None);
+  static ZoomInKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "ZoomIn", undefined, MetaData.None);
+  static ZoomOutKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "ZoomOut", undefined, MetaData.None);
+  static FitKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "Fit", undefined, MetaData.None);
   // Six pipeline-stage tabs. Visibility DPs drive the .mu (no expression bindings).
   static SelectedStageKey = MuralBase.RegisterProperty<string>(ExampleRunnerVM, "SelectedStage", "json", MetaData.None);
   static TokensVisibilityKey = MuralBase.RegisterProperty<Visibility>(ExampleRunnerVM, "TokensVisibility", Visibility.Collapsed, MetaData.None);
@@ -50,8 +53,11 @@ export class ExampleRunnerVM extends MuralBase {
   get Diagnostics(): DiagnosticVM[] { return this.get_property_value(ExampleRunnerVM.DiagnosticsKey); }
   get Status(): string { return this.get_property_value(ExampleRunnerVM.StatusKey); }
   get Run(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.RunKey); }
-  get Graph(): Canvas | undefined { return this.get_property_value(ExampleRunnerVM.GraphKey); }
+  get Graph(): Visual | undefined { return this.get_property_value(ExampleRunnerVM.GraphKey); }
   get SelectedNodeText(): string { return this.get_property_value(ExampleRunnerVM.SelectedNodeTextKey); }
+  get ZoomIn(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.ZoomInKey); }
+  get ZoomOut(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.ZoomOutKey); }
+  get Fit(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.FitKey); }
   get SelectedStage(): string { return this.get_property_value(ExampleRunnerVM.SelectedStageKey); }
   get TokensVisibility(): Visibility { return this.get_property_value(ExampleRunnerVM.TokensVisibilityKey); }
   get AstVisibility(): Visibility { return this.get_property_value(ExampleRunnerVM.AstVisibilityKey); }
@@ -69,6 +75,7 @@ export class ExampleRunnerVM extends MuralBase {
   get Copy(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.CopyKey); }
 
   private fileName = "playground.todl";
+  private graph?: GraphController;
 
   private setStage(stage: Stage): void {
     const v = (s: Stage) => (s === stage ? Visibility.Visible : Visibility.Collapsed);
@@ -95,6 +102,9 @@ export class ExampleRunnerVM extends MuralBase {
     this.set_property_value(ExampleRunnerVM.ShowGraphKey, new RelayCommand(() => this.setStage("graph")));
     this.set_property_value(ExampleRunnerVM.DownloadKey, new RelayCommand(() => downloadText(this.fileName.replace(/\.todl$/, "") + ".json", this.Json)));
     this.set_property_value(ExampleRunnerVM.CopyKey, new RelayCommand(() => copyText(this.Json)));
+    this.set_property_value(ExampleRunnerVM.ZoomInKey, new RelayCommand(() => this.graph?.zoomIn()));
+    this.set_property_value(ExampleRunnerVM.ZoomOutKey, new RelayCommand(() => this.graph?.zoomOut()));
+    this.set_property_value(ExampleRunnerVM.FitKey, new RelayCommand(() => this.graph?.fit()));
     // Debounced auto-run on edit.
     let timer: ReturnType<typeof setTimeout> | undefined;
     this.AddPropertyChangedListener(ExampleRunnerVM.SourceKey, () => {
@@ -125,6 +135,7 @@ export class ExampleRunnerVM extends MuralBase {
     // ContentControl presentation.
     const onSelect = (n: LaidOutNode) => this.set_property_value(ExampleRunnerVM.SelectedNodeTextKey,
       [`${n.id} · ${n.sub} · typeOf ${n.typeOf}`, ...Object.entries(n.attrs).map(([k, v]) => `${k} = ${JSON.stringify(v)}`)].join("\n"));
-    this.set_property_value(ExampleRunnerVM.GraphKey, buildGraphCanvas(layoutGraph(s.document), onSelect));
+    this.graph = buildGraphView(layoutGraph(s.document), onSelect);
+    this.set_property_value(ExampleRunnerVM.GraphKey, this.graph.view);
   }
 }
