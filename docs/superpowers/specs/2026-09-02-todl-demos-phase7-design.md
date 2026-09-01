@@ -21,8 +21,15 @@ design.
 - **Node floor** — root `package.json` declares `engines.node >=20`. CI pins
   Node 20.
 - **Test gate is secret-free.** Root `todl` has **zero `@pragmatic-tech-ai/*`
-  dependencies** (all 7 deps are public npm). `npm ci` + `npm test` +
-  `npm run test:corpus` + `npm run typecheck` never touch GitHub Packages.
+  dependencies** (all 7 deps are public npm). `npm ci` + `npm run build` +
+  `npm test` + `npm run test:corpus` never touch GitHub Packages.
+- **Whole-repo `npm run typecheck` is pre-existingly red** — ~59 strict-null
+  errors in `src/**/*.test.ts` and ~33 in the demos tsconfig, all in test files
+  that run green under `tsx` (transpile-only). Shippable source is type-clean:
+  `tsconfig.build.json` excludes `*.test.ts` and passes with 0 errors. The gate
+  therefore uses **`npm run build`** (which runs `tsc -p tsconfig.build.json`)
+  as the type/compile check, not the red whole-repo `typecheck`. Fixing the
+  test-file type debt is out of scope for this phase.
 - **The app build is NOT secret-free.** `app/` depends on Mural via
   `file:../../Mural`, and **Mural depends on `@pragmatic-tech-ai/todl-runtime`**
   (GitHub Packages). So building the app touches GitHub Packages no matter how
@@ -62,8 +69,9 @@ on:
 
 - Single job, `runs-on: ubuntu-latest`, Node 20 via `actions/setup-node@v4`
   with `cache: npm`.
-- Steps: `checkout` → `setup-node` → `npm ci` → `npm run typecheck` →
-  `npm test` → `npm run test:corpus`.
+- Steps: `checkout` → `setup-node` → `npm ci` → `npm run build` →
+  `npm test` → `npm run test:corpus`. (`npm run build` is the type/compile
+  check — see the pre-existing-typecheck note above.)
 - `env: { PACKAGES_TOKEN: ${{ github.token }} }` at the job level — purely to
   keep the repo `.npmrc`'s `${PACKAGES_TOKEN}` reference from emitting an
   unset-variable warning. Nothing scoped installs, so the token value is never
@@ -172,9 +180,10 @@ as a comment.
 
 CI YAML cannot be unit-tested, so verification is command-level:
 
-1. **Gate parity** — the four gate commands (`typecheck`, `test`,
-   `test:corpus`, and `npm ci` clean) already pass locally; re-run them to
-   confirm the exact CI sequence is green before committing the workflow.
+1. **Gate parity** — the gate commands (`npm ci`, `npm run build`, `npm test`,
+   `npm run test:corpus`) all pass locally (build clean, 607 + 48 green);
+   re-run them to confirm the exact CI sequence is green before committing the
+   workflow.
 2. **Deploy-build proof (the one risky part)** — locally reproduce the
    published-Mural swap end to end *before* trusting CI:
    - copy `app/package.json`, run

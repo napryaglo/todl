@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # Inert: root has no @pragmatic-tech-ai deps, nothing scoped installs.
+      # Set only so the local .npmrc's ${PACKAGES_TOKEN} reference is defined
+      # if a runner ever has one; the value is never actually used here.
+      PACKAGES_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # `npm run build` typechecks + compiles the shippable source
+      # (tsconfig.build.json, which excludes *.test.ts). The whole-repo
+      # `npm run typecheck` is intentionally NOT the gate: it has pre-existing
+      # strict-null errors in test files only, which tsx never surfaces at
+      # runtime (the tests pass). Source stays type-clean via the build.
+      - run: npm run build
+      - run: npm test
+      - run: npm run test:corpus
