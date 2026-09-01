@@ -11,7 +11,7 @@ export class AppVM extends MuralBase {
   static ShowDocsKey = MuralBase.RegisterProperty<ICommand | undefined>(AppVM, "ShowDocs", undefined, MetaData.None);
 
   private readonly playground = new PlaygroundVM();
-  private readonly gallery = new GalleryVM();
+  private readonly gallery = new GalleryVM((e) => this.openInPlayground(e));
   private readonly docs = new DocsVM();
 
   get ActivePage(): MuralBase | undefined { return this.get_property_value(AppVM.ActivePageKey); }
