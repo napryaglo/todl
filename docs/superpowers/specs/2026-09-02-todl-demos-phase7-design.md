@@ -112,13 +112,18 @@ concurrency:
   3. `npm ci` — root install (public deps only).
   4. `npm run build` — compile todl → `dist/` (the app's Vite alias
      `@pragmatic-tech-ai/todl` → `../dist/index.js` needs this present).
-  5. **Ephemeral Mural swap:**
-     `npm --prefix app pkg set "dependencies.@pragmatic-tech-ai/mural=^0.45.0"`
-     — mutates `app/package.json` in the runner only; never committed.
-  6. `npm --prefix app install` — resolves published Mural + transitive
-     `todl-runtime` from GitHub Packages, authed via a **runtime-written**
-     `app/.npmrc` (a workflow step, since `.npmrc` is gitignored) and
-     `env: { PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }} }`.
+  5. **Ephemeral Mural swap — explicit-by-name install:**
+     `npm --prefix app install @pragmatic-tech-ai/mural@^0.45.0`. This must be
+     an explicit `install <pkg>@ver`, NOT `npm pkg set` + bare `npm install`:
+     the committed `app/package-lock.json` pins mural as `"link": true →
+     ../../Mural`, and a bare install honors that stale link over the changed
+     spec, leaving a **dangling symlink** on CI (the sibling is absent) that
+     makes `vite.config.ts`'s `import … from "@pragmatic-tech-ai/mural/tooling"`
+     fail with "Cannot find package". The explicit install forces a clean
+     registry install and also pulls the app's other deps. It resolves Mural +
+     transitive `todl-runtime` from GitHub Packages, authed via a
+     **runtime-written** `app/.npmrc` (a workflow step, since `.npmrc` is
+     gitignored) and `env: { PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }} }`.
   7. `npm --prefix app run build -- --base=/todl/` — production bundle to
      `app/dist` with the project-site base path.
   8. `actions/upload-pages-artifact@v3` with `path: app/dist`.

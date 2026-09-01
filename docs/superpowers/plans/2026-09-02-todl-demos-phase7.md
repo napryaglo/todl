@@ -32,7 +32,9 @@ node test suite. `deploy.yml` fires via `workflow_run` after CI succeeds on
   files — out of scope.
 - **Never commit the Mural dep swap** — `app/package.json` stays
   `"@pragmatic-tech-ai/mural": "file:../../Mural"`; the published-version swap
-  happens only in the runner via `npm pkg set`.
+  happens only in the runner via an explicit-by-name `npm install
+  @pragmatic-tech-ai/mural@^0.45.0` (NOT `npm pkg set` + bare install, which
+  keeps the stale link-lock symlink).
 - **Base path `/todl/` only in the deploy build** — never in `vite.config.ts`,
   never in local `dev`/`build`.
 - Exact published Mural version floor: `^0.45.0` (local == published == 0.45.0
@@ -288,9 +290,13 @@ jobs:
       - name: Configure GitHub Packages auth for the app install
         run: |
           printf '@pragmatic-tech-ai:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${PACKAGES_TOKEN}\n' > app/.npmrc
-      # Ephemeral: use published Mural instead of the file: sibling (absent on CI).
-      - run: npm --prefix app pkg set "dependencies.@pragmatic-tech-ai/mural=^0.45.0"
-      - run: npm --prefix app install
+      # Use published Mural instead of the file: sibling (absent on CI).
+      # EXPLICIT-BY-NAME install: the committed app/package-lock.json pins mural
+      # as `"link": true → ../../Mural`; a bare `npm install` honors that stale
+      # link over a changed spec and leaves a dangling symlink on CI, so
+      # vite.config's `@pragmatic-tech-ai/mural/tooling` import fails. Explicit
+      # install forces a registry install + brings in the app's other deps.
+      - run: npm --prefix app install @pragmatic-tech-ai/mural@^0.45.0
       - run: npm --prefix app run build -- --base=/todl/
       - uses: actions/upload-pages-artifact@v3
         with:

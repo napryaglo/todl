@@ -44,9 +44,13 @@ jobs:
       - name: Configure GitHub Packages auth for the app install
         run: |
           printf '@pragmatic-tech-ai:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${PACKAGES_TOKEN}\n' > app/.npmrc
-      # Ephemeral: use published Mural instead of the file: sibling (absent on CI).
-      - run: npm --prefix app pkg set "dependencies.@pragmatic-tech-ai/mural=^0.45.0"
-      - run: npm --prefix app install
+      # Use published Mural instead of the file: sibling (absent on CI).
+      # Must install EXPLICITLY BY NAME: the committed app/package-lock.json pins
+      # mural as `"link": true → ../../Mural`, and a bare `npm install` honors
+      # that stale link over a changed package.json spec, leaving a dangling
+      # symlink on CI (the sibling doesn't exist). `install <pkg>@ver` forces a
+      # clean registry install and also brings in the app's other deps.
+      - run: npm --prefix app install @pragmatic-tech-ai/mural@^0.45.0
       - run: npm --prefix app run build -- --base=/todl/
       - uses: actions/upload-pages-artifact@v3
         with:
