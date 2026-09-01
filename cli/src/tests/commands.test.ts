@@ -1,5 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { runCommand } from "../main.js";
 
 // Capture stdout for assertions.
@@ -32,4 +35,12 @@ test("test (no --update) passes against committed goldens", () => {
   const { code, out } = capture(() => runCommand(["test"]));
   assert.equal(code, 0);
   assert.match(out, /pass/i);
+});
+
+test("docs --out writes an index and example files", () => {
+  const dir = mkdtempSync(join(tmpdir(), "todl-docs-"));
+  const { code } = capture(() => runCommand(["docs", "--out", dir]));
+  assert.equal(code, 0);
+  assert.ok(existsSync(join(dir, "index.md")));
+  assert.match(readFileSync(join(dir, "index.md"), "utf8"), /TODL examples/);
 });
