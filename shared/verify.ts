@@ -3,7 +3,7 @@
 // node update tool handles writes. This module must run in a browser (Phase 2).
 import {
   check, checkAgainst, toJSON, toJSONOwn,
-  type SourceFile, type Diagnostic, type TodlDocument,
+  type SourceFile, type Diagnostic, type TodlDocument, type Repository,
 } from "@pragmatic-tech-ai/todl";
 import type { CorpusEntry, Golden, GoldenDiagnostic, VerifyResult, VerifySummary } from "./corpus-types.js";
 
@@ -98,19 +98,24 @@ function preludeIds(): Set<string> {
   return preludeIdsCache;
 }
 
+/** Emit the document of nodes the source authored: all nodes minus the implicit
+ *  prelude and any explicit bases. Captures concepts, fields, taxonomies, terms,
+ *  models, and instances — not just instance-tier nodes. Shared by golden
+ *  verification and the playground's display compile. */
+export function selectOwnDocument(model: Repository, baseDocs: readonly TodlDocument[] = []): TodlDocument {
+  const excluded = new Set<string>(preludeIds());
+  for (const b of baseDocs) for (const n of b.nodes) excluded.add(n.id);
+  const ownIds = new Set(model.allNodes().map((n) => n.id).filter((id) => !excluded.has(id)));
+  return toJSONOwn(model, ownIds);
+}
+
 function compile(entry: CorpusEntry): Golden {
   const { bases, sources } = toSourceFiles(entry);
   const idGen = new DeterministicIdGenerator();
   const baseDocs = bases.length > 0 ? basesToDocuments(bases) : [];
   const { model, diagnostics } =
     baseDocs.length > 0 ? checkAgainst(baseDocs, sources, idGen) : check(sources, idGen);
-  // Own nodes = every node the example authored: all nodes minus the implicit
-  // prelude and any explicit bases. This captures concepts, fields, taxonomies,
-  // terms, models, and instances — not just instance-tier nodes.
-  const excluded = new Set<string>(preludeIds());
-  for (const b of baseDocs) for (const n of b.nodes) excluded.add(n.id);
-  const ownIds = new Set(model.allNodes().map((n) => n.id).filter((id) => !excluded.has(id)));
-  return normalize({ document: toJSONOwn(model, ownIds), diagnostics });
+  return normalize({ document: selectOwnDocument(model, baseDocs), diagnostics });
 }
 
 // Bases arrive as raw source here (authoring style); compile them standalone to
