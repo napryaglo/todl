@@ -36,7 +36,7 @@
     "README.md"
   ],
   "publishConfig": {
-    "registry": "http://localhost:4873/",
+    "registry": "https://npm.pkg.github.com",
     "access": "public"
   },
   "scripts": {
