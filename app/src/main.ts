@@ -11,11 +11,13 @@ import { ExampleRunner } from "./components/example-runner/example-runner.mu";
 import { Playground } from "./pages/playground/playground.mu";
 // @ts-expect-error compiled by vitePluginMural
 import { Gallery } from "./pages/gallery/gallery.mu";
+// @ts-expect-error compiled by vitePluginMural
+import { Docs } from "./pages/docs/docs.mu";
 import { AppVM } from "./app-vm.js";
 
 const app = new Application();
 app.initialize({ theme: Material, autoScheme: { light: MaterialLight, dark: MaterialDark } });
-for (const dict of [AppShell, ExampleRunner, Playground, Gallery]) {
+for (const dict of [AppShell, ExampleRunner, Playground, Gallery, Docs]) {
   for (const [k, v] of dict.Clone().Entries()) app.Resources.Set(k, v);
 }
 
