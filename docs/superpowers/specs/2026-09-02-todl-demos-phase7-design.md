@@ -18,8 +18,12 @@ design.
 ## Context / constraints discovered during brainstorming
 
 - **No CI exists** — `.github/` is absent. This phase introduces it.
-- **Node floor** — root `package.json` declares `engines.node >=20`. CI pins
-  Node 20.
+- **Node floor** — root `package.json` declares `engines.node >=20`, but the
+  test scripts pass a **glob** to `node --test`, which only supports globs on
+  **Node >=21**. On Node 20 CI fails with `Could not find 'src/**/*.test.ts'`.
+  CI therefore pins **Node 22** (current LTS; matches local Node 24's
+  behavior). (The `engines` field understating the real floor is a pre-existing
+  package discrepancy, left as-is.)
 - **Test gate is secret-free.** Root `todl` has **zero `@pragmatic-tech-ai/*`
   dependencies** (all 7 deps are public npm). `npm ci` + `npm run build` +
   `npm test` + `npm run test:corpus` never touch GitHub Packages.
@@ -67,8 +71,8 @@ on:
   pull_request:
 ```
 
-- Single job, `runs-on: ubuntu-latest`, Node 20 via `actions/setup-node@v4`
-  with `cache: npm`.
+- Single job, `runs-on: ubuntu-latest`, Node 22 via `actions/setup-node@v4`
+  with `cache: npm` (Node 22, not 20 — the test-runner glob needs >=21).
 - Steps: `checkout` → `setup-node` → `npm ci` → `npm run build` →
   `npm test` → `npm run test:corpus`. (`npm run build` is the type/compile
   check — see the pre-existing-typecheck note above.)

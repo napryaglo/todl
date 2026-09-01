@@ -19,7 +19,9 @@ node test suite. `deploy.yml` fires via `workflow_run` after CI succeeds on
 
 ## Global Constraints
 
-- **Node 20** on CI (root `engines.node >=20`).
+- **Node 22** on CI — the test scripts glob `node --test`, which needs Node
+  >=21 (Node 20 fails with `Could not find 'src/**/*.test.ts'`); 22 is LTS and
+  matches local Node 24. (`engines` says >=20 but understates the real floor.)
 - **Test gate stays secret-free** — root `todl` has zero `@pragmatic-tech-ai/*`
   deps; do not add any registry auth to `ci.yml` beyond the inert
   `PACKAGES_TOKEN: ${{ github.token }}` noise-suppressor.
@@ -154,7 +156,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       # `npm run build` typechecks + compiles the shippable source
@@ -277,7 +279,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run build

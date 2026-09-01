@@ -16,7 +16,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 22 (not 20): the test scripts pass a glob to `node --test`,
+          # which only supports globs on Node >=21. engines says >=20, but the
+          # suite needs >=21 to run.
+          node-version: 22
           cache: npm
       - run: npm ci
       # `npm run build` typechecks + compiles the shippable source
