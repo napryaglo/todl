@@ -43,6 +43,7 @@
     "test": "tsx --conditions=development --test \"src/**/*.test.ts\"",
     "test:corpus": "tsx --conditions=development --test \"shared/**/*.test.ts\" \"examples/**/*.test.ts\" \"examples/**/*.test.mts\" \"cli/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
+    "typecheck:demos": "tsc -p cli/tsconfig.json --noEmit",
     "gen:prelude": "node scripts/gen-prelude.mjs",
     "gen:corpus": "node scripts/gen-corpus.mjs",
     "gen:goldens": "tsx --conditions=development examples/tools/update-goldens.mts && npm run gen:corpus",

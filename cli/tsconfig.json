@@ -1,5 +1,15 @@
 {
   "extends": "../tsconfig.json",
-  "compilerOptions": { "noEmit": true },
-  "include": ["src/**/*.ts", "../shared/**/*.ts", "../examples/**/*.ts"]
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": [
+    "src/**/*.ts",
+    "../shared/**/*.ts",
+    "../examples/**/*.ts",
+    "../examples/**/*.mts"
+  ]
 }

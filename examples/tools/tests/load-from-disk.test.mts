@@ -12,7 +12,7 @@ test("loads the fixture example with sources", () => {
   const fx = entries.find((e) => e.manifest.id === "fixture-clean-instance");
   assert.ok(fx, "fixture should load");
   assert.equal(fx!.sources.length, 1);
-  assert.match(fx!.sources[0].text, /concept Component/);
+  assert.match(fx!.sources[0]!.text, /concept Component/);
   assert.ok(fx!.dir.startsWith("_fixture/"));
 });
 

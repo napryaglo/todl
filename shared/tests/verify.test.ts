@@ -69,6 +69,6 @@ test("verifyAll aggregates a summary", () => {
 test("normalize is exported and canonicalizes ids deterministically", () => {
   const doc = { nodes: [{ id: "zzz", tier: "Instance", typeOf: "ccc", attrs: {} }], edges: [] };
   const g = normalize({ document: doc, diagnostics: [] });
-  assert.equal(g.document.nodes[0].id, "#n0");
-  assert.equal(g.document.nodes[0].typeOf, "#r0");
+  assert.equal(g.document.nodes[0]!.id, "#n0");
+  assert.equal(g.document.nodes[0]!.typeOf, "#r0");
 });
