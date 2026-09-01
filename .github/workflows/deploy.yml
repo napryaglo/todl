@@ -1,0 +1,63 @@
+name: Deploy showcase
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Only after a GREEN CI run on main (or a manual dispatch).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    env:
+      # Public-visibility GitHub Packages install with the ephemeral token.
+      # If mural/todl-runtime are org-PRIVATE, this 401s — switch to
+      # ${{ secrets.PACKAGES_TOKEN }} (a PAT with read:packages).
+      PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # .npmrc is gitignored — write the scope→GitHub Packages mapping at
+      # runtime so the app install resolves @pragmatic-tech-ai/* (the default
+      # registry stays npmjs, so public deps resolve normally). Single quotes
+      # keep ${PACKAGES_TOKEN} literal; npm expands it from env at read time.
+      - name: Configure GitHub Packages auth for the app install
+        run: |
+          printf '@pragmatic-tech-ai:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=${PACKAGES_TOKEN}\n' > app/.npmrc
+      # Ephemeral: use published Mural instead of the file: sibling (absent on CI).
+      - run: npm --prefix app pkg set "dependencies.@pragmatic-tech-ai/mural=^0.45.0"
+      - run: npm --prefix app install
+      - run: npm --prefix app run build -- --base=/todl/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
