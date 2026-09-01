@@ -5,9 +5,21 @@ docs) built with the **Mural** UI framework and bundled by **Vite**. It consumes
 the same `shared/` verify core and `examples/` corpus as the CLI and tests — one
 corpus, many surfaces.
 
-> Status: **boot foundation** (spike-validated). The full three-page UI is built
-> per `docs/superpowers/plans/2026-09-01-todl-demos-phase2.md`. `src/main.ts`
-> currently renders a smoke line proving the todl compiler runs in-browser.
+> Status: **full app** (Phase 2 complete, per
+> `docs/superpowers/plans/2026-09-01-todl-demos-phase2.md`). Three pages behind a
+> nav rail, all driven by the same corpus and running the todl compiler live in
+> the browser.
+
+## Pages
+
+- **Playground** — pick a corpus example (or start from a blank/editable one) and
+  edit its source; a 300ms-debounced compile shows the emitted JSON and
+  diagnostics side by side.
+- **Gallery** — a card per example with its title, tags, and a pass/fail badge
+  from `verifyExample`; clicking a card opens it in the playground.
+- **Docs** — a master-detail showcase: heading list on the left, and a detail
+  pane with the narrative, a clipped source snippet, a "compiles clean —
+  N node(s), M edge(s)" line, and the emitted JSON.
 
 ## Run
 
@@ -21,6 +33,10 @@ npm install      # installs vite + mural (file:../../Mural) + opentype.js
 npm run dev      # Vite dev server
 npm run build    # production bundle → app/dist
 ```
+
+Or from the repo root: `npm run app:build` (builds todl then the app),
+`npm run app:dev` (dev server), `npm run app:verify` (Playwright/Edge render
+check against a preview build — see `src/ui-verify/render-check.mjs`).
 
 ## Non-obvious config (all in vite.config.ts) — learned the hard way
 

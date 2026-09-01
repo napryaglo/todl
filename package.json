@@ -48,6 +48,9 @@
     "gen:corpus": "node scripts/gen-corpus.mjs",
     "gen:goldens": "tsx --conditions=development examples/tools/update-goldens.mts && npm run gen:corpus",
     "cli": "tsx --conditions=development cli/src/main.ts",
+    "app:build": "npm run build && npm --prefix app run build",
+    "app:dev": "npm --prefix app run dev",
+    "app:verify": "node app/src/ui-verify/render-check.mjs",
     "build": "npm run gen:prelude && tsc -p tsconfig.build.json",
     "clean": "rimraf dist",
     "prepublishOnly": "npm run clean && npm run build"
