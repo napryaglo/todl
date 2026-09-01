@@ -1,13 +1,13 @@
 // TEMP Phase-6 Task-2 boot spike — proves the Monaco + Web-Worker-LSP stack
 // bundles and boots in the app before deeper wiring. Deleted in Task 6.
-import * as monaco from "monaco-editor";
 import type { Border } from "@pragmatic-tech-ai/mural/basic";
 import { BrowserMessageReader, BrowserMessageWriter } from "vscode-jsonrpc/browser";
 import { createMessageConnection } from "vscode-jsonrpc";
 import { MonacoEditorHost } from "./monaco-editor-host.js";
+import { registerTodlLanguage } from "./todl-monarch.js";
 
 export function runBootSpike(root: Border): void {
-  monaco.languages.register({ id: "todl" });
+  registerTodlLanguage();
 
   const editor = new MonacoEditorHost();
   editor.Text = "namespace app { concept C { label : string; } }";
