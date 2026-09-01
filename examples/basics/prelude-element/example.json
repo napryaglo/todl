@@ -1,0 +1,10 @@
+{
+  "id": "prelude-element",
+  "title": "Extending the prelude root concept",
+  "group": "Basics",
+  "order": 10,
+  "tags": ["prelude", "concept", "model"],
+  "narrative": "Every parent-less concept implicitly extends the prelude's root `Element`, which contributes optional `label` and `description` members. Here `Product` extends `Element` explicitly and adds its own `sku`; a `model` block carries the instance (bare instances outside a model are orphans).",
+  "files": ["m.todl"],
+  "expectClean": true
+}

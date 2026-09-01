@@ -1,0 +1,4 @@
+namespace shop {
+  concept Product : Element { sku : string; }
+  model Catalog : shop { Product widget { label = "Widget"; description = "A widget"; sku = "W-1"; } }
+}

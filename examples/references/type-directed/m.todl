@@ -1,0 +1,4 @@
+namespace ea {
+  concept Component { name : string; depends : Component?; }
+  model M : ea { Component a { name = "a"; } Component b { name = "b"; depends = a; } }
+}

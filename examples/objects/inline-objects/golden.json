@@ -1,0 +1,119 @@
+{
+  "diagnostics": [],
+  "document": {
+    "nodes": [
+      {
+        "id": "#n0",
+        "tier": "Ontology",
+        "typeOf": "#r0",
+        "attrs": {
+          "namespace": "sys"
+        }
+      },
+      {
+        "id": "#n1",
+        "tier": "Ontology",
+        "typeOf": "#r0",
+        "attrs": {
+          "namespace": "sys"
+        }
+      },
+      {
+        "id": "#n2",
+        "tier": "Ontology",
+        "typeOf": "#r1",
+        "attrs": {
+          "name": "environment",
+          "cardinality": 0,
+          "type": "string",
+          "namespace": "sys"
+        }
+      },
+      {
+        "id": "#n3",
+        "tier": "Ontology",
+        "typeOf": "#r1",
+        "attrs": {
+          "name": "slots",
+          "cardinality": 2,
+          "type": "slot",
+          "namespace": "sys"
+        }
+      },
+      {
+        "id": "#n4",
+        "tier": "Instance",
+        "typeOf": "#r2",
+        "attrs": {
+          "namespace": "sys",
+          "id": "M",
+          "MetaModel": "sys",
+          "uses.count": 0
+        }
+      },
+      {
+        "id": "#n5",
+        "tier": "Instance",
+        "typeOf": "#n1",
+        "attrs": {
+          "namespace": "sys",
+          "id": "c1"
+        }
+      },
+      {
+        "id": "#n6",
+        "tier": "Instance",
+        "typeOf": "#n0",
+        "attrs": {
+          "namespace": "sys",
+          "id": "g0",
+          "environment": "prod"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "kind": "Extends",
+        "via": null,
+        "from": "#n0",
+        "to": "#r3"
+      },
+      {
+        "kind": "HasField",
+        "via": null,
+        "from": "#n0",
+        "to": "#n2"
+      },
+      {
+        "kind": "Extends",
+        "via": null,
+        "from": "#n1",
+        "to": "#r3"
+      },
+      {
+        "kind": "HasField",
+        "via": null,
+        "from": "#n1",
+        "to": "#n3"
+      },
+      {
+        "kind": "Contains",
+        "via": null,
+        "from": "#n4",
+        "to": "#n5"
+      },
+      {
+        "kind": "Relationship",
+        "via": "#r4",
+        "from": "#n5",
+        "to": "#n6"
+      },
+      {
+        "kind": "Contains",
+        "via": null,
+        "from": "#n5",
+        "to": "#n6"
+      }
+    ]
+  }
+}

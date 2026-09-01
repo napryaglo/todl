@@ -1,0 +1,106 @@
+{
+  "diagnostics": [],
+  "document": {
+    "nodes": [
+      {
+        "id": "#n0",
+        "tier": "Ontology",
+        "typeOf": "#r0",
+        "attrs": {
+          "namespace": "ea"
+        }
+      },
+      {
+        "id": "#n1",
+        "tier": "Ontology",
+        "typeOf": "#r1",
+        "attrs": {
+          "name": "name",
+          "cardinality": 0,
+          "type": "string",
+          "namespace": "ea"
+        }
+      },
+      {
+        "id": "#n2",
+        "tier": "Ontology",
+        "typeOf": "#r1",
+        "attrs": {
+          "name": "depends",
+          "cardinality": 1,
+          "type": "Component",
+          "namespace": "ea"
+        }
+      },
+      {
+        "id": "#n3",
+        "tier": "Instance",
+        "typeOf": "#r2",
+        "attrs": {
+          "namespace": "ea",
+          "id": "M",
+          "MetaModel": "ea",
+          "uses.count": 0
+        }
+      },
+      {
+        "id": "#n4",
+        "tier": "Instance",
+        "typeOf": "#n0",
+        "attrs": {
+          "namespace": "ea",
+          "id": "a",
+          "name": "a"
+        }
+      },
+      {
+        "id": "#n5",
+        "tier": "Instance",
+        "typeOf": "#n0",
+        "attrs": {
+          "namespace": "ea",
+          "id": "b",
+          "name": "b"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "kind": "Extends",
+        "via": null,
+        "from": "#n0",
+        "to": "#r3"
+      },
+      {
+        "kind": "HasField",
+        "via": null,
+        "from": "#n0",
+        "to": "#n1"
+      },
+      {
+        "kind": "HasField",
+        "via": null,
+        "from": "#n0",
+        "to": "#n2"
+      },
+      {
+        "kind": "Contains",
+        "via": null,
+        "from": "#n3",
+        "to": "#n4"
+      },
+      {
+        "kind": "Contains",
+        "via": null,
+        "from": "#n3",
+        "to": "#n5"
+      },
+      {
+        "kind": "Relationship",
+        "via": "#r4",
+        "from": "#n5",
+        "to": "#n4"
+      }
+    ]
+  }
+}

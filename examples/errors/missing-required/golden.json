@@ -1,0 +1,84 @@
+{
+  "diagnostics": [
+    {
+      "code": "cardinality.required-missing",
+      "severity": "error",
+      "message": "required \"Component.label\" is missing on \"c\"",
+      "path": "Component.label",
+      "span": {
+        "uri": "m.todl",
+        "start": {
+          "line": 3,
+          "column": 19
+        },
+        "end": {
+          "line": 3,
+          "column": 34
+        }
+      }
+    }
+  ],
+  "document": {
+    "nodes": [
+      {
+        "id": "#n0",
+        "tier": "Ontology",
+        "typeOf": "#r0",
+        "attrs": {
+          "namespace": "app"
+        }
+      },
+      {
+        "id": "#n1",
+        "tier": "Ontology",
+        "typeOf": "#r1",
+        "attrs": {
+          "name": "label",
+          "cardinality": 0,
+          "type": "string",
+          "namespace": "app"
+        }
+      },
+      {
+        "id": "#n2",
+        "tier": "Instance",
+        "typeOf": "#r2",
+        "attrs": {
+          "namespace": "app",
+          "id": "M",
+          "MetaModel": "app",
+          "uses.count": 0
+        }
+      },
+      {
+        "id": "#n3",
+        "tier": "Instance",
+        "typeOf": "#n0",
+        "attrs": {
+          "namespace": "app",
+          "id": "c"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "kind": "Extends",
+        "via": null,
+        "from": "#n0",
+        "to": "#r3"
+      },
+      {
+        "kind": "HasField",
+        "via": null,
+        "from": "#n0",
+        "to": "#n1"
+      },
+      {
+        "kind": "Contains",
+        "via": null,
+        "from": "#n2",
+        "to": "#n3"
+      }
+    ]
+  }
+}

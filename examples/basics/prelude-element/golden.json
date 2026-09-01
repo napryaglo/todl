@@ -1,0 +1,69 @@
+{
+  "diagnostics": [],
+  "document": {
+    "nodes": [
+      {
+        "id": "#n0",
+        "tier": "Ontology",
+        "typeOf": "#r0",
+        "attrs": {
+          "namespace": "shop"
+        }
+      },
+      {
+        "id": "#n1",
+        "tier": "Ontology",
+        "typeOf": "#r1",
+        "attrs": {
+          "name": "sku",
+          "cardinality": 0,
+          "type": "string",
+          "namespace": "shop"
+        }
+      },
+      {
+        "id": "#n2",
+        "tier": "Instance",
+        "typeOf": "#r2",
+        "attrs": {
+          "namespace": "shop",
+          "id": "Catalog",
+          "MetaModel": "shop",
+          "uses.count": 0
+        }
+      },
+      {
+        "id": "#n3",
+        "tier": "Instance",
+        "typeOf": "#n0",
+        "attrs": {
+          "namespace": "shop",
+          "id": "widget",
+          "label": "Widget",
+          "description": "A widget",
+          "sku": "W-1"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "kind": "Extends",
+        "via": null,
+        "from": "#n0",
+        "to": "#r3"
+      },
+      {
+        "kind": "HasField",
+        "via": null,
+        "from": "#n0",
+        "to": "#n1"
+      },
+      {
+        "kind": "Contains",
+        "via": null,
+        "from": "#n2",
+        "to": "#n3"
+      }
+    ]
+  }
+}

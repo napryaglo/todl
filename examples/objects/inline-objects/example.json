@@ -1,0 +1,10 @@
+{
+  "id": "inline-objects",
+  "title": "Anonymous inline object literals",
+  "group": "Objects",
+  "order": 50,
+  "tags": ["inline-object", "nested"],
+  "narrative": "A member typed by a concept can be assigned an anonymous inline object — `slot { environment = \"prod\"; }` — instead of a reference to a named instance. The loader materializes it as a contained child of the owning instance.",
+  "files": ["m.todl"],
+  "expectClean": true
+}

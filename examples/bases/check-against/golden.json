@@ -1,0 +1,36 @@
+{
+  "diagnostics": [],
+  "document": {
+    "nodes": [
+      {
+        "id": "#n0",
+        "tier": "Instance",
+        "typeOf": "#r0",
+        "attrs": {
+          "namespace": "acme.app",
+          "id": "AppModel",
+          "MetaModel": "acme.ea",
+          "uses.count": 0
+        }
+      },
+      {
+        "id": "#n1",
+        "tier": "Instance",
+        "typeOf": "#r1",
+        "attrs": {
+          "namespace": "acme.app",
+          "id": "web",
+          "label": "Web"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "kind": "Contains",
+        "via": null,
+        "from": "#n0",
+        "to": "#n1"
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "qualified-resolution",
+  "title": "Qualified name resolution across namespaces",
+  "group": "Namespaces",
+  "order": 60,
+  "tags": ["namespace", "qualified", "resolve", "multi-file"],
+  "narrative": "A namespace is a visibility gate: a symbol from another namespace resolves by its fully-qualified name. Across two files, `app.Widget` extends `lib.Base` by qualifying the supertype with its home namespace — the loader resolves it to a cross-namespace `Extends` edge. (Note: TODL declares one namespace per file, so the two namespaces are separate files.)",
+  "files": ["lib.todl", "app.todl"],
+  "expectClean": true
+}

@@ -1,0 +1,10 @@
+{
+  "id": "operator-edges",
+  "title": "Author-defined operator materializing edges",
+  "group": "Operators",
+  "order": 30,
+  "tags": ["operator", "connector", "edge"],
+  "narrative": "An `operator` declares an infix glyph over a reified relationship concept. `~> : connector (from, to)` means the statement `a ~> b` mints a `connector` whose `from` is `a` and `to` is `b`. Operators turn edge-heavy models into readable infix statements.",
+  "files": ["m.todl"],
+  "expectClean": true
+}

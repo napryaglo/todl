@@ -1,0 +1,5 @@
+namespace sys {
+  concept slot { environment : string; }
+  concept component { slots : slot[]; }
+  model M : sys { component c1 { slots = [ slot { environment = "prod"; } ]; } }
+}

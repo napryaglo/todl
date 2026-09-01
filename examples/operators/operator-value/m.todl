@@ -1,0 +1,7 @@
+namespace flow {
+  concept endpoint { label : string; }
+  concept connector { from : endpoint; to : endpoint; }
+  concept net { links : connector[]; }
+  operator ~> : connector (from, to);
+  model M : flow { endpoint a { label = "a"; } endpoint b { label = "b"; } net n { links = [ a ~> b ]; } }
+}

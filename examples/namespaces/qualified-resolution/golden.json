@@ -1,0 +1,71 @@
+{
+  "diagnostics": [],
+  "document": {
+    "nodes": [
+      {
+        "id": "#n0",
+        "tier": "Ontology",
+        "typeOf": "#r0",
+        "attrs": {
+          "namespace": "lib"
+        }
+      },
+      {
+        "id": "#n1",
+        "tier": "Ontology",
+        "typeOf": "#r0",
+        "attrs": {
+          "namespace": "app"
+        }
+      },
+      {
+        "id": "#n2",
+        "tier": "Ontology",
+        "typeOf": "#r1",
+        "attrs": {
+          "name": "id",
+          "cardinality": 0,
+          "type": "string",
+          "namespace": "lib"
+        }
+      },
+      {
+        "id": "#n3",
+        "tier": "Ontology",
+        "typeOf": "#r1",
+        "attrs": {
+          "name": "color",
+          "cardinality": 0,
+          "type": "string",
+          "namespace": "app"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "kind": "Extends",
+        "via": null,
+        "from": "#n0",
+        "to": "#r2"
+      },
+      {
+        "kind": "HasField",
+        "via": null,
+        "from": "#n0",
+        "to": "#n2"
+      },
+      {
+        "kind": "Extends",
+        "via": null,
+        "from": "#n1",
+        "to": "#n0"
+      },
+      {
+        "kind": "HasField",
+        "via": null,
+        "from": "#n1",
+        "to": "#n3"
+      }
+    ]
+  }
+}

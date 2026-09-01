@@ -1,0 +1,10 @@
+{
+  "id": "taxonomy-bare",
+  "title": "Bare term resolution across a taxonomy",
+  "group": "Resolution",
+  "order": 20,
+  "tags": ["taxonomy", "resolve"],
+  "narrative": "A bare identifier used as a reference value inside a term body resolves against the enclosing taxonomy's own sibling terms — no `<taxonomy>.<term>` qualification required. Here `m365`'s `parent = azure` resolves to the sibling term `azure`.",
+  "files": ["m.todl"],
+  "expectClean": true
+}

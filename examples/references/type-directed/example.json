@@ -1,0 +1,10 @@
+{
+  "id": "type-directed",
+  "title": "Type-directed references: edge vs. attribute",
+  "group": "References",
+  "order": 70,
+  "tags": ["reference", "edge", "attribute"],
+  "narrative": "A member's value is interpreted by its declared type: a primitive-typed member (`name : string`) stores an attribute, while a concept-typed member (`depends : Component?`) mints a graph edge to the referenced instance. Same value syntax, different meaning — driven entirely by the type.",
+  "files": ["m.todl"],
+  "expectClean": true
+}

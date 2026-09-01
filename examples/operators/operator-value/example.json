@@ -1,0 +1,10 @@
+{
+  "id": "operator-value",
+  "title": "Operator expression as a value",
+  "group": "Operators",
+  "order": 40,
+  "tags": ["operator", "value", "array"],
+  "narrative": "An operator expression like `a ~> b` is not only a statement — it is a value. Here it appears inside an array assigned to `net.links`, so the minted `connector` is captured as an element of a relationship member rather than as a free-standing statement.",
+  "files": ["m.todl"],
+  "expectClean": true
+}

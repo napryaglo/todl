@@ -1,0 +1,10 @@
+{
+  "id": "missing-required",
+  "title": "Intentional error: a required member is missing",
+  "group": "Errors",
+  "order": 90,
+  "tags": ["diagnostic", "cardinality", "error"],
+  "narrative": "Not every example is meant to compile clean. `Component.label` is required (no `?`), so the instance `c` that omits it yields a `cardinality.required-missing` diagnostic. This example proves the harness captures failures, not just success — its golden carries the expected error.",
+  "files": ["m.todl"],
+  "expectClean": false
+}

@@ -1,0 +1,174 @@
+{
+  "diagnostics": [],
+  "document": {
+    "nodes": [
+      {
+        "id": "#n0",
+        "tier": "Ontology",
+        "typeOf": "#r0",
+        "attrs": {
+          "namespace": "flow"
+        }
+      },
+      {
+        "id": "#n1",
+        "tier": "Ontology",
+        "typeOf": "#r0",
+        "attrs": {
+          "namespace": "flow"
+        }
+      },
+      {
+        "id": "#n2",
+        "tier": "Ontology",
+        "typeOf": "#r1",
+        "attrs": {
+          "namespace": "flow",
+          "from": "from",
+          "to": "to"
+        }
+      },
+      {
+        "id": "#n3",
+        "tier": "Ontology",
+        "typeOf": "#r2",
+        "attrs": {
+          "name": "label",
+          "cardinality": 0,
+          "type": "string",
+          "namespace": "flow"
+        }
+      },
+      {
+        "id": "#n4",
+        "tier": "Ontology",
+        "typeOf": "#r2",
+        "attrs": {
+          "name": "from",
+          "cardinality": 0,
+          "type": "endpoint",
+          "namespace": "flow"
+        }
+      },
+      {
+        "id": "#n5",
+        "tier": "Ontology",
+        "typeOf": "#r2",
+        "attrs": {
+          "name": "to",
+          "cardinality": 0,
+          "type": "endpoint",
+          "namespace": "flow"
+        }
+      },
+      {
+        "id": "#n6",
+        "tier": "Instance",
+        "typeOf": "#r3",
+        "attrs": {
+          "namespace": "flow",
+          "id": "M",
+          "MetaModel": "flow",
+          "uses.count": 0
+        }
+      },
+      {
+        "id": "#n7",
+        "tier": "Instance",
+        "typeOf": "#n0",
+        "attrs": {
+          "namespace": "flow",
+          "id": "a",
+          "label": "a"
+        }
+      },
+      {
+        "id": "#n8",
+        "tier": "Instance",
+        "typeOf": "#n0",
+        "attrs": {
+          "namespace": "flow",
+          "id": "b",
+          "label": "b"
+        }
+      },
+      {
+        "id": "#n9",
+        "tier": "Instance",
+        "typeOf": "#n1",
+        "attrs": {
+          "namespace": "flow",
+          "id": "g0"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "kind": "Extends",
+        "via": null,
+        "from": "#n0",
+        "to": "#r4"
+      },
+      {
+        "kind": "HasField",
+        "via": null,
+        "from": "#n0",
+        "to": "#n3"
+      },
+      {
+        "kind": "Extends",
+        "via": null,
+        "from": "#n1",
+        "to": "#r4"
+      },
+      {
+        "kind": "HasField",
+        "via": null,
+        "from": "#n1",
+        "to": "#n4"
+      },
+      {
+        "kind": "HasField",
+        "via": null,
+        "from": "#n1",
+        "to": "#n5"
+      },
+      {
+        "kind": "Targets",
+        "via": null,
+        "from": "#n2",
+        "to": "#n1"
+      },
+      {
+        "kind": "Contains",
+        "via": null,
+        "from": "#n6",
+        "to": "#n7"
+      },
+      {
+        "kind": "Contains",
+        "via": null,
+        "from": "#n6",
+        "to": "#n8"
+      },
+      {
+        "kind": "Contains",
+        "via": null,
+        "from": "#n6",
+        "to": "#n9"
+      },
+      {
+        "kind": "Relationship",
+        "via": "#r5",
+        "from": "#n9",
+        "to": "#n7"
+      },
+      {
+        "kind": "Relationship",
+        "via": "#r6",
+        "from": "#n9",
+        "to": "#n8"
+      }
+    ]
+  }
+}

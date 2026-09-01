@@ -1,0 +1,11 @@
+{
+  "id": "check-against",
+  "title": "Compiling against a published base",
+  "group": "Bases",
+  "order": 80,
+  "tags": ["checkAgainst", "base", "multi-file"],
+  "narrative": "A model can be compiled against an already-published base (a meta-model or library) supplied as a compiled document rather than re-parsed source. Here `base.todl` defines the `acme.ea` meta-model; `main.todl` is checked against it and instantiates `acme.ea.Component` by its qualified name. The manifest marks `base.todl` as a base, so the verifier routes it through `checkAgainst`.",
+  "files": ["base.todl", "main.todl"],
+  "bases": ["base.todl"],
+  "expectClean": true
+}

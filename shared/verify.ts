@@ -86,16 +86,30 @@ export function normalize(input: { document: TodlDocument; diagnostics: readonly
   return { diagnostics: canonicalDiagnostics(input.diagnostics), document: canonicalDoc(input.document) };
 }
 
+// The prelude is seeded into every compiled model. We exclude its nodes from
+// goldens so a snapshot captures only what the example authored. `check([])`
+// yields a prelude-only model; the prelude is memoized, so its ids are stable
+// within a process (and canonicalized away across processes). Cached once.
+let preludeIdsCache: Set<string> | undefined;
+function preludeIds(): Set<string> {
+  if (preludeIdsCache === undefined) {
+    preludeIdsCache = new Set(toJSON(check([]).model).nodes.map((n) => n.id));
+  }
+  return preludeIdsCache;
+}
+
 function compile(entry: CorpusEntry): Golden {
   const { bases, sources } = toSourceFiles(entry);
   const idGen = new DeterministicIdGenerator();
-  const { model, diagnostics, provenance } =
-    bases.length > 0
-      ? checkAgainst(basesToDocuments(bases), sources, idGen)
-      : check(sources, idGen);
-  // Own nodes = those the sources authored (present in provenance). Excludes
-  // prelude/base nodes, keeping the golden focused.
-  const ownIds = new Set(provenance.keys());
+  const baseDocs = bases.length > 0 ? basesToDocuments(bases) : [];
+  const { model, diagnostics } =
+    baseDocs.length > 0 ? checkAgainst(baseDocs, sources, idGen) : check(sources, idGen);
+  // Own nodes = every node the example authored: all nodes minus the implicit
+  // prelude and any explicit bases. This captures concepts, fields, taxonomies,
+  // terms, models, and instances — not just instance-tier nodes.
+  const excluded = new Set<string>(preludeIds());
+  for (const b of baseDocs) for (const n of b.nodes) excluded.add(n.id);
+  const ownIds = new Set(model.allNodes().map((n) => n.id).filter((id) => !excluded.has(id)));
   return normalize({ document: toJSONOwn(model, ownIds), diagnostics });
 }
 
