@@ -5,6 +5,7 @@ resources Playground {
         DockPanel {
             DockPanel [ DockPanel.Dock = Top, Margin = (8,8,8,4) ] {
                 TextBlock [ DockPanel.Dock = Left, Margin = (0,4,8,0), Text = "Example:" ]
+                Button    [ DockPanel.Dock = Right, Command = $CopyLink ] { TextBlock [ Text = "Copy link" ] }
                 ComboBox  [ Width = 320, Items = $Refs, SelectedItem = $Selected ]
             }
             ContentControl [ Content = $Runner ]
