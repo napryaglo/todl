@@ -17,10 +17,12 @@ export default defineConfig({
   build: { target: "esnext" },
   resolve: {
     alias: [
-      // The todl compiler resolves to the parent package's built dist for the
-      // browser (shared/verify imports it). Alias guarantees resolution from
-      // the app subfolder regardless of package self-reference support.
-      { find: "@pragmatic-tech-ai/todl", replacement: resolve(repoRoot, "dist/index.js") },
+      // The todl compiler + its subpath entries resolve to the parent package's
+      // built dist. Exact regexes so the bare alias doesn't swallow the subpaths
+      // (a plain string alias prefix-matches). Subpaths first.
+      { find: /^@pragmatic-tech-ai\/todl\/language-server$/, replacement: resolve(repoRoot, "dist/language-server/index.js") },
+      { find: /^@pragmatic-tech-ai\/todl\/language-service$/, replacement: resolve(repoRoot, "dist/language-service/index.js") },
+      { find: /^@pragmatic-tech-ai\/todl$/, replacement: resolve(repoRoot, "dist/index.js") },
       // opentype.js ships an ESM bundle with no default export; mural imports
       // it as a default. Redirect the BARE specifier (exact regex, so the
       // shim's own deep `opentype.js/dist/...` import escapes) to a shim that

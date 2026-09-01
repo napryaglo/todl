@@ -14,6 +14,7 @@ import { Gallery } from "./pages/gallery/gallery.mu";
 // @ts-expect-error compiled by vitePluginMural
 import { Docs } from "./pages/docs/docs.mu";
 import { AppVM } from "./app-vm.js";
+import { runBootSpike } from "./editor/boot-spike.js";
 
 const app = new Application();
 app.initialize({ theme: Material, autoScheme: { light: MaterialLight, dark: MaterialDark } });
@@ -28,6 +29,11 @@ host.Content = new AppVM();
 const root = new Border();
 root.SetChild(host);
 app.Resources.Root = root;
+
+// --- TEMP Phase-6 Task-2 boot spike (replaced by real wiring in Task 6) ---
+// Swaps the root's content for a Monaco editor host + runs a worker `initialize`.
+runBootSpike(root);
+// --- end boot spike ---
 
 await document.fonts.ready;
 app.initialize(new HtmlTarget(document.getElementById("app")!));
