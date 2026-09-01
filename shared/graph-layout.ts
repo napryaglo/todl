@@ -14,7 +14,7 @@ export function nodeLabel(node: JsonNode): string {
     const v = a[key];
     if (typeof v === "string" && v.length > 0) return v;
   }
-  if (node.tier) return `${node.tier}#${node.id}`;
+  if (node.tier) return `${node.tier} ${node.id}`;
   return String(node.id);
 }
 

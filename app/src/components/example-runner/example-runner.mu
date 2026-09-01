@@ -19,8 +19,15 @@ resources ExampleRunner {
             DockPanel [ Margin = (8,8,8,8) ] {
                 TextBlock [ DockPanel.Dock = Top, FontWeight = Bold, Margin = (0,0,0,6), Text = $Status ]
                 ListBox   [ DockPanel.Dock = Top, Items = $Diagnostics, Height = 140 ]
-                ScrollViewer {
+                StackPanel [ DockPanel.Dock = Top, Orientation = Horizontal, Margin = (0,0,0,6) ] {
+                    Button [ Command = $ShowJson,  Margin = (0,0,4,0) ] { TextBlock [ Text = "JSON" ] }
+                    Button [ Command = $ShowGraph ]                     { TextBlock [ Text = "Graph" ] }
+                }
+                ScrollViewer [ Visibility = $JsonVisibility ] {
                     TextBlock [ FontFamily = "Cascadia Mono, Consolas, monospace", FontSize = 12, TextWrapping = NoWrap, Text = $Json ]
+                }
+                ScrollViewer [ Visibility = $GraphVisibility ] {
+                    ContentControl [ Content = $Graph ]
                 }
             }
         }
