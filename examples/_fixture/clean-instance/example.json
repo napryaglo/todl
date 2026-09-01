@@ -1,0 +1,10 @@
+{
+  "id": "fixture-clean-instance",
+  "title": "Fixture: a clean instance",
+  "group": "Fixture",
+  "order": 0,
+  "tags": ["fixture"],
+  "narrative": "Internal fixture for tooling tests — not a showcase example.",
+  "files": ["m.todl"],
+  "expectClean": true
+}

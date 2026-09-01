@@ -1,0 +1,36 @@
+{
+  "diagnostics": [],
+  "document": {
+    "nodes": [
+      {
+        "id": "#n0",
+        "tier": "Instance",
+        "typeOf": "#r0",
+        "attrs": {
+          "namespace": "app",
+          "id": "M",
+          "MetaModel": "app",
+          "uses.count": 0
+        }
+      },
+      {
+        "id": "#n1",
+        "tier": "Instance",
+        "typeOf": "#r1",
+        "attrs": {
+          "namespace": "app",
+          "id": "c",
+          "label": "x"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "kind": "Contains",
+        "via": null,
+        "from": "#n0",
+        "to": "#n1"
+      }
+    ]
+  }
+}
