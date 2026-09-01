@@ -1,19 +1,31 @@
 import { Canvas, Border, TextBlock, Line, StackPanel, Path } from "@pragmatic-tech-ai/mural/basic";
-import { Pen, SolidColorBrush, Color, Thickness, RotateTransform } from "@pragmatic-tech-ai/mural/visual-engine";
-import { type GraphLayout, edgeGeometry } from "../../../../shared/graph-layout.js";
+import { Pen, SolidColorBrush, Color, Thickness, RotateTransform, PointerEventArgs, PointerButton } from "@pragmatic-tech-ai/mural/visual-engine";
+import { type GraphLayout, type LaidOutNode, edgeGeometry } from "../../../../shared/graph-layout.js";
 
 const NODE_FILL = new SolidColorBrush(new Color(238, 242, 248, 255));
 const NODE_STROKE = new Pen(new SolidColorBrush(new Color(90, 110, 140, 255)), 1);
+const SELECTED_STROKE = new Pen(new SolidColorBrush(new Color(40, 90, 200, 255)), 2);
 const EDGE_PEN = new Pen(new SolidColorBrush(new Color(120, 130, 145, 255)), 1.5);
 const ARROW = "M 0 0 L -9 -4 L -9 4 Z";                 // tip at origin, body toward -X
 const ARROW_FILL = new SolidColorBrush(new Color(120, 130, 145, 255));
 const LABEL_FILL = new SolidColorBrush(new Color(90, 100, 115, 255));
 const ARROW_INSET = 14;                                 // keep the tip off the target box
 
+/** A node box that reports primary-button clicks. Subclassing + overriding the
+ *  pointer virtual is the only way to handle input on an imperative visual. */
+class SelectableNodeBorder extends Border {
+  node!: LaidOutNode;
+  onPick?: (n: LaidOutNode, box: SelectableNodeBorder) => void;
+  protected override OnPointerDown(args: PointerEventArgs): void {
+    if (args.Button === PointerButton.Primary) { this.onPick?.(this.node, this); args.Handled = true; }
+  }
+}
+
 /** Build a Canvas of Border nodes + Line edges from a pure layout. Imperative
  *  by necessity: attached-property bindings do not flow through item containers,
- *  so we position each child with Canvas.SetLeft/Top directly. */
-export function buildGraphCanvas(layout: GraphLayout): Canvas {
+ *  so we position each child with Canvas.SetLeft/Top directly. `onSelect` fires
+ *  when a node is clicked. */
+export function buildGraphCanvas(layout: GraphLayout, onSelect: (n: LaidOutNode) => void): Canvas {
   const canvas = new Canvas();
   canvas.Width = Math.max(layout.width, 1);
   canvas.Height = Math.max(layout.height, 1);
@@ -50,10 +62,17 @@ export function buildGraphCanvas(layout: GraphLayout): Canvas {
     }
   }
 
+  let selected: SelectableNodeBorder | undefined;
   for (const n of layout.nodes) {
-    const box = new Border();
+    const box = new SelectableNodeBorder();
+    box.node = n;
     box.Width = n.w; box.Height = n.h;
     box.Fill = NODE_FILL; box.Stroke = NODE_STROKE;
+    box.onPick = (node, b) => {
+      if (selected) selected.Stroke = NODE_STROKE;   // clear the previous highlight
+      b.Stroke = SELECTED_STROKE; selected = b;
+      onSelect(node);
+    };
     const stack = new StackPanel();
     stack.Margin = new Thickness(8, 6, 8, 6);
     const label = new TextBlock();

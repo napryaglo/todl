@@ -2,7 +2,7 @@ import { MuralBase, MetaData, RelayCommand, Visibility, type ICommand } from "@p
 import { Canvas } from "@pragmatic-tech-ai/mural/basic";
 import type { CorpusEntry } from "../../../../shared/corpus-types.js";
 import { compileStages } from "../../../../shared/compile-stages.js";
-import { layoutGraph } from "../../../../shared/graph-layout.js";
+import { layoutGraph, type LaidOutNode } from "../../../../shared/graph-layout.js";
 import { DiagnosticVM } from "./diagnostic-vm.js";
 import { buildGraphCanvas } from "./graph-view.js";
 import { downloadText, copyText } from "./download.js";
@@ -21,6 +21,7 @@ export class ExampleRunnerVM extends MuralBase {
   static StatusKey = MuralBase.RegisterProperty<string>(ExampleRunnerVM, "Status", "", MetaData.None);
   static RunKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "Run", undefined, MetaData.None);
   static GraphKey = MuralBase.RegisterProperty<Canvas | undefined>(ExampleRunnerVM, "Graph", undefined, MetaData.None);
+  static SelectedNodeTextKey = MuralBase.RegisterProperty<string>(ExampleRunnerVM, "SelectedNodeText", "Click a node to inspect it.", MetaData.None);
   // Six pipeline-stage tabs. Visibility DPs drive the .mu (no expression bindings).
   static SelectedStageKey = MuralBase.RegisterProperty<string>(ExampleRunnerVM, "SelectedStage", "json", MetaData.None);
   static TokensVisibilityKey = MuralBase.RegisterProperty<Visibility>(ExampleRunnerVM, "TokensVisibility", Visibility.Collapsed, MetaData.None);
@@ -50,6 +51,7 @@ export class ExampleRunnerVM extends MuralBase {
   get Status(): string { return this.get_property_value(ExampleRunnerVM.StatusKey); }
   get Run(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.RunKey); }
   get Graph(): Canvas | undefined { return this.get_property_value(ExampleRunnerVM.GraphKey); }
+  get SelectedNodeText(): string { return this.get_property_value(ExampleRunnerVM.SelectedNodeTextKey); }
   get SelectedStage(): string { return this.get_property_value(ExampleRunnerVM.SelectedStageKey); }
   get TokensVisibility(): Visibility { return this.get_property_value(ExampleRunnerVM.TokensVisibilityKey); }
   get AstVisibility(): Visibility { return this.get_property_value(ExampleRunnerVM.AstVisibilityKey); }
@@ -121,6 +123,8 @@ export class ExampleRunnerVM extends MuralBase {
        ...s.edgeRows.map((e) => `${e.from} --${e.kind}--> ${e.to}`)].join("\n"));
     // A fresh Canvas each compile avoids stale-child accumulation and re-triggers
     // ContentControl presentation.
-    this.set_property_value(ExampleRunnerVM.GraphKey, buildGraphCanvas(layoutGraph(s.document)));
+    const onSelect = (n: LaidOutNode) => this.set_property_value(ExampleRunnerVM.SelectedNodeTextKey,
+      [`${n.id} · ${n.sub} · typeOf ${n.typeOf}`, ...Object.entries(n.attrs).map(([k, v]) => `${k} = ${JSON.stringify(v)}`)].join("\n"));
+    this.set_property_value(ExampleRunnerVM.GraphKey, buildGraphCanvas(layoutGraph(s.document), onSelect));
   }
 }
