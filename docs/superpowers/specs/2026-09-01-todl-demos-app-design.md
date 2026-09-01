@@ -261,6 +261,11 @@ static-markdown emit. — **DONE 2026-09-01** (typed-graph view: pure `shared/gr
 imperative Mural `Canvas`/`Line` render behind a JSON/Graph toggle; `todl-demo docs [--out]`
 driven by pure `shared/docs-markdown.ts`).
 
+**Phase 4 — Playground power features.** — **DONE 2026-09-01** (own spec:
+`…-phase4-design.md`). Full pipeline-stage tabs (Tokens→AST→Model→Diagnostics→JSON→Graph, pure
+`shared/compile-stages.ts`); URL-hash permalinks (pure `shared/permalink.ts` + `permalink-sync`);
+live vs-golden chip (pure `shared/golden-compare.ts`); emitted-JSON download/copy.
+
 ## Seed corpus (Phase 1)
 
 Curated from proven, known-good language features (their behavior is already established, so

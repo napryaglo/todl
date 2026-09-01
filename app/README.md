@@ -5,22 +5,30 @@ docs) built with the **Mural** UI framework and bundled by **Vite**. It consumes
 the same `shared/` verify core and `examples/` corpus as the CLI and tests — one
 corpus, many surfaces.
 
-> Status: **full app** (Phases 2–3 complete, per
-> `docs/superpowers/plans/2026-09-01-todl-demos-phase2.md` and `…-phase3.md`).
+> Status: **full app** (Phases 2–4 complete, per the `…-phase2/3/4.md` plans).
 > Three pages behind a nav rail, all driven by the same corpus and running the
-> todl compiler live in the browser, with a typed-graph view alongside the JSON.
-> (Phase 3 also added a CLI `todl-demo docs [--out <dir>]` static-markdown export
-> of the corpus — outside this app.)
+> todl compiler live in the browser: a six-tab pipeline playground (with
+> permalinks, a vs-golden chip, and JSON download/copy), a gallery, and a
+> docs-showcase. (Phase 3 also added a CLI `todl-demo docs [--out <dir>]`
+> static-markdown export — outside this app.)
 
 ## Pages
 
 - **Playground** — pick a corpus example (or start from a blank/editable one) and
-  edit its source; a 300ms-debounced compile shows the emitted JSON and
-  diagnostics side by side. The output panel toggles **JSON ↔ Graph**: the graph
-  is an imperatively-built `Canvas` of `Border` nodes + `Line` edges, laid out by
-  the pure `shared/graph-layout.ts` (attached-property bindings don't flow through
-  item containers, so the visual tree is built in TS and hosted via
-  `ContentControl [ Content = $Graph ]`).
+  edit its source; a 300ms-debounced compile drives a **six-tab pipeline view**:
+  **Tokens → AST → Model → Diagnostics → JSON → Graph**, each a real compiler
+  artifact (`tokenize`/`parse`/`check`/`toJSON`). The Graph tab is an
+  imperatively-built `Canvas` of `Border` nodes + `Line` edges (Phase 3), laid out
+  by the pure `shared/graph-layout.ts`. Phase-4 additions:
+  - **Permalinks** — the editor source round-trips through the URL hash
+    (`#s=<base64url>`), so a playground state is bookmarkable/shareable ("Copy
+    link"); loading a hashed URL seeds the editor.
+  - **vs-golden chip** — when a single-source corpus example is loaded, a chip
+    shows whether the (edited) source still matches its committed golden.
+  - **Download / Copy** — save or copy the emitted JSON.
+
+  The pure cores (`shared/compile-stages.ts`, `permalink.ts`, `golden-compare.ts`)
+  are node-tested; all DOM access lives in `permalink-sync.ts` / `download.ts`.
 - **Gallery** — a card per example with its title, tags, and a pass/fail badge
   from `verifyExample`; clicking a card opens it in the playground.
 - **Docs** — a master-detail showcase: heading list on the left, and a detail
