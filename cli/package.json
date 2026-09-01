@@ -1,0 +1,7 @@
+{
+  "name": "@pragmatic-tech-ai/todl-demo-cli",
+  "private": true,
+  "type": "module",
+  "bin": { "todl-demo": "src/main.ts" },
+  "description": "CLI demo/smoke tool for the todl example corpus (not published)."
+}
