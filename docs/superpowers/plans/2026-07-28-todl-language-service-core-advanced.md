@@ -4,7 +4,7 @@
 
 **Goal:** Complete the TODL analysis core with the advanced capabilities — rename, document symbols, folding, workspace symbols, semantic tokens, schema-aware `&ref` completion, signature help, code actions, and formatting — all pure and headless-tested.
 
-**Architecture:** Builds on the Foundation core (`@pragmatic-lab/todl/language-service`). Adds a definition index (precise name-token spans) alongside the reference index, a schema-context resolver for assignment slots, and one focused module per capability. All query functions stay pure over `Analysis` and return `vscode-languageserver-types`.
+**Architecture:** Builds on the Foundation core (`@pragmatic-tech-ai/todl/language-service`). Adds a definition index (precise name-token spans) alongside the reference index, a schema-context resolver for assignment slots, and one focused module per capability. All query functions stay pure over `Analysis` and return `vscode-languageserver-types`.
 
 **Tech Stack:** TypeScript (ESM, strict: `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`), the TODL compiler (`parse`, `tokenize`, `Repository`), `vscode-languageserver-types`, `node:test` via `tsx`.
 

@@ -68,5 +68,5 @@ emit with the one conforms.
 ## 5. Constraints
 
 ESM strict; tests via `tsx --conditions=development --test`; real enums; tests in
-`tests/` subfolders; `@pragmatic-lab/todl@0.22.0` floor. Builds on SP2b-1
+`tests/` subfolders; `@pragmatic-tech-ai/todl@0.22.0` floor. Builds on SP2b-1
 (per-entity `conforms` attr, same-id model-block merge).

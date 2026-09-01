@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { check, toJSON } from "@pragmatic-lab/todl";
+import { check, toJSON } from "@pragmatic-tech-ai/todl";
 import { startServer, pushedInit } from "./harness.js";
 
 // Compile a base model defining `record` with a REQUIRED `label` field. The

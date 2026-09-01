@@ -8,7 +8,7 @@ import {
   completionsAt, hoverAt, definitionAt, referencesAt, prepareRename, renameEdits,
   documentSymbols, foldingRanges, workspaceSymbols, semanticTokens, codeActions,
   formatDocument, signatureHelpAt,
-} from "@pragmatic-lab/todl/language-service";
+} from "@pragmatic-tech-ai/todl/language-service";
 import { ProjectRegistry, PushedSourceProvider, FsSourceProvider, type SourceProvider } from "./workspace.js";
 
 export { createConnection };

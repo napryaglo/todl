@@ -7,7 +7,7 @@ sibling terms implicitly, and other taxonomies' terms via an explicit `uses`
 clause — so hand-authored and machine-migrated taxonomies don't have to qualify
 every reference with `<taxonomy>.<term>`.
 
-**Tech Stack:** `@pragmatic-lab/todl` (TypeScript, ESM). Parser + AST + loader +
+**Tech Stack:** `@pragmatic-tech-ai/todl` (TypeScript, ESM). Parser + AST + loader +
 validator + formatter.
 
 ---

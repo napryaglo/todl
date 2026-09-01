@@ -1,7 +1,7 @@
 # Own-Content-Only Published Packages — Design
 
 **Date:** 2026-08-21
-**Repos:** TODL (`@pragmatic-lab/todl`) + Plexus (consumer)
+**Repos:** TODL (`@pragmatic-tech-ai/todl`) + Plexus (consumer)
 **Status:** approved design, pending implementation plan
 
 ## Problem

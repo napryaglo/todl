@@ -1,4 +1,4 @@
-# TODL Entity Runtime Base (`@pragmatic-lab/todl-runtime` + emitter retarget) — Design
+# TODL Entity Runtime Base (`@pragmatic-tech-ai/todl-runtime` + emitter retarget) — Design
 
 **Status:** Draft for review
 **Date:** 2026-08-21
@@ -17,7 +17,7 @@ DataTemplate [ DataType = Location ] { TextBlock [ Text = $label ] }
 
 Concretely: replace the phantom `ModelElement` base that the js-module emitter
 targets with mural's `Observable`, relocated into a new standalone
-`@pragmatic-lab/todl-runtime` package so a generated entity and mural's own
+`@pragmatic-tech-ai/todl-runtime` package so a generated entity and mural's own
 `MuralBase` share **one** `Observable` class identity — the thing mural's
 binding and `DataTemplate` dispatch key on.
 
@@ -71,17 +71,17 @@ entities extend that exact class.
 It becomes the shared foundation both frameworks build on:
 
 ```
-@pragmatic-lab/todl-runtime   — Observable (name/setter INotifyPropertyChanged)
+@pragmatic-tech-ai/todl-runtime   — Observable (name/setter INotifyPropertyChanged)
         ▲                                   ▲
    mural (MuralBase extends Observable)   TODL-generated `class Location extends Observable`
 ```
 
-mural depends on `@pragmatic-lab/todl-runtime`; TODL's *generated output*
-depends on it too. mural does **not** depend on the `@pragmatic-lab/todl`
+mural depends on `@pragmatic-tech-ai/todl-runtime`; TODL's *generated output*
+depends on it too. mural does **not** depend on the `@pragmatic-tech-ai/todl`
 compiler package, and `todl-runtime` depends on nothing — so there is no cycle
 and mural's dependency footprint grows by ~40 lines, not by TODL's compiler.
 
-### `@pragmatic-lab/todl-runtime` — the package
+### `@pragmatic-tech-ai/todl-runtime` — the package
 
 A new standalone TS package (its own directory, mirroring Mural/Fresco/TODL —
 `package.json`, `tsconfig`, Verdaccio `publishConfig` + `.npmrc`, `tsc` build to
@@ -93,7 +93,7 @@ It owns exactly:
   listener type `Observable.RaisePropertyChanged` fires (moved with it, since it
   references `Observable`).
 
-Public API (`@pragmatic-lab/todl-runtime` barrel): `Observable`,
+Public API (`@pragmatic-tech-ai/todl-runtime` barrel): `Observable`,
 `PropertyChangeCallback`. Nothing else in v1.
 
 ### mural — relocate, re-export, keep working
@@ -103,20 +103,20 @@ many internal `from './observable.js'` import sites, mural's
 `src/runtime/observable.ts` becomes a **re-export barrel**:
 
 ```ts
-export { Observable, type PropertyChangeCallback } from '@pragmatic-lab/todl-runtime'
+export { Observable, type PropertyChangeCallback } from '@pragmatic-tech-ai/todl-runtime'
 ```
 
 - `MuralBase extends Observable` is unchanged (imports through the barrel).
 - `effective-value.ts` re-exports `PropertyChangeCallback` (so Plexus's
-  `import { PropertyChangeCallback } from '@pragmatic-lab/mural/runtime'` keeps
+  `import { PropertyChangeCallback } from '@pragmatic-tech-ai/mural/runtime'` keeps
   resolving) and keeps its own `InternalPropertyChangeCallback` (MuralBase/EVD
   internal — stays in mural).
 - `src/runtime/index.ts` still `export { Observable }` — now from the barrel.
-- mural adds `@pragmatic-lab/todl-runtime` to `dependencies`.
+- mural adds `@pragmatic-tech-ai/todl-runtime` to `dependencies`.
 
 Consumer-visible change: **none**. `Observable` and `PropertyChangeCallback`
-remain importable from `@pragmatic-lab/mural/runtime`, and it is the *same class
-object* as `@pragmatic-lab/todl-runtime`'s — which is exactly what lets mural's
+remain importable from `@pragmatic-tech-ai/mural/runtime`, and it is the *same class
+object* as `@pragmatic-tech-ai/todl-runtime`'s — which is exactly what lets mural's
 `instanceof Observable` recognize a TODL entity.
 
 ### The emitter retarget
@@ -125,9 +125,9 @@ object* as `@pragmatic-lab/todl-runtime`'s — which is exactly what lets mural'
 extends `Observable` and exposes one bindable accessor per field, while keeping
 the `static schema` the registry queries.
 
-- **Import + base.** `DEFAULT_RUNTIME_IMPORT` becomes `@pragmatic-lab/todl-runtime`
+- **Import + base.** `DEFAULT_RUNTIME_IMPORT` becomes `@pragmatic-tech-ai/todl-runtime`
   (still overridable via `runtimeImport`); emit `import { Observable } from
-  "@pragmatic-lab/todl-runtime";` and `export class <Pascal> extends Observable`.
+  "@pragmatic-tech-ai/todl-runtime";` and `export class <Pascal> extends Observable`.
 - **Per-field accessors.** For every field in the concept's schema, emit a
   private backing field + getter + change-guarded setter:
   ```js
@@ -201,13 +201,13 @@ the `static schema` the registry queries.
   identical. `instanceof Observable` still true for `MuralBase`/`Visual`.
 - **emitter** ([js-module.test.ts](../../src/emit/tests/js-module.test.ts)):
   update the existing `ModelElement` assertions to `Observable` +
-  `@pragmatic-lab/todl-runtime`; add assertions that a concept emits a private
+  `@pragmatic-tech-ai/todl-runtime`; add assertions that a concept emits a private
   field + getter + guarded setter calling `RaisePropertyChanged`, a
   `constructor(init)` assigning fields, and that `static schema` is preserved.
 - **cross-identity** (the load-bearing one): a test that a class emitted with
   `extends Observable` is `instanceof` the *same* `Observable` mural consumes —
-  i.e. importing `Observable` from `@pragmatic-lab/mural/runtime` and from
-  `@pragmatic-lab/todl-runtime` yields one class. (Lives in whichever package
+  i.e. importing `Observable` from `@pragmatic-tech-ai/mural/runtime` and from
+  `@pragmatic-tech-ai/todl-runtime` yields one class. (Lives in whichever package
   can import both; realistically Plexus, or a focused test in mural after the
   dep lands.)
 - **live smoke** (optional, via the Plexus e2e harness): instantiate a generated
@@ -217,7 +217,7 @@ the `static schema` the registry queries.
 
 Ordered so each step leaves a publishable, green artifact:
 
-1. **Create `@pragmatic-lab/todl-runtime`**: scaffold the package, move
+1. **Create `@pragmatic-tech-ai/todl-runtime`**: scaffold the package, move
    `Observable` + `PropertyChangeCallback` in verbatim, port the unit tests,
    build, **publish `0.1.0` to Verdaccio** (user-gated).
 2. **mural**: add the `todl-runtime` dependency; replace `observable.ts` with the
@@ -230,20 +230,20 @@ Ordered so each step leaves a publishable, green artifact:
 
 Backward compatibility: no serialized format change; no public API removed
 (`Observable`/`PropertyChangeCallback` still exported from
-`@pragmatic-lab/mural/runtime`). Existing generated modules that referenced
+`@pragmatic-tech-ai/mural/runtime`). Existing generated modules that referenced
 `ModelElement` never ran (phantom), so nothing regresses.
 
 ## Global constraints
 
-- Publish `@pragmatic-lab/todl-runtime`, `@pragmatic-lab/mural`, and
-  `@pragmatic-lab/todl` **only** to the local Verdaccio registry
+- Publish `@pragmatic-tech-ai/todl-runtime`, `@pragmatic-tech-ai/mural`, and
+  `@pragmatic-tech-ai/todl` **only** to the local Verdaccio registry
   (`http://localhost:4873`), never public npm, and **only** when the user asks.
   Commit/push only when the user asks; branch first if on a default branch.
 - A fixed set of named string values is a real TypeScript `enum`, never a
   string-literal union.
 - Every test file lives in a `tests/` subfolder next to the code it exercises.
 - `todl-runtime` depends on **nothing**; mural depends on `todl-runtime` but NOT
-  on the `@pragmatic-lab/todl` compiler; TODL does not depend on mural.
+  on the `@pragmatic-tech-ai/todl` compiler; TODL does not depend on mural.
 - `DataType` stays a real class `Function`; dispatch keys on `value.constructor`.
 
 ## Out of scope (downstream specs)

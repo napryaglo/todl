@@ -6,7 +6,7 @@
 
 **Architecture:** A taxonomy is an Ontology-tier node (`typeOf="taxonomy"`); its terms are Ontology-tier nodes typed by the taxonomy, linked parent→child by a new `EdgeKind.Narrower`. Terms reuse the exact node shape enum cases have today (taxonomy-qualified id `tax.term`, `label`/`description` attrs). Hierarchy queries reuse the existing `closure()` machinery. Phased: add `taxonomy` alongside `enum` → migrate files/fixtures/rewriter → remove `enum` → conformance gate.
 
-**Tech Stack:** TypeScript (strict ESM), `@pragmatic-lab/todl`. Test runner: `tsx --conditions=development --test "src/**/*.test.ts"` (globs `tests/` subfolders).
+**Tech Stack:** TypeScript (strict ESM), `@pragmatic-tech-ai/todl`. Test runner: `tsx --conditions=development --test "src/**/*.test.ts"` (globs `tests/` subfolders).
 
 ## Global Constraints
 

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-TODL — `@pragmatic-lab/todl`, the TypeScript rebuild of the typed-object
+TODL — `@pragmatic-tech-ai/todl`, the TypeScript rebuild of the typed-object
 language: language + meta-models + model compiler (reflective typed graph,
 load → validate → emit). ESM, strict tsconfig; tests via
 `tsx --conditions=development --test "src/**/*.test.ts"`.

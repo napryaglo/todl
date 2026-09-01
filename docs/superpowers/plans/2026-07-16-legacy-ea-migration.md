@@ -6,7 +6,7 @@
 
 **Architecture:** Two workstreams feed the migration. (1) **Grow TODL's parser** to cover the EA authoring grammar the BPMN fixtures never exercised — nested container instances, edge-shorthand records, string-keyed ids, `|`-composed values, object-typed fields. (2) **Build the §9 automated rewriter** that mechanically transforms legacy surface tokens (`@`→`&`, `[0..1]`→`?`, `list<T>`→`T[]`, strips doc-only members, downgrades `formal` invariants). Then run rewriter over the corpus, load+validate under TODL, build the missing model-module emitter, and emit `enterprise-architecture.js` + `<model>.compiled.model.js` into the test_project.
 
-**Tech Stack:** TypeScript (ESM, NodeNext, strict), `node:test` via `tsx --conditions=development`, `@pragmatic-lab/todl`.
+**Tech Stack:** TypeScript (ESM, NodeNext, strict), `node:test` via `tsx --conditions=development`, `@pragmatic-tech-ai/todl`.
 
 ## Global Constraints
 

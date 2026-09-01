@@ -43,7 +43,7 @@ SP-Tax1 taxonomy kind (2026-07-19).
 ## Sub-project decomposition
 
 - **#1 TODL — class/instance model.** Foundation. A language + runtime change in
-  the `@pragmatic-lab/todl` repo.
+  the `@pragmatic-tech-ai/todl` repo.
 - **#2 Plexus — per-project instance store + Cypher-like query.** Consumer. App
   subsystem; gets its own Plexus spec at its turn.
 

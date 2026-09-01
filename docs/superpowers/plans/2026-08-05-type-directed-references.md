@@ -661,7 +661,7 @@ git commit -m "feat(migrate): strip reference sigils to bare names"
 ### Task 7: Full suite, docs, and version bump
 
 **Files:**
-- Modify: `package.json` — bump the `@pragmatic-lab/todl` version (breaking; minor bump per the project's 0.x convention, matching how namespace-scoped/taxonomy-bare shipped).
+- Modify: `package.json` — bump the `@pragmatic-tech-ai/todl` version (breaking; minor bump per the project's 0.x convention, matching how namespace-scoped/taxonomy-bare shipped).
 - Modify: `CLAUDE.md` and/or the language manual under `src/stdlib` or `docs/` if they document the `&` sigil — remove it and state the type-directed rule.
 - Test: whole suite.
 
@@ -701,7 +701,7 @@ git commit -m "chore(todl): type-directed references — docs + version bump"
 
 Publishing this TODL version and updating consumers is its own subsystem and gets its own plan:
 
-- Republish `@pragmatic-lab/todl` to Verdaccio; bump Plexus/Mural to the new floor.
+- Republish `@pragmatic-tech-ai/todl` to Verdaccio; bump Plexus/Mural to the new floor.
 - Audit Plexus/Mural for any read of a concept-typed field via `effectiveFields` (or the emitted `toJSON` attrs) and move it to `effectiveRelationships`/edges.
 - Re-run the corpus migration (`rewriter`) over `microsoft.todl` and the library sources; fix the `reference.undefined` diagnostics that surface where a bare name never had a declared referent (genuine authoring gaps).
 - Update the `toMetaModule` JS-module emitter if it materializes concept-typed fields as scalar properties.

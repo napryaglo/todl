@@ -2,7 +2,7 @@
 
 **Status:** Design / brainstorming output (Approach 3, operator-driven revision)
 **Date:** 2026-08-27
-**Package:** `@pragmatic-lab/todl`
+**Package:** `@pragmatic-tech-ai/todl`
 **Related:** [[typed-repository-clients]] (read API this builds on), [[project_operators]] (operator declarations this reads), Fresco `NestedCompoundLayout` (first consumer), Plexus `architecture-projects` (semantic reference + eventual second consumer)
 
 ---

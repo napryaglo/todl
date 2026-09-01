@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-05
 **Status:** ✅ Finished
-**Component:** TODL (`@pragmatic-lab/todl`) — parser, loader, model/API, validation
+**Component:** TODL (`@pragmatic-tech-ai/todl`) — parser, loader, model/API, validation
 
 ## Goal
 

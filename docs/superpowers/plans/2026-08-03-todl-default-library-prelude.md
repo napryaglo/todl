@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship a `src/stdlib/prelude.todl` inside `@pragmatic-lab/todl` that is implicitly injected as the foundation base into every `check`/`checkAgainst`, providing standard primitives, standard annotations, and a universal root concept `element`.
+**Goal:** Ship a `src/stdlib/prelude.todl` inside `@pragmatic-tech-ai/todl` that is implicitly injected as the foundation base into every `check`/`checkAgainst`, providing standard primitives, standard annotations, and a universal root concept `element`.
 
 **Architecture:** The prelude is authored in TODL, compiled once (memoized) via the existing *raw* loader (`load`), and injected as the first base by `check`/`checkAgainst` (`mergeBases([prelude, ...bases])`). Because TODL node ids are bare and `mergeBases` seeds them, the prelude names resolve unqualified with no resolver change. A parent-less concept implicitly extends `element`. Redeclaring a prelude name warns.
 

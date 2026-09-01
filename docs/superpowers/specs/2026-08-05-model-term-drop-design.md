@@ -1,6 +1,6 @@
 # Model term-drop via `uses` — design
 
-**Status:** ✅ Finished — Implemented (TODL). Published `@pragmatic-lab/todl@0.13.0`.
+**Status:** ✅ Finished — Implemented (TODL). Published `@pragmatic-tech-ai/todl@0.13.0`.
 
 ## Problem
 

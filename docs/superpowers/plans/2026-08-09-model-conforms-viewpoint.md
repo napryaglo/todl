@@ -6,7 +6,7 @@
 
 **Architecture:** Mirror the model `uses`/`libraries` binding: parse the clause onto `ModelDecl`, resolve it to a viewpoint in the loader (rewrite qualified → flat), store it as the model node's `conforms` attr, and check framing in `validateModel`.
 
-**Tech Stack:** TypeScript (ESM, strict), `@pragmatic-lab/todl`. Tests via `tsx`.
+**Tech Stack:** TypeScript (ESM, strict), `@pragmatic-tech-ai/todl`. Tests via `tsx`.
 
 ## Global Constraints
 

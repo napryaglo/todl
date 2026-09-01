@@ -4,7 +4,7 @@
 
 **Goal:** Build the foundation of the TODL analysis core — the AST span-enrichment, the `analyze()` builder, position conversion, symbol-kind helpers, the reference index, the cursor-context classifier, and the five daily-driver query functions (diagnostics, completion, hover, definition, references) — all pure and headless-tested.
 
-**Architecture:** A new `src/language-service/` folder in the TODL repo, exported as `@pragmatic-lab/todl/language-service`. `analyze(sources, bases)` parses each file (AST + tokens), runs `checkAgainst` for the combined `Repository` + diagnostics, and builds a reference index. Pure query functions take that `Analysis` and return `vscode-languageserver-types`. No protocol, no Monaco, no caching.
+**Architecture:** A new `src/language-service/` folder in the TODL repo, exported as `@pragmatic-tech-ai/todl/language-service`. `analyze(sources, bases)` parses each file (AST + tokens), runs `checkAgainst` for the combined `Repository` + diagnostics, and builds a reference index. Pure query functions take that `Analysis` and return `vscode-languageserver-types`. No protocol, no Monaco, no caching.
 
 **Tech Stack:** TypeScript (ESM, strict), the existing TODL compiler (`parse`, `tokenize`, `checkAgainst`, `Repository`, span types), `vscode-languageserver-types` (types-only), `node:test` via `tsx`.
 
@@ -274,7 +274,7 @@ git commit -m "feat(parse): optional reference spans on AST for the language ser
 
 ### Task 2: Package wiring + position conversion
 
-Add the `vscode-languageserver-types` dependency and the `@pragmatic-lab/todl/language-service` subpath export, then create the sole 1↔0 position-conversion boundary.
+Add the `vscode-languageserver-types` dependency and the `@pragmatic-tech-ai/todl/language-service` subpath export, then create the sole 1↔0 position-conversion boundary.
 
 **Files:**
 - Modify: `package.json` (dependency + `exports` subpath)

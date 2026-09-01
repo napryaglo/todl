@@ -6,7 +6,7 @@
 
 **Architecture:** TODL gains a pure `compilePackage` (compile against bases, gate on errors, `toJSON`, derive the palette class list) and a `publish` orchestrator that persists a `CompiledPackage` through an injected `PackageStore` — `BlobPackageStore` (today's `model.json` + `src/` layout) now, a fake-tested `GraphPackageStore` for the graph family. TODL stays I/O-free (persistence via injected `PackageSink`/`GraphStore` seams). Plexus adapts `IStorage` to `PackageSink` and delegates.
 
-**Tech Stack:** TypeScript (ESM, `.js` import specifiers), Node built-in test runner (`node:test` + `node:assert/strict`) for TODL; Vitest for Plexus. `@pragmatic-lab/todl` published to Verdaccio.
+**Tech Stack:** TypeScript (ESM, `.js` import specifiers), Node built-in test runner (`node:test` + `node:assert/strict`) for TODL; Vitest for Plexus. `@pragmatic-tech-ai/todl` published to Verdaccio.
 
 **Spec:** `docs/superpowers/specs/2026-08-06-todl-publish-capability-design.md`.
 
@@ -35,7 +35,7 @@ Plexus:
 - `src/renderer/src/services/storage/storage-package-sink.ts` — `IStorage` → `PackageSink` adapter.
 - `library-project-factory.ts`, `meta-model-project-factory.ts` — delegate.
 - `library/services/library-bundle.ts` — drop local `deriveClasses`, re-export from todl.
-- `package.json` — bump `@pragmatic-lab/todl`.
+- `package.json` — bump `@pragmatic-tech-ai/todl`.
 
 ---
 
@@ -595,7 +595,7 @@ Run: `npm version minor --no-git-tag-version` (0.15.0 → 0.16.0).
 - [ ] **Step 4: Publish to Verdaccio**
 
 Run: `npm publish`. (Registry is Verdaccio via `.npmrc`/`publishConfig`; `prepublishOnly` re-runs clean+build.)
-Verify: `npm view @pragmatic-lab/todl version --registry http://localhost:4873` → `0.16.0`.
+Verify: `npm view @pragmatic-tech-ai/todl version --registry http://localhost:4873` → `0.16.0`.
 
 - [ ] **Step 5: Commit**
 
@@ -613,18 +613,18 @@ git commit -m "feat(publish): export publish capability; release 0.16.0"
 
 - [ ] **Step 1: Install the new version**
 
-Run (in `Plexus/`): `npm install @pragmatic-lab/todl@^0.16.0 --registry http://localhost:4873`.
+Run (in `Plexus/`): `npm install @pragmatic-tech-ai/todl@^0.16.0 --registry http://localhost:4873`.
 
 - [ ] **Step 2: Verify exports present**
 
-Run: `grep -o "compilePackage\|BlobPackageStore\|publish" node_modules/@pragmatic-lab/todl/dist/index.js | sort -u`
+Run: `grep -o "compilePackage\|BlobPackageStore\|publish" node_modules/@pragmatic-tech-ai/todl/dist/index.js | sort -u`
 Expected: shows `BlobPackageStore`, `compilePackage`, `publish`.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add package.json package-lock.json
-git commit -m "chore: bump @pragmatic-lab/todl to ^0.16.0"
+git commit -m "chore: bump @pragmatic-tech-ai/todl to ^0.16.0"
 ```
 
 ---
@@ -637,7 +637,7 @@ git commit -m "chore: bump @pragmatic-lab/todl to ^0.16.0"
 - Modify: `library/services/library-project-factory.ts`, `library/services/library-bundle.ts`
 
 **Interfaces:**
-- Consumes: `IStorage` from `../storage.js`; `PackageSink` from `@pragmatic-lab/todl`.
+- Consumes: `IStorage` from `../storage.js`; `PackageSink` from `@pragmatic-tech-ai/todl`.
 - Produces: `class StoragePackageSink implements PackageSink { constructor(storage: IStorage) }`.
 
 - [ ] **Step 1: Write the failing adapter test**
@@ -672,7 +672,7 @@ test('StoragePackageSink forwards writeText/writeBytes to IStorage', async () =>
 
 ```ts
 // storage-package-sink.ts
-import type { PackageSink } from '@pragmatic-lab/todl'
+import type { PackageSink } from '@pragmatic-tech-ai/todl'
 import type { IStorage } from './storage.js'
 
 /** Adapts the project IStorage to TODL's PackageSink so publish can write a
@@ -691,7 +691,7 @@ export class StoragePackageSink implements PackageSink {
 Delete the local `deriveClasses` body and `PublishedClass` interface; re-export from todl so existing importers are unaffected:
 
 ```ts
-export { deriveClasses, type PublishedClass } from '@pragmatic-lab/todl'
+export { deriveClasses, type PublishedClass } from '@pragmatic-tech-ai/todl'
 ```
 
 Keep `scanResources`, `LibraryBundleManifest`, and the local `projectAnnotations` consumers as-is.
@@ -722,7 +722,7 @@ git commit -m "refactor(library): delegate publish to TODL compilePackage + Blob
 - Modify: `meta-model/services/meta-model-project-factory.ts`
 
 **Interfaces:**
-- Consumes: `compilePackage`, `publish`, `BlobPackageStore` from `@pragmatic-lab/todl`; `StoragePackageSink` (Task 8); local `projectAnnotations` for manifest annotations.
+- Consumes: `compilePackage`, `publish`, `BlobPackageStore` from `@pragmatic-tech-ai/todl`; `StoragePackageSink` (Task 8); local `projectAnnotations` for manifest annotations.
 
 - [ ] **Step 1: Delegate `compileToDocument`** — same pattern as Task 8 (`compilePackage(bases, sources, { id, version })`, preserve `{ doc, problems }`).
 

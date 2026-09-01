@@ -6,7 +6,7 @@
 
 **Architecture:** Two committed `npx tsx` scripts in the TODL repo — `scripts/migrate-arch-refs.ts` (surgical quoted→bare regex on the 13 members) and `scripts/check-project.ts` (loads meta-model + libraries + data via `check()`, reports data-scoped diagnostics, exits non-zero if any). Plus a TODL regression test locking the drop-on-quoted-string semantics. The data files in `plexus_tests` (not a git repo) are rewritten in place by running the migration script.
 
-**Tech Stack:** TypeScript (ESM, strict), TODL compiler `@pragmatic-lab/todl`. Runner: `tsx --conditions=development --test`.
+**Tech Stack:** TypeScript (ESM, strict), TODL compiler `@pragmatic-tech-ai/todl`. Runner: `tsx --conditions=development --test`.
 
 ## Global Constraints
 

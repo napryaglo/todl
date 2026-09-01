@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-17
 **Status:** Approved (design)
-**Repo:** `@pragmatic-lab/todl`
+**Repo:** `@pragmatic-tech-ai/todl`
 
 ## Problem
 
@@ -191,7 +191,7 @@ mirroring the reproduced bug:
 
 TODL-only change (loader + api + model-draft + tests). No behavioral change for
 any existing `check`/`checkAgainst`/`load` caller (all additive). After merge:
-republish `@pragmatic-lab/todl` to **local Verdaccio** (`localhost:4873`) and
+republish `@pragmatic-tech-ai/todl` to **local Verdaccio** (`localhost:4873`) and
 bump Plexus's dependency. Plexus needs **no code change** — `ArchModel.save()`
 already routes through `toTodlByFile()`; once TODL homes minted ids, saves land
 in the correct file automatically.

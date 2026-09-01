@@ -16,7 +16,7 @@
 - Use real TypeScript enums, never string-literal unions.
 - Only **reified** operators (mint a node) are legal in value position; a **relationship-form** operator as a value is `operator.not-a-value`.
 - Statement-position edge behavior (`a --> b;` in a body → contained, no field binding) is UNCHANGED.
-- Publish/version bump (`@pragmatic-lab/todl` → 0.29.0) happens at the finishing step, not inside a task.
+- Publish/version bump (`@pragmatic-tech-ai/todl` → 0.29.0) happens at the finishing step, not inside a task.
 
 ---
 

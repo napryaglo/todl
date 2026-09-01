@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-20
 **Status:** ✅ Finished
-**Repo:** TODL (`@pragmatic-lab/todl`) + test_project EA meta-model & instance data
+**Repo:** TODL (`@pragmatic-tech-ai/todl`) + test_project EA meta-model & instance data
 
 ## Problem
 

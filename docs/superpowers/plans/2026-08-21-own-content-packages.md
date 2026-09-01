@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Publish `@pragmatic-lab/todl` ONLY to Verdaccio `http://localhost:4873`, never public npm.
+- Publish `@pragmatic-tech-ai/todl` ONLY to Verdaccio `http://localhost:4873`, never public npm.
 - Commit / push / publish ONLY when the user asks; if on the default branch, branch first.
 - Every test file lives in a `tests/` subfolder next to its source (TODL `src/x/tests/*.test.ts`, Plexus `src/**/tests/*.test.ts`).
 - A fixed set of named string values is a real TypeScript `enum`, never a string-literal union — `PackageKind` is an enum with explicit string values.
@@ -32,7 +32,7 @@
 - `src/emit/tests/to-json-own.test.ts`, `src/publish/tests/compile-package.test.ts` (extend), `src/publish/tests/reflect.test.ts` (extend).
 
 **Plexus**
-- `package.json` — bump `@pragmatic-lab/todl`.
+- `package.json` — bump `@pragmatic-tech-ai/todl`.
 - `src/renderer/src/services/projects/base-resolver.ts` — transitive walk.
 - `src/renderer/src/modules/library/services/library-project-factory.ts` — record deps, pass own doc to presentation.
 - `src/renderer/src/modules/meta-model/services/meta-model-project-factory.ts` — record deps.
@@ -446,7 +446,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - Modify: `TODL/package.json`
 
 **Interfaces:**
-- Produces: a published `@pragmatic-lab/todl` version on Verdaccio carrying Tasks 1-3, for Plexus to consume.
+- Produces: a published `@pragmatic-tech-ai/todl` version on Verdaccio carrying Tasks 1-3, for Plexus to consume.
 
 - [ ] **Step 1: Bump the minor version**
 
@@ -465,7 +465,7 @@ Expected: all green.
 ```bash
 cd TODL && npm publish --registry http://localhost:4873
 ```
-Expected: `+ @pragmatic-lab/todl@<new version>`.
+Expected: `+ @pragmatic-tech-ai/todl@<new version>`.
 
 - [ ] **Step 4: Commit the version bump**
 
@@ -481,7 +481,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ### Task 5: Plexus — transitive `resolveBases`
 
 **Files:**
-- Modify: `Plexus/package.json` (bump `@pragmatic-lab/todl`)
+- Modify: `Plexus/package.json` (bump `@pragmatic-tech-ai/todl`)
 - Modify: `Plexus/src/renderer/src/services/projects/base-resolver.ts`
 - Test: `Plexus/src/renderer/src/services/projects/tests/base-resolver.test.ts`
 
@@ -491,9 +491,9 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Bump the TODL dependency + reinstall**
 
-In `Plexus/package.json` set `"@pragmatic-lab/todl": "^<new version from Task 4>"`, then:
+In `Plexus/package.json` set `"@pragmatic-tech-ai/todl": "^<new version from Task 4>"`, then:
 ```bash
-cd Plexus && rm -rf node_modules/@pragmatic-lab/todl && npm install @pragmatic-lab/todl@<new version> --registry http://localhost:4873 --no-save
+cd Plexus && rm -rf node_modules/@pragmatic-tech-ai/todl && npm install @pragmatic-tech-ai/todl@<new version> --registry http://localhost:4873 --no-save
 ```
 
 - [ ] **Step 2: Write the failing test**
@@ -565,9 +565,9 @@ Expected: FAIL — current `resolveBases` is flat, does not read `dependencies` 
 - [ ] **Step 4: Rewrite `base-resolver.ts` as a transitive walk**
 
 ```ts
-import type { IServiceProvider } from '@pragmatic-lab/mural/runtime'
-import type { TodlDocument, PackageRef } from '@pragmatic-lab/todl'
-import { PackageKind } from '@pragmatic-lab/todl'
+import type { IServiceProvider } from '@pragmatic-tech-ai/mural/runtime'
+import type { TodlDocument, PackageRef } from '@pragmatic-tech-ai/todl'
+import { PackageKind } from '@pragmatic-tech-ai/todl'
 
 import type { IStorage } from '../storage/storage.js'
 import { ensureMetaModelsBackend } from '../../modules/meta-model/services/meta-models-backend.js'
@@ -649,7 +649,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - Test: `Plexus/src/renderer/src/modules/library/services/tests/library-project-factory.test.ts`
 
 **Interfaces:**
-- Consumes: `compilePackage(bases, sources, identity, dependencies)`, `PackageKind`, `PackageRef` from `@pragmatic-lab/todl`; `resolveBases`; the project `LibraryManifest` (`metaModel`, `libraries?`).
+- Consumes: `compilePackage(bases, sources, identity, dependencies)`, `PackageKind`, `PackageRef` from `@pragmatic-tech-ai/todl`; `resolveBases`; the project `LibraryManifest` (`metaModel`, `libraries?`).
 - Produces: the published library `model.json` carries `dependencies` = its meta-model (+ library) bindings; presentation is baked from `pkg.document` (own-only).
 
 - [ ] **Step 1: Write / extend the failing test**
@@ -677,7 +677,7 @@ Expected: FAIL — no `dependencies` on the written document.
 In `library-project-factory.ts` `publish()`, after `resolveBases`, build refs from the manifest and thread them through:
 
 ```ts
-import { PackageKind, type PackageRef } from '@pragmatic-lab/todl'
+import { PackageKind, type PackageRef } from '@pragmatic-tech-ai/todl'
 // ...
 const dependencies: PackageRef[] = [
   { kind: PackageKind.MetaModel, id: manifest.metaModel.id, version: manifest.metaModel.version },

@@ -19,7 +19,7 @@ model <id> : <meta-model> [uses <lib>, …] [conforms <viewpoint>] { <objects> }
 must have a concept **framed by** `V` (subtype-aware). It is validation-only in
 SP2a — the home-routing it enables is used by SP2b/SP3.
 
-Depends on SP1's viewpoint construct (merged, published `@pragmatic-lab/todl@0.22.0`).
+Depends on SP1's viewpoint construct (merged, published `@pragmatic-tech-ai/todl@0.22.0`).
 
 ## 2. Scope
 
@@ -107,5 +107,5 @@ conformed viewpoint.
 - ESM, strict tsconfig; tests via `tsx --conditions=development --test "src/**/*.test.ts"`.
 - Real TS enums; extend existing `DiagnosticCode`.
 - Every test file in a `tests/` subfolder next to source.
-- `@pragmatic-lab/todl@0.22.0` (SP1) is the floor — `MetaKind.Viewpoint`,
+- `@pragmatic-tech-ai/todl@0.22.0` (SP1) is the floor — `MetaKind.Viewpoint`,
   `Repository.viewpointsFraming` exist.

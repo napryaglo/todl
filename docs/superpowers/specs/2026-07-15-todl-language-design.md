@@ -1,4 +1,4 @@
-# TODL Language & Runtime — Design Spec (`@pragmatic-lab/todl`)
+# TODL Language & Runtime — Design Spec (`@pragmatic-tech-ai/todl`)
 
 **Status:** ✅ Finished — for review. Sketch fidelity: firm on architecture, marked where a
 decision is still open (§11).
@@ -17,7 +17,7 @@ relationships, invariants. A taxonomy is a set of *instances* of those concepts,
 against the ontology. TODL types both, and lets an agent traverse, query, validate, and
 extend them.
 
-`@pragmatic-lab/todl` is one TypeScript package = **language + runtime + model compiler**,
+`@pragmatic-tech-ai/todl` is one TypeScript package = **language + runtime + model compiler**,
 replacing the legacy Python toolchain (`legacy-development/tools/todl/`). Mural validates
 its visuals against TODL's meta-models; Plexus consumes both.
 
@@ -376,7 +376,7 @@ The exact JSON schema and how much of the legacy module shape Plexus actually wa
 
 ## 8. Package shape
 
-`@pragmatic-lab/todl`, TypeScript, ESM. Module layout by responsibility (each file one job,
+`@pragmatic-tech-ai/todl`, TypeScript, ESM. Module layout by responsibility (each file one job,
 small and focused):
 
 ```

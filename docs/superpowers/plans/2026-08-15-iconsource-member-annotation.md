@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Publish `@pragmatic-lab/todl` **0.26.0** to local Verdaccio (localhost:4873) ONLY. Never the public npm registry.
+- Publish `@pragmatic-tech-ai/todl` **0.26.0** to local Verdaccio (localhost:4873) ONLY. Never the public npm registry.
 - Every test file lives in a `tests/` subfolder next to the code it exercises.
 - TODL test command REQUIRES `--test-force-exit`: `npx tsx --conditions=development --test --test-force-exit "src/<path>/tests/<file>.test.ts"`.
 - TODL build: `npm run build`. Plexus tests: `npx vitest run <file>`; typecheck: `npm run typecheck`.
@@ -349,7 +349,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: Tasks 1-3 committed.
-- Produces: `@pragmatic-lab/todl@0.26.0` on local Verdaccio, consumed by Plexus Task 5.
+- Produces: `@pragmatic-tech-ai/todl@0.26.0` on local Verdaccio, consumed by Plexus Task 5.
 
 - [ ] **Step 1: Run the full TODL suite**
 
@@ -368,7 +368,7 @@ Set `"version": "0.26.0"` in `package.json`.
 - [ ] **Step 4: Publish to Verdaccio**
 
 Run: `npm publish --registry http://localhost:4873`
-Expected: `+ @pragmatic-lab/todl@0.26.0`. (Verify the registry is Verdaccio, never public npm.)
+Expected: `+ @pragmatic-tech-ai/todl@0.26.0`. (Verify the registry is Verdaccio, never public npm.)
 
 - [ ] **Step 5: Commit**
 
@@ -387,7 +387,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - Modify: `package.json` (Plexus, todl dependency)
 
 **Interfaces:**
-- Consumes: `@pragmatic-lab/todl@0.26.0` from Verdaccio (Task 4).
+- Consumes: `@pragmatic-tech-ai/todl@0.26.0` from Verdaccio (Task 4).
 - Produces: Plexus resolving 0.26.0, so `repo.resolve('<concept>.<member>@iconSource')` sees member-annotation nodes loaded from source.
 
 - [ ] **Step 0: Start the Plexus branch**
@@ -400,12 +400,12 @@ git checkout -b feat/iconsource-icon-resolution
 
 - [ ] **Step 1: Bump the dependency**
 
-In Plexus `package.json`, set the todl entry to `"@pragmatic-lab/todl": "^0.26.0"`.
+In Plexus `package.json`, set the todl entry to `"@pragmatic-tech-ai/todl": "^0.26.0"`.
 
 - [ ] **Step 2: Install from Verdaccio**
 
 Run: `npm install --registry http://localhost:4873`
-Expected: `@pragmatic-lab/todl@0.26.0` installed (check `node_modules/@pragmatic-lab/todl/package.json`).
+Expected: `@pragmatic-tech-ai/todl@0.26.0` installed (check `node_modules/@pragmatic-tech-ai/todl/package.json`).
 
 - [ ] **Step 3: Typecheck baseline**
 
@@ -416,7 +416,7 @@ Expected: passes (no consumer break from the todl bump).
 
 ```bash
 git add package.json package-lock.json
-git commit -m "chore(plexus): bump @pragmatic-lab/todl to ^0.26.0
+git commit -m "chore(plexus): bump @pragmatic-tech-ai/todl to ^0.26.0
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```
@@ -439,7 +439,7 @@ Create `src/renderer/src/modules/architecture-projects/services/tests/arch-icon-
 
 ```ts
 import { test, expect } from 'vitest'
-import { load, toJSON, Repository, graphFromJSON, ModelDraft, type Entity } from '@pragmatic-lab/todl'
+import { load, toJSON, Repository, graphFromJSON, ModelDraft, type Entity } from '@pragmatic-tech-ai/todl'
 import { iconEntityKey } from '../arch-icon.js'
 
 // component: implementedBy (order 1) and categorisedAs (order 2) both declare iconSource.
@@ -498,7 +498,7 @@ Expected: FAIL — the current heuristic ignores `iconSource`; e.g. the own-firs
 Replace the file with the declarative front path plus the extracted legacy helper. The `legacyIconEntityKey` body is today's `iconEntityKey` verbatim, using a shared module-level `hasIcon`:
 
 ```ts
-import type { Entity, Repository } from '@pragmatic-lab/todl'
+import type { Entity, Repository } from '@pragmatic-tech-ai/todl'
 
 // "Has an icon": the `<id>@icon` annotation node (source form carries `path`).
 function hasIcon(repo: Repository, id: string): boolean {

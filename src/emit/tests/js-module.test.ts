@@ -29,7 +29,7 @@ function corpus() {
 
 test("emits Observable subclasses for each concept", () => {
   const js = toMetaModule(corpus(), { slug: "bpmn" });
-  assert.match(js, /import \{ Observable \} from "@pragmatic-lab\/todl-runtime";/);
+  assert.match(js, /import \{ Observable \} from "@pragmatic-tech-ai\/todl-runtime";/);
   assert.match(js, /export class Task extends Observable \{/);
   assert.match(js, /export class Event extends Observable \{/);
   assert.match(js, /kind: "Task",/);

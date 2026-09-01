@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-06
 **Status:** Draft — awaiting review.
-**Component:** TODL (`@pragmatic-lab/todl`) language + meta-model + reflection. Consumers (Plexus presentation/toolbox/publish) inherit the new behavior on a version bump, no logic change.
+**Component:** TODL (`@pragmatic-tech-ai/todl`) language + meta-model + reflection. Consumers (Plexus presentation/toolbox/publish) inherit the new behavior on a version bump, no logic change.
 
 ---
 

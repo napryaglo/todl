@@ -1,6 +1,6 @@
 # TODL — the Typed Object Definition Language
 
-`@pragmatic-lab/todl` is a small language and compiler for describing **typed
+`@pragmatic-tech-ai/todl` is a small language and compiler for describing **typed
 shapes** and the data that conforms to them. One language types an entire tower:
 the meta-kinds that define what a "concept" is, the domain vocabularies written
 as concepts, and the concrete models authored against those vocabularies. The
@@ -567,13 +567,13 @@ Options: `slug` (names the registry and `slug` field), `rootConcept`,
 
 ## 9. Public API
 
-The package entry (`@pragmatic-lab/todl`) exports the whole pipeline as
+The package entry (`@pragmatic-tech-ai/todl`) exports the whole pipeline as
 composable seams.
 
 **Top-level check**
 
 ```ts
-import { check, checkAgainst } from "@pragmatic-lab/todl";
+import { check, checkAgainst } from "@pragmatic-tech-ai/todl";
 
 const { model, diagnostics } = check(sources);              // load + validate
 const r = checkAgainst(bases, sources);                     // seed bases first
@@ -598,8 +598,8 @@ const r = checkAgainst(bases, sources);                     // seed bases first
 **Diagnostics** — `Severity`, `DiagnosticCode`, `Diagnostic`, and the span types
 `Position` / `SourceSpan` / `SourceFile`.
 
-A language-service layer (`@pragmatic-lab/todl/language-service`) and an LSP
-server (`@pragmatic-lab/todl/language-server`) build on these to provide
+A language-service layer (`@pragmatic-tech-ai/todl/language-service`) and an LSP
+server (`@pragmatic-tech-ai/todl/language-server`) build on these to provide
 completion, hover, diagnostics, navigation, rename, folding, and semantic tokens
 for editors.
 

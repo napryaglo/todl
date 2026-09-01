@@ -295,7 +295,7 @@ export function projectAnnotations(model: TodlDocument, targetId: string): Recor
 
 - [ ] **Step 1:** `npx tsx --conditions=development --test "src/**/*.test.ts"` + `npm run typecheck` + `npm run build` → all green.
 - [ ] **Step 2:** `npm version minor --no-git-tag-version` (0.17.0 → 0.18.0).
-- [ ] **Step 3:** `npm publish`; verify `npm view @pragmatic-lab/todl version --registry http://localhost:4873` → `0.18.0`.
+- [ ] **Step 3:** `npm publish`; verify `npm view @pragmatic-tech-ai/todl version --registry http://localhost:4873` → `0.18.0`.
 - [ ] **Step 4: Commit** (package.json + package-lock) — `chore: release 0.18.0 (annotation inheritance)`.
 
 ---
@@ -304,9 +304,9 @@ export function projectAnnotations(model: TodlDocument, targetId: string): Recor
 
 **Files:** `Plexus/package.json`.
 
-- [ ] **Step 1:** `npm install @pragmatic-lab/todl@^0.18.0 --registry http://localhost:4873`; verify installed `0.18.0`.
+- [ ] **Step 1:** `npm install @pragmatic-tech-ai/todl@^0.18.0 --registry http://localhost:4873`; verify installed `0.18.0`.
 - [ ] **Step 2:** `npm run compile:mu` + `npx vitest run` + `npm run typecheck` → all green (consumers unchanged; polymorphism is transparent).
-- [ ] **Step 3: Commit** — `chore: bump @pragmatic-lab/todl to ^0.18.0 (annotation inheritance)`.
+- [ ] **Step 3: Commit** — `chore: bump @pragmatic-tech-ai/todl to ^0.18.0 (annotation inheritance)`.
 
 ## Notes for the executor
 

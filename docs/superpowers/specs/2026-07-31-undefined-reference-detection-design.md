@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-31
 **Status:** ✅ Finished
-**Repo:** TODL (`@pragmatic-lab/todl`)
+**Repo:** TODL (`@pragmatic-tech-ai/todl`)
 
 ## Goal
 

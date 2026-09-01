@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-04
 **Status:** ✅ Finished — Implemented (4 stages) + published 0.12.0
-**Package:** TODL (`@pragmatic-lab/todl`)
+**Package:** TODL (`@pragmatic-tech-ai/todl`)
 
 ## Problem
 
@@ -138,7 +138,7 @@ export function makeResolver(model: Repository, defined: ReadonlySet<string>,
 - Parser gains qualified-name acceptance everywhere (additive for authors; bare
   names still parse). No new *errors* beyond what namespace-scoped resolution
   0.11.0 already introduced.
-- Publish `@pragmatic-lab/todl@0.12.0`; bump Plexus (only rebuild — no source
+- Publish `@pragmatic-tech-ai/todl@0.12.0`; bump Plexus (only rebuild — no source
   change needed there); the vendored language-server bundle rebuilds from it.
 
 ## Testing

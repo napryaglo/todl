@@ -95,8 +95,8 @@ and `technology-library` modules are **UI panel scaffolds with no data loader**
 (hardcoded placeholder sections). No existing contract to match — the data side
 is greenfield.
 
-**Recommended:** Plexus imports `@pragmatic-lab/todl` (it already consumes
-`@pragmatic-lab/mural` / `fresco` from Verdaccio the same way), reads
+**Recommended:** Plexus imports `@pragmatic-tech-ai/todl` (it already consumes
+`@pragmatic-tech-ai/mural` / `fresco` from Verdaccio the same way), reads
 `.todl` sources through its existing IStorage / FileSystemService seam, calls
 `load()` → a live `Model`, and binds panels to it via reflection. The reactive
 `Model` (INotifyPropertyChanged / INotifyCollectionChanged) plugs into Mural
@@ -277,7 +277,7 @@ parse; the `test_project/` vendored layout.
 | Plexus UI (create-project dropdown, package browser) | M | biggest / most open-ended chunk |
 
 **Clean split to contain risk:** put the PM *logic* — manifest, resolver,
-lockfile, version binding — in `@pragmatic-lab/todl` as a `pkg`/`resolve` module
+lockfile, version binding — in `@pragmatic-tech-ai/todl` as a `pkg`/`resolve` module
 (pure, TDD-testable, no UI); Plexus wires its IStorage + dialogs to it.
 
 **Cheap vs. could-balloon:** cheap because local-first (no server/auth/CDN/
@@ -299,7 +299,7 @@ get expensive, and neither is needed to prove the loop.
 
 ## Open decisions
 
-- **Does the viz tool embed `@pragmatic-lab/todl` (live `Model`) or stay a thin
+- **Does the viz tool embed `@pragmatic-tech-ai/todl` (live `Model`) or stay a thin
   viewer (serialized graph)?** Determines whether round-trip is "mutate the Model
   in-process" (easy) or "diff-and-apply change-sets across a boundary" (harder).
   Everything hangs off this.

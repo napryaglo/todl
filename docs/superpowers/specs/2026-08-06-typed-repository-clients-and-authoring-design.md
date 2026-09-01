@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-06
 **Status:** ✅ Complete — **all 7 phases DONE** and merged + pushed to `main` (2026-08-06; 427/427 green, typecheck + build clean). **Phase 7 (Component F, Cypher):** `CypherGraphStore` — a sync in-memory working copy that records the mapped Cypher per mutation over an async `CypherSession` seam, `load(session)` rebuilds from the DB, `flush(session)` persists the batch; passes the same `describeGraphStore` conformance suite; no DB dependency (concrete neo4j-driver adapter is a documented ~5-line consumer concern; live-DB round-trip is the one thing gated on an available database). **Phase 6 (Component F, in-memory):** `GraphStore` interface + `InMemoryGraphStore` (Graph's maps lifted out + `remove`/`commit`), a reusable `describeGraphStore` conformance suite, and `Graph` delegating storage to a swappable store (default in-memory) while keeping the `changed` bus + `related`/`closure`; behavior-preserving. **Phase 5 (Component E):** the read-client generator also emits a typed authoring constructor per concept on the package class (`client.<concept>(id, {fields}) → InstanceDescriptor`; reference params entity-typed, reduced to ids, cardinality-shaped), feeding `ModelDraft.add` end-to-end; deferred: many-valued scalar params, `draft.<concept>(…)` alias. **Phase 1 (Component A):** `Repository.entity()`/`attr`/`ref`/`refs`/`referrers`/`danglingRefs`, `Entity`/`EntityBase`, exported. **Phase 2 (Component B):** `FrozenRepository` — sealed (`builder()` throws), memoized read path, frozen shared handles, polymorphic `fromJSON`, `graphFromJSON`. **Phase 3 (Component C):** `createEntity` construction seam + `generateReadClient(repo, {name})` → typed package class (registry + collection accessors) + entity classes (scalar/reference getters), golden-fixture tested. **Phase 4 (Component D, MVP):** `ModelDraft.on(bases, {namespace})` combined working model (mergeBases+prelude, mergeBases now exported) + `add(descriptor)` (scalars + cross-boundary/own refs, fail-fast) + `diagnostics` (validate) + `toJSON()` own-delta (recomposes with bases). Deviations: `type()` returns `Entity | undefined` (no-throw); Phase 2 chose seal+memoize over spec §5's self-contained eager handles (one Entity impl); the Phase 3 generator reflects one resolved graph (caller composes meta-model + library); Phase 4 MVP defers `remove`/`transact`/`commit`, `toTodl()` text, delta binding-header/model-container, and `danglingRefs()` positive case (authoring can't dangle — targets must exist). Plans: `docs/superpowers/plans/2026-08-06-typed-repository-clients-phase{1,2,3,4,5,6,7}-*.md`.
-**Component:** TODL (`@pragmatic-lab/todl`) — runtime, a `GraphStore` seam, code generation, and a mutable authoring layer. Downstream consumer: Plexus.
+**Component:** TODL (`@pragmatic-tech-ai/todl`) — runtime, a `GraphStore` seam, code generation, and a mutable authoring layer. Downstream consumer: Plexus.
 
 ---
 
@@ -405,9 +405,9 @@ draft handle) → `Relationship` edge to its id; array → edge per item. Mirror
 ## 11. Cross-cutting decisions
 
 - **Packaging.** Runtime primitives (§4), hydration (§5), `ModelDraft` (§7),
-  `GraphStore` seam (§9) live in `@pragmatic-lab/todl`. Codegen (§6, §8) is a
+  `GraphStore` seam (§9) live in `@pragmatic-tech-ai/todl`. Codegen (§6, §8) is a
   todl build/CLI step emitting per-artifact `.ts`. Generated clients are plain
-  consumers of the todl runtime. (Alternative — a companion `@pragmatic-lab/
+  consumers of the todl runtime. (Alternative — a companion `@pragmatic-tech-ai/
   todl-client` package — is deferred; start in-package.)
 - **Read-only vs mutable is a hard boundary.** Base clients (§5/§6) expose NO
   mutation. Only `ModelDraft` mutates. Do not add mutation to base clients for

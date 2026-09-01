@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-06
 **Status:** Draft — awaiting review.
-**Component:** TODL (`@pragmatic-lab/todl`), consumed by Plexus. Continues the "own it in TODL core" pattern established by the `.todl` model emitter migration (`emitModelTodl`): move the reusable *compile → derive → persist* spine out of the Plexus project factories and into TODL, behind injected persistence seams so TODL stays I/O-agnostic.
+**Component:** TODL (`@pragmatic-tech-ai/todl`), consumed by Plexus. Continues the "own it in TODL core" pattern established by the `.todl` model emitter migration (`emitModelTodl`): move the reusable *compile → derive → persist* spine out of the Plexus project factories and into TODL, behind injected persistence seams so TODL stays I/O-agnostic.
 
 ---
 

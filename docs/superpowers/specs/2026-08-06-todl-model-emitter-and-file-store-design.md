@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-06
 **Status:** ✅ Complete — implemented + merged + pushed to `main` (2026-08-06; 432/432 green, typecheck + build clean). `emit/todl.ts` (`deriveBindings`+`emitModelTodl`), `ModelDraft.toTodl()` (round-trips via `checkAgainst`, 0 diagnostics), `TodlFileStore`+`FileIO` seam (save/load a model as `.todl`, no `fs` dep, fake-tested). Note: dotted namespaces are flattened into a bare model id (`acme.app` → `acme-app-model`) since model ids must be bare identifiers. Deferred: re-opening a loaded `.todl` as an editable `ModelDraft`; a concrete `node:fs`/`IStorage` `FileIO` adapter; Plexus delegating its emitter to this one; the Dgraph backend.
-**Component:** TODL (`@pragmatic-lab/todl`). Completes the `ModelDraft.toTodl()` deferred in the typed-repository-clients Phase 4, plus a file-persistence backend. Downstream: Plexus (which already has an equivalent emitter and can drop its copy later).
+**Component:** TODL (`@pragmatic-tech-ai/todl`). Completes the `ModelDraft.toTodl()` deferred in the typed-repository-clients Phase 4, plus a file-persistence backend. Downstream: Plexus (which already has an equivalent emitter and can drop its copy later).
 
 ---
 

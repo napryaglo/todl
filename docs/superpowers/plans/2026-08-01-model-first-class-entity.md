@@ -6,13 +6,13 @@
 
 **Architecture:** A new `DeclKind.Model` / `ModelDecl` AST node parsed by a reserved `model` keyword; the loader stages a `MetaKind.Model`-typed Instance-tier node owning its objects via `Contains`; every staged node is stamped with a `namespace` provenance attr that round-trips through emit's existing attr serialization; three new diagnostics (`instance.orphan`, `model.binding-undefined`, `constructor.out-of-scope`) enforce the rules.
 
-**Tech Stack:** TypeScript (ESM, strict), `tsx --test` runner, `@pragmatic-lab/todl`.
+**Tech Stack:** TypeScript (ESM, strict), `tsx --test` runner, `@pragmatic-tech-ai/todl`.
 
 **Spec:** `docs/superpowers/specs/2026-08-01-model-first-class-entity-design.md`
 
 ## Global Constraints
 
-- Target version: **`@pragmatic-lab/todl` 0.4.0** (breaking). Bump `package.json` in the final task.
+- Target version: **`@pragmatic-tech-ai/todl` 0.4.0** (breaking). Bump `package.json` in the final task.
 - Every test file lives in a `tests/` subfolder next to the code it exercises (e.g. `src/parse/tests/model.test.ts`).
 - Test runner: `npm test` = `tsx --conditions=development --test "src/**/*.test.ts"`. Single file: `tsx --conditions=development --test src/parse/tests/<file>.test.ts`.
 - Enums, not string-literal unions.

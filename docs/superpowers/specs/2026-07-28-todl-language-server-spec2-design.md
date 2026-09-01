@@ -21,7 +21,7 @@ binary that both the Plexus client (Spec 3) and a future VS Code extension consu
 | Project model | **One server, multi-project partitioning** — documents assigned to projects by URI prefix. |
 | Source modes | **Both** pushed (Plexus) and FS (external), behind a `SourceProvider` seam. |
 | FS-mode bases | **No external base resolution** — FS mode validates each workspace as a self-contained project (`bases = []`). |
-| Packaging | Subpath export `@pragmatic-lab/todl/language-server` with a `bin` (`todl-language-server`). |
+| Packaging | Subpath export `@pragmatic-tech-ai/todl/language-server` with a `bin` (`todl-language-server`). |
 | Transport | stdio (`vscode-languageserver/node`); `createServer(connection)` is transport-agnostic. |
 | Sync | `TextDocumentSyncKind.Incremental`; whole-project debounced re-analysis (~200 ms). |
 
@@ -30,9 +30,9 @@ binary that both the Plexus client (Spec 3) and a future VS Code extension consu
 ## Package & dependencies
 
 - **New source folder** `src/language-server/`, exposed via a new `exports` subpath
-  `@pragmatic-lab/todl/language-server`, plus a `bin` field mapping `todl-language-server` to
+  `@pragmatic-tech-ai/todl/language-server`, plus a `bin` field mapping `todl-language-server` to
   the built stdio entry.
-- **Depends on:** `@pragmatic-lab/todl/language-service` (the core barrel — imported as the
+- **Depends on:** `@pragmatic-tech-ai/todl/language-service` (the core barrel — imported as the
   public surface, never its internals), `vscode-languageserver` (connection + `TextDocuments`),
   `vscode-languageserver-textdocument` (`TextDocument`), and the already-present
   `vscode-languageserver-types`.

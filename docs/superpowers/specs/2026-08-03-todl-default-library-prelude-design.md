@@ -7,7 +7,7 @@ annotations, and a universal root concept — that are implicitly in scope for e
 file and project, so authors stop re-declaring the same boilerplate in every
 meta-model.
 
-**Tech Stack:** `@pragmatic-lab/todl` (TypeScript, ESM). Authored in TODL itself
+**Tech Stack:** `@pragmatic-tech-ai/todl` (TypeScript, ESM). Authored in TODL itself
 (`.todl`), compiled to a JSON base at package build.
 
 ---

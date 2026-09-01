@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-15
 **Status:** Approved (brainstorming)
-**Repos:** TODL (`@pragmatic-lab/todl`), Plexus (consumer)
+**Repos:** TODL (`@pragmatic-tech-ai/todl`), Plexus (consumer)
 
 ## Motivation
 
@@ -213,7 +213,7 @@ iconEntityKey(repo, entity):
 
 ## Cross-repo & versioning
 
-1. TODL: Parts A + B, publish **`@pragmatic-lab/todl` 0.26.0** to local
+1. TODL: Parts A + B, publish **`@pragmatic-tech-ai/todl` 0.26.0** to local
    Verdaccio (localhost:4873).
 2. Plexus: bump the todl dependency to `^0.26.0`, rework `iconEntityKey`
    (Part C).

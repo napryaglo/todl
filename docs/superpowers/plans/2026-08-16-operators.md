@@ -18,7 +18,7 @@
 - Edge USAGE (`a <glyph> b`) is confined to `model` bodies, instance bodies, and inline-object bodies. Bare top-level edge usage (outside a model) is NOT supported (it was unused). The `operator` DECLARATION is top-level.
 - Reified-edge shorthand emit is in scope; relationship-form edges emit as their normal member assignment (still lossless). Glyph-shorthand emit for the relationship form is a documented non-goal of this plan.
 - No prelude operators — the tech-architecture meta-model migration is a separate follow-up, not in this plan.
-- Publish/version bump (`@pragmatic-lab/todl` → 0.28.0) happens at the finishing step, not inside a task.
+- Publish/version bump (`@pragmatic-tech-ai/todl` → 0.28.0) happens at the finishing step, not inside a task.
 
 ---
 

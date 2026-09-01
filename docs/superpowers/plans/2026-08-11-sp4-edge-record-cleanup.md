@@ -6,7 +6,7 @@
 
 **Architecture:** Two edits to `src/parse/parser.ts` (drop the operator assignment; change synthetic ids to underscore form), a committed `scripts/strip-edge-operator.ts` for the on-disk data cleanup, and parser tests. No emitter change (the instance emit round-trip is already covered by the unchanged `src/emit/tests/todl.test.ts`).
 
-**Tech Stack:** TypeScript (ESM, strict), TODL compiler `@pragmatic-lab/todl`. Runner: `tsx --conditions=development --test`.
+**Tech Stack:** TypeScript (ESM, strict), TODL compiler `@pragmatic-tech-ai/todl`. Runner: `tsx --conditions=development --test`.
 
 ## Global Constraints
 
@@ -222,7 +222,7 @@ Run the data-gate command (expected: `data-file: 0`).
 - `landscape.todl`: 42 `operator` lines stripped; project still validates 0 diagnostics.
 - Committed TODL artifacts: `src/parse/parser.ts` change, `src/parse/tests/edge-record.test.ts`, `scripts/strip-edge-operator.ts`.
 - **Deferred (YAGNI):** emitter edge-shorthand + full native-nested-step ↔ flattened round-trip (until the viz emits edges); `connector.type` retyping (SP2-class gap).
-- **SP5 (Plexus):** bump to `@pragmatic-lab/todl@^0.24.0`, `.target`→`.targets` consumers, drop-factory required `label`, arch emitter must emit bare refs (else SP3 reverts) and must not re-introduce `operator` (else SP4 reverts), live in-app republish. **Risk:** if a Plexus consumer reads `operator`, stripping it surfaces there — verify during SP5.
+- **SP5 (Plexus):** bump to `@pragmatic-tech-ai/todl@^0.24.0`, `.target`→`.targets` consumers, drop-factory required `label`, arch emitter must emit bare refs (else SP3 reverts) and must not re-introduce `operator` (else SP4 reverts), live in-app republish. **Risk:** if a Plexus consumer reads `operator`, stripping it surfaces there — verify during SP5.
 - Do not push; do not start SP5 without approval.
 
 ## Self-Review

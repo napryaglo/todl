@@ -22,14 +22,14 @@ Monaco, no I/O — proven by exhaustive headless unit tests.
 | Position basis | Core converts TODL 1-based/exclusive spans → LSP 0-based at its boundary. |
 | Caching | **None in the core** — `analyze()` is whole-project and pure; caching is the server's job. |
 | Precise ref positions | Add **optional span fields to the compiler AST** (backward-compatible); land first. |
-| Location | `src/language-service/`, exported as `@pragmatic-lab/todl/language-service`. |
+| Location | `src/language-service/`, exported as `@pragmatic-tech-ai/todl/language-service`. |
 
 ---
 
 ## Package & dependencies
 
 - **New source folder** `src/language-service/` in the TODL repo, exposed via a new subpath
-  export `@pragmatic-lab/todl/language-service` in `package.json` `exports`.
+  export `@pragmatic-tech-ai/todl/language-service` in `package.json` `exports`.
 - **Depends only on:** the compiler internals it already ships (`parse`, `load`, `Repository`,
   `tokenize`/`Token`/`TokenKind`, span types, `checkAgainst`, `MetaKind`, `Tier`,
   `Cardinality`) and **`vscode-languageserver-types`** (types-only; no runtime, no protocol).

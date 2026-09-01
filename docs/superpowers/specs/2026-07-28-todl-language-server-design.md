@@ -10,7 +10,7 @@ could later consume.
 **Status:** ✅ Finished — all three sub-specs delivered and merged (verified 2026-08-06).
 Spec 1 (analysis core, `src/language-service`) and Spec 2 (LSP server,
 `src/language-server` + `bin`) are on TODL `main` and shipped in the published
-`@pragmatic-lab/todl@0.14.0` (subpath exports `/language-service`, `/language-server`);
+`@pragmatic-tech-ai/todl@0.14.0` (subpath exports `/language-service`, `/language-server`);
 64/64 language tests green. Spec 3 (Plexus client) is merged to **Plexus `main`**
 (`TodlLanguageClient`, `TodlServerHost`, provider adapters, preload channel), wired at
 startup (`main/index.ts` forks the vendored `todl-language-server.cjs` via `child_process` —
@@ -30,13 +30,13 @@ The design spans three layers with hard seams (core ← server ← client), each
 working and testable. It is built as a sequence of sub-specs, each depending only on the
 one before:
 
-1. **Spec 1 — Analysis core** (`@pragmatic-lab/todl/language-service`). Parser span-
+1. **Spec 1 — Analysis core** (`@pragmatic-tech-ai/todl/language-service`). Parser span-
    enrichment + `analyze()` + the cursor-context classifier + reference index + all pure
    query functions, proven by exhaustive headless unit tests. Delivers standalone,
    verifiable value with no protocol or UI. **The biggest and most valuable slice — brainstorm
    this one next.**
 
-2. **Spec 2 — LSP server** (`@pragmatic-lab/todl/language-server`). Wrap the core in
+2. **Spec 2 — LSP server** (`@pragmatic-tech-ai/todl/language-server`). Wrap the core in
    `vscode-languageserver`: document sync, capability negotiation, pushed + FS source modes,
    stdio entry point, in-memory protocol integration tests. Depends on Spec 1.
 
@@ -65,7 +65,7 @@ its slice to task-level detail.
 | Plexus transport | **Electron main process forks the server** (`utilityProcess`), relays LSP JSON-RPC over IPC. |
 | Monaco bridge | **Hand-rolled provider adapters** (one per capability), not `monaco-languageclient`. |
 | Source provisioning | **Client pushes sources** (server never reads Plexus's `IStorage`-backed files). |
-| Packaging | **Subpath exports of `@pragmatic-lab/todl`** (`/language-service`, `/language-server`), not a monorepo conversion. |
+| Packaging | **Subpath exports of `@pragmatic-tech-ai/todl`** (`/language-service`, `/language-server`), not a monorepo conversion. |
 
 ---
 
@@ -74,14 +74,14 @@ its slice to task-level detail.
 ### Packaging & layering
 
 Three logical units, realized as two new subpath exports of the existing
-`@pragmatic-lab/todl` package plus a Plexus-side consumer:
+`@pragmatic-tech-ai/todl` package plus a Plexus-side consumer:
 
-1. **`@pragmatic-lab/todl/language-service`** *(new source folder in the TODL repo)* — the
+1. **`@pragmatic-tech-ai/todl/language-service`** *(new source folder in the TODL repo)* — the
    pure analysis core. Depends only on the TODL compiler internals it re-exports. No
    protocol, no Monaco, no I/O. Fully unit-testable headless. **~80% of the intellectual
    work lives here.**
 
-2. **`@pragmatic-lab/todl/language-server`** *(new source folder + a `bin` entry in the
+2. **`@pragmatic-tech-ai/todl/language-server`** *(new source folder + a `bin` entry in the
    TODL repo)* — wraps the core in `vscode-languageserver`. Thin protocol shell: capability
    negotiation, document sync, debounced re-analysis, diagnostics push, one delegating
    handler per capability. Ships a stdio entry point.
@@ -97,7 +97,7 @@ enforce the seam within the single TODL package.
 
 ### Why subpath exports rather than a monorepo
 
-TODL is a single-package repo (`@pragmatic-lab/todl` 0.2.0, no workspaces). Subpath exports
+TODL is a single-package repo (`@pragmatic-tech-ai/todl` 0.2.0, no workspaces). Subpath exports
 give the same layering (enforced by directory boundaries) with one version, one publish, and
 no monorepo migration before any LSP work begins. The server subpath declares a `bin` so it
 can be spawned as a process; the core subpath is import-only.

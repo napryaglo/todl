@@ -1,7 +1,7 @@
 # Model as a First-Class Entity — Design
 
 **Status:** ✅ Finished
-**Target package:** `@pragmatic-lab/todl` (0.3.1 → **0.4.0**, breaking)
+**Target package:** `@pragmatic-tech-ai/todl` (0.3.1 → **0.4.0**, breaking)
 **Date:** 2026-08-01
 
 ## 1. Goal
@@ -237,7 +237,7 @@ round-trips. `fromJSON` / `mergeBases` need no changes.
   fixtures keep their surface (now a `ModelDecl`).
 - **Old compiled bases** lack `namespace` attrs → scope check skips their nodes
   (graceful degradation, §7). Republishing restores full checking.
-- Breaking language change → **`@pragmatic-lab/todl` 0.4.0**, republish to
+- Breaking language change → **`@pragmatic-tech-ai/todl` 0.4.0**, republish to
   Verdaccio; Plexus bumps its dependency.
 
 ## 11. Testing

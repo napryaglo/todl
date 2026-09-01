@@ -216,14 +216,14 @@ test("referenceMembers returns concept-typed fields a target can fill", () => {
 
 - [ ] **Step 1:** `npx tsx --conditions=development --test "src/**/*.test.ts"` + `npm run typecheck` + `npm run build` → all green; `dist/authoring/model-draft.js` has the new methods.
 - [ ] **Step 2:** `npm version minor --no-git-tag-version` (0.16.0 → 0.17.0).
-- [ ] **Step 3:** `npm publish`; verify `npm view @pragmatic-lab/todl version --registry http://localhost:4873` → `0.17.0`.
+- [ ] **Step 3:** `npm publish`; verify `npm view @pragmatic-tech-ai/todl version --registry http://localhost:4873` → `0.17.0`.
 - [ ] **Step 4: Commit** (incl. package.json + package-lock) — `chore: release 0.17.0 (ModelDraft mutation)`.
 
 ---
 
 ### Task 6: Plexus — bump to `^0.17.0`
 
-- [ ] `npm install @pragmatic-lab/todl@^0.17.0 --registry http://localhost:4873`; verify installed version. Commit.
+- [ ] `npm install @pragmatic-tech-ai/todl@^0.17.0 --registry http://localhost:4873`; verify installed version. Commit.
 
 ---
 
@@ -232,7 +232,7 @@ test("referenceMembers returns concept-typed fields a target can fill", () => {
 **Files:** Modify `architecture-instance-model.ts`. Gate: `architecture-instance-model.test.ts`, `arch-instance-roundtrip.test.ts`, `arch-canvas-ops.test.ts`, `arch-diagram-document.test.ts`, `drop-resolver.test.ts`.
 
 - [ ] **Step 1: Confirm green baseline** — `npx vitest run src/renderer/src/modules/architecture-projects`.
-- [ ] **Step 2: Refactor** — hold `private readonly draft: ModelDraft`; `load(bases, source, namespace)` builds it via `ModelDraft.fromSource(bases.map(d => new Repository(graphFromJSON(d))), source, { namespace })`. Keep `freshId`, `onChanged`/listeners, `mutated()`. Delegate: `createInstance`→`freshId`+`draft.create`+`mutated`; `setField`/`addRelationship`→`draft.addRef`/`removeRelationship`→`draft.removeRef`/`remove` each + `mutated`; `referenceMembers`→`draft.referenceMembers`; `repository()`→`draft.model`; `emit()`→`draft.toTodl()`; `node`/`document`/`ownInstances` via the draft (`document`→`draft.toJSON()`). Import `ModelDraft, Repository, graphFromJSON` from `@pragmatic-lab/todl`.
+- [ ] **Step 2: Refactor** — hold `private readonly draft: ModelDraft`; `load(bases, source, namespace)` builds it via `ModelDraft.fromSource(bases.map(d => new Repository(graphFromJSON(d))), source, { namespace })`. Keep `freshId`, `onChanged`/listeners, `mutated()`. Delegate: `createInstance`→`freshId`+`draft.create`+`mutated`; `setField`/`addRelationship`→`draft.addRef`/`removeRelationship`→`draft.removeRef`/`remove` each + `mutated`; `referenceMembers`→`draft.referenceMembers`; `repository()`→`draft.model`; `emit()`→`draft.toTodl()`; `node`/`document`/`ownInstances` via the draft (`document`→`draft.toJSON()`). Import `ModelDraft, Repository, graphFromJSON` from `@pragmatic-tech-ai/todl`.
 - [ ] **Step 3: Run the arch suites — all green.** Fix API mismatches against the real `draft` methods.
 - [ ] **Step 4: Commit** — `refactor(architecture-projects): ArchInstanceModel wraps TODL ModelDraft`.
 

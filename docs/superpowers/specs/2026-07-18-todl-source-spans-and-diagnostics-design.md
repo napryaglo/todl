@@ -15,7 +15,7 @@ only the TODL changes; the Plexus project type is a separate follow-on spec
 Every diagnostic TODL produces — from lexing, parsing, or validation — carries a
 `SourceSpan` (file + start/end line/column), and `parse()`/`load()` recover from
 syntax errors and return a diagnostic list instead of throwing on the first one.
-Then publish `@pragmatic-lab/todl` to the local registry so Plexus can consume it.
+Then publish `@pragmatic-tech-ai/todl` to the local registry so Plexus can consume it.
 
 ## Why (the consuming need)
 
@@ -155,7 +155,7 @@ Monaco markers per open file and to populate a Problems panel.
 
 ### 4. Publish
 
-Bump `@pragmatic-lab/todl` (0.0.1 → 0.1.0, minor: additive API + intended
+Bump `@pragmatic-tech-ai/todl` (0.0.1 → 0.1.0, minor: additive API + intended
 breaking `load` signature pre-1.0), build, and `npm publish` to Verdaccio
 (`http://localhost:4873`) — the same registry Plexus already consumes mural and
 fresco from.

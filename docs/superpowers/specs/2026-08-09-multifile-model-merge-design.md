@@ -75,4 +75,4 @@ contributing block has `conforms === null`, emit
 ## 6. Constraints
 
 ESM strict; tests via `tsx --conditions=development --test`; real enums; tests in
-`tests/` subfolders; `@pragmatic-lab/todl@0.22.0` floor.
+`tests/` subfolders; `@pragmatic-tech-ai/todl@0.22.0` floor.

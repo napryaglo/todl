@@ -14,7 +14,7 @@ is one `MetaKind` value, one `EdgeKind` value, four `Repository` query methods, 
 recursive parser/loader path. Hierarchy queries reuse the existing `closure()`
 machinery that already backs concept `Extends`.
 
-**Tech stack:** TypeScript (strict ESM), `@pragmatic-lab/todl`; tests via
+**Tech stack:** TypeScript (strict ESM), `@pragmatic-tech-ai/todl`; tests via
 `tsx --conditions=development --test "src/**/*.test.ts"`.
 
 ## Global Constraints

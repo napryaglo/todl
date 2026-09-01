@@ -6,13 +6,13 @@
 
 **Architecture:** New `DeclKind.Annotation`/`Package` AST nodes parsed by reserved keywords; annotation definitions become Ontology-tier `MetaKind.Annotation` nodes whose params are ordinary `HasField` members; each `annotate` becomes an Ontology-tier application node `<target>@<Ann>` (typed by the annotation, params as scalar attrs) linked to its target by `EdgeKind.Annotated`; a singleton `MetaKind.Package` node hosts package-level applications. Emit is unchanged (everything round-trips as nodes/edges/attrs).
 
-**Tech Stack:** TypeScript (ESM, strict), `tsx --test`, `@pragmatic-lab/todl`.
+**Tech Stack:** TypeScript (ESM, strict), `tsx --test`, `@pragmatic-tech-ai/todl`.
 
 **Spec:** `docs/superpowers/specs/2026-08-01-metamodel-annotations-sp1-design.md`
 
 ## Global Constraints
 
-- Target version: **`@pragmatic-lab/todl` 0.5.0** (reserves new keywords). Bump `package.json` in the final task.
+- Target version: **`@pragmatic-tech-ai/todl` 0.5.0** (reserves new keywords). Bump `package.json` in the final task.
 - Every test file lives in a `tests/` subfolder next to the code it exercises.
 - Runner: `npm test` = `tsx --conditions=development --test "src/**/*.test.ts"`. Single file: `tsx --conditions=development --test src/parse/tests/<file>.test.ts`.
 - Enums, not string-literal unions.

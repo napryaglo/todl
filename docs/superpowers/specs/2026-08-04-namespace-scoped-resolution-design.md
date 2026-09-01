@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-04
 **Status:** ✅ Finished
-**Package:** TODL (`@pragmatic-lab/todl`), consumed by Plexus/Mural via Verdaccio
+**Package:** TODL (`@pragmatic-tech-ai/todl`), consumed by Plexus/Mural via Verdaccio
 
 ## Problem
 
@@ -156,7 +156,7 @@ test, add the missing `import` (or convert to a `reference.unreachable`
 assertion where that's the point) → green → recompile the userData corpus and
 diff → only republish if a model.json actually changed.
 
-Downstream: publish TODL minor bump; bump `@pragmatic-lab/todl` in Plexus (and
+Downstream: publish TODL minor bump; bump `@pragmatic-tech-ai/todl` in Plexus (and
 Mural if it depends). Any Plexus in-app authored models that cross namespaces
 without imports will newly error and need an `import` — surfaced in the
 Problems panel; documented in the release note.

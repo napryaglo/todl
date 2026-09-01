@@ -13,7 +13,7 @@ classifying relations (dimensions). A taxonomy is a first-class Ontology entity
 that `represents` exactly one concept and curates a `Narrower` hierarchy of terms
 (= classes of that concept). No tower tiers are added.
 
-**Tech Stack:** TypeScript, `@pragmatic-lab/todl`; Node test runner; real TS enums.
+**Tech Stack:** TypeScript, `@pragmatic-tech-ai/todl`; Node test runner; real TS enums.
 
 **Scope:** TODL language + runtime only (program sub-project #1). The per-project
 instance storage + Cypher query layer (#2) is captured in

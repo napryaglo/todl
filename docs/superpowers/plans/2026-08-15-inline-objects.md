@@ -757,7 +757,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: Tasks 1-5 committed.
-- Produces: `@pragmatic-lab/todl@0.27.0` on local Verdaccio.
+- Produces: `@pragmatic-tech-ai/todl@0.27.0` on local Verdaccio.
 
 - [ ] **Step 1: Run the full TODL suite**
 
@@ -774,7 +774,7 @@ Expected: clean tsc build.
 Set `"version": "0.27.0"` in `package.json`, then:
 
 Run: `npm publish --registry http://localhost:4873`
-Expected: `+ @pragmatic-lab/todl@0.27.0`. (Verify Verdaccio, never public npm.)
+Expected: `+ @pragmatic-tech-ai/todl@0.27.0`. (Verify Verdaccio, never public npm.)
 
 - [ ] **Step 4: Commit**
 

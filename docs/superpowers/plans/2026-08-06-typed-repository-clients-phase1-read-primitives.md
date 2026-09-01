@@ -462,7 +462,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `Repository` (with Task 1 + Task 2 additions), `EntityBase`/`Entity` from `src/model/entity.ts`, `defineTaxonomy` on `Builder`.
-- Produces: `Entity` and `EntityBase` on the package public surface (`@pragmatic-lab/todl`), consumed by later phases and by Plexus.
+- Produces: `Entity` and `EntityBase` on the package public surface (`@pragmatic-tech-ai/todl`), consumed by later phases and by Plexus.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -551,7 +551,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 ## Done-when
 
-- `Repository` exposes `attr`, `ref`, `refs`, `referrers`, `danglingRefs`, and a memoized `entity()`; `Entity`/`EntityBase` are implemented and exported from `@pragmatic-lab/todl`.
+- `Repository` exposes `attr`, `ref`, `refs`, `referrers`, `danglingRefs`, and a memoized `entity()`; `Entity`/`EntityBase` are implemented and exported from `@pragmatic-tech-ai/todl`.
 - The whole TODL suite is green, `npm run typecheck` is clean, and `npm run build` compiles the new `entity` module.
 - No existing behaviour changed; all additions are net-new methods/files.
 - Deferred to later phases (do NOT do here): eager frozen hydration + `Object.freeze` + memoized derived queries (Phase 2); the positive-case `danglingRefs()` test via an overlay (Phase 4); typed codegen (Phase 3/5); `GraphStore` seam (Phase 6/7).

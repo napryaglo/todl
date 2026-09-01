@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-15
 **Status:** Approved (brainstorming)
-**Repo:** TODL (`@pragmatic-lab/todl`)
+**Repo:** TODL (`@pragmatic-tech-ai/todl`)
 
 ## Motivation
 

@@ -6,7 +6,7 @@
 
 **Architecture:** Content edits to `.todl` files under `C:\Users\Eugene\Projects\plexus_tests\meta-models\tech-architecture\` (not a git repo — edits are on-disk, verified by a headless load-check), plus a committed TODL regression test and a version bump in the TODL repo. The load-check (`scripts/check-metamodel.ts`) globs the meta-model, runs it through `check()` (prelude injected), and reports diagnostics. Baseline is **0**; every task must keep it **0**.
 
-**Tech Stack:** TypeScript (ESM, strict), TODL compiler `@pragmatic-lab/todl`. Runner: `tsx --conditions=development --test`. Verdaccio at `http://localhost:4873/`.
+**Tech Stack:** TypeScript (ESM, strict), TODL compiler `@pragmatic-tech-ai/todl`. Runner: `tsx --conditions=development --test`. Verdaccio at `http://localhost:4873/`.
 
 ## Global Constraints
 
@@ -309,11 +309,11 @@ Expected: version becomes `0.24.0`; a commit + tag `v0.24.0` are created.
 - [ ] **Step 3: Publish to Verdaccio**
 
 Run: `npm publish --registry http://localhost:4873/`
-Expected: `+ @pragmatic-lab/todl@0.24.0` (`prepublishOnly` runs `clean && build` first). If it errors that 0.24.0 already exists, the version was published earlier — verify with `npm view @pragmatic-lab/todl@0.24.0 version --registry http://localhost:4873/` and proceed.
+Expected: `+ @pragmatic-tech-ai/todl@0.24.0` (`prepublishOnly` runs `clean && build` first). If it errors that 0.24.0 already exists, the version was published earlier — verify with `npm view @pragmatic-tech-ai/todl@0.24.0 version --registry http://localhost:4873/` and proceed.
 
 - [ ] **Step 4: Verify the published emit shape carries `targets`**
 
-Run: `npm view @pragmatic-lab/todl@0.24.0 version --registry http://localhost:4873/`
+Run: `npm view @pragmatic-tech-ai/todl@0.24.0 version --registry http://localhost:4873/`
 Expected: prints `0.24.0`. (The emit-shape itself is covered by the TODL suite's `js-module` tests; this step only confirms the publish landed.)
 
 - [ ] **Step 5: Commit the plan/spec artifacts if not already committed**
@@ -334,13 +334,13 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - [ ] **Step 1: Confirm end state**
 
 - Meta-model load-check: `diagnostics: 0` (13 fields retyped: 5 union relationships + 8 concept-typed fields).
-- TODL suite green; `@pragmatic-lab/todl@0.24.0` published to Verdaccio; tag `v0.24.0`.
+- TODL suite green; `@pragmatic-tech-ai/todl@0.24.0` published to Verdaccio; tag `v0.24.0`.
 - Documented exceptions untouched: `container.deployed_into`, `application.enables`, `meta.meta_model`, all `id` fields.
 
 - [ ] **Step 2: Surface the SP3/SP5 handoff**
 
 - **SP3:** migrate instance data — `landscape.todl` / `model.todl` now fail (quoted-string refs on the retyped members); rewrite quoted refs to bare names and re-emit.
-- **SP5:** bump Plexus to `@pragmatic-lab/todl@^0.24.0`, update relationship `.target` → `.targets` consumers (`deriveClasses` + typed clients), drop-factory required `label`, and perform the live in-app republish of tech-architecture.
+- **SP5:** bump Plexus to `@pragmatic-tech-ai/todl@^0.24.0`, update relationship `.target` → `.targets` consumers (`deriveClasses` + typed clients), drop-factory required `label`, and perform the live in-app republish of tech-architecture.
 - Do not push; do not start SP3/SP5 without approval.
 
 ## Self-Review

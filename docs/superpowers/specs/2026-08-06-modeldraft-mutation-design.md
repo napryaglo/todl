@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-06
 **Status:** Draft — awaiting review.
-**Component:** TODL (`@pragmatic-lab/todl`) ModelDraft, consumed by Plexus. Closes "Layer #3" of the Plexus-onto-new-TODL modernization and delivers the long-deferred "re-open a saved `.todl` as an editable draft."
+**Component:** TODL (`@pragmatic-tech-ai/todl`) ModelDraft, consumed by Plexus. Closes "Layer #3" of the Plexus-onto-new-TODL modernization and delivers the long-deferred "re-open a saved `.todl` as an editable draft."
 
 ---
 

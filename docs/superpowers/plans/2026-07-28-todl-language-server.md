@@ -4,30 +4,30 @@
 
 **Goal:** Wrap the completed analysis core in a `vscode-languageserver` LSP server — one process that partitions documents into multiple projects (pushed + FS source modes), keeps each project's analysis fresh, answers every LSP request by delegating to the core, and ships a stdio binary.
 
-**Architecture:** A new `src/language-server/` folder exported as `@pragmatic-lab/todl/language-server` (with a `bin`). A `ProjectRegistry` assigns documents to projects by longest URI-prefix match; a `SourceProvider` supplies each project's sources (open-buffer text for pushed mode, on-disk `*.todl` for FS mode). `createServer(connection)` wires capabilities, thin delegating request handlers, custom base notifications, and a debounced per-project re-analysis loop.
+**Architecture:** A new `src/language-server/` folder exported as `@pragmatic-tech-ai/todl/language-server` (with a `bin`). A `ProjectRegistry` assigns documents to projects by longest URI-prefix match; a `SourceProvider` supplies each project's sources (open-buffer text for pushed mode, on-disk `*.todl` for FS mode). `createServer(connection)` wires capabilities, thin delegating request handlers, custom base notifications, and a debounced per-project re-analysis loop.
 
-**Tech Stack:** TypeScript (ESM, strict: `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`), `@pragmatic-lab/todl/language-service` (the core), `vscode-languageserver@9` + `vscode-languageserver-textdocument`, `vscode-jsonrpc` (test harness), `node:test` via `tsx`.
+**Tech Stack:** TypeScript (ESM, strict: `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`), `@pragmatic-tech-ai/todl/language-service` (the core), `vscode-languageserver@9` + `vscode-languageserver-textdocument`, `vscode-jsonrpc` (test harness), `node:test` via `tsx`.
 
 **Spec:** [`2026-07-28-todl-language-server-spec2-design.md`](../specs/2026-07-28-todl-language-server-spec2-design.md).
 
 ## Global Constraints
 
 - **Thin server:** no language logic; every request handler maps LSP params → a core query over the owning project's cached `Analysis` → an LSP result.
-- **Dependency direction:** server → core → compiler. The server imports the core's public barrel (`@pragmatic-lab/todl/language-service`), never its internals.
+- **Dependency direction:** server → core → compiler. The server imports the core's public barrel (`@pragmatic-tech-ai/todl/language-service`), never its internals.
 - **Multi-project:** documents assigned to projects by **longest-prefix match** of URI against registered `rootUri`s. Re-analysis is per project; editing project A never re-analyzes project B.
 - **FS-mode bases:** FS mode validates each workspace as a self-contained project (`bases = []`); it resolves no external published meta-models. External bases are pushed-mode only.
 - **Strict mode:** guard indexed access; never assign `undefined` to an optional property — omit or guard.
 - **Tests:** `tests/` subfolder next to source. Run `npx tsx --conditions=development --test "<glob>"`.
 - **Install note:** `vscode-languageserver` / `vscode-languageserver-textdocument` install from public npm (Verdaccio down) with `--no-save`; the lockfile reconciles on the next registry-up install.
 
-**Existing core surface this plan consumes** (all from `@pragmatic-lab/todl/language-service`):
-`analyze(sources: SourceFile[], bases?: TodlDocument[]): Analysis`; `Analysis { sources: Map<uri,{ast,tokens,text}>, model, refs, defs, diagnostics: Diagnostic[] }`; and the query fns `completionsAt`, `hoverAt`, `definitionAt`, `referencesAt`, `prepareRename`, `renameEdits` (→ `WorkspaceEdit | {error}`), `documentSymbols`, `foldingRanges`, `workspaceSymbols`, `semanticTokens`, `SEMANTIC_LEGEND`, `codeActions`, `formatDocument`, `signatureHelpAt`. `SourceFile` = `{ uri: string; text: string }` (from `@pragmatic-lab/todl`); `TodlDocument` (from `@pragmatic-lab/todl`).
+**Existing core surface this plan consumes** (all from `@pragmatic-tech-ai/todl/language-service`):
+`analyze(sources: SourceFile[], bases?: TodlDocument[]): Analysis`; `Analysis { sources: Map<uri,{ast,tokens,text}>, model, refs, defs, diagnostics: Diagnostic[] }`; and the query fns `completionsAt`, `hoverAt`, `definitionAt`, `referencesAt`, `prepareRename`, `renameEdits` (→ `WorkspaceEdit | {error}`), `documentSymbols`, `foldingRanges`, `workspaceSymbols`, `semanticTokens`, `SEMANTIC_LEGEND`, `codeActions`, `formatDocument`, `signatureHelpAt`. `SourceFile` = `{ uri: string; text: string }` (from `@pragmatic-tech-ai/todl`); `TodlDocument` (from `@pragmatic-tech-ai/todl`).
 
 ---
 
 ### Task 1: Package wiring + barrel
 
-Add the LSP runtime deps, the `@pragmatic-lab/todl/language-server` subpath export, the `bin` field, and a barrel that re-exports `createServer` (added in Task 5). Task 1 lands the barrel importing a placeholder so the package resolves; `createServer` arrives in Task 5.
+Add the LSP runtime deps, the `@pragmatic-tech-ai/todl/language-server` subpath export, the `bin` field, and a barrel that re-exports `createServer` (added in Task 5). Task 1 lands the barrel importing a placeholder so the package resolves; `createServer` arrives in Task 5.
 
 **Files:**
 - Modify: `package.json` (deps, `exports`, `bin`)
@@ -35,7 +35,7 @@ Add the LSP runtime deps, the `@pragmatic-lab/todl/language-server` subpath expo
 - Test: `src/language-server/tests/package.test.ts`
 
 **Interfaces:**
-- Produces: the subpath `@pragmatic-lab/todl/language-server` resolving to `src/language-server/index.ts` (dev condition).
+- Produces: the subpath `@pragmatic-tech-ai/todl/language-server` resolving to `src/language-server/index.ts` (dev condition).
 
 - [ ] **Step 1: Install the runtime deps**
 
@@ -206,7 +206,7 @@ The multi-project store: register roots, assign documents by longest-prefix matc
 - Test: `src/language-server/tests/workspace.test.ts`
 
 **Interfaces:**
-- Consumes: `Analysis` from `@pragmatic-lab/todl/language-service`; `TodlDocument` from `@pragmatic-lab/todl`.
+- Consumes: `Analysis` from `@pragmatic-tech-ai/todl/language-service`; `TodlDocument` from `@pragmatic-tech-ai/todl`.
 - Produces:
   - `interface Project { rootUri: string; bases: TodlDocument[]; analysis: Analysis | null; dirty: boolean }`
   - `class ProjectRegistry` with: `register(rootUri: string): Project`, `setBases(rootUri: string, bases: TodlDocument[]): void`, `projectFor(uri: string): Project | null`, `markDirty(rootUri: string): void`, `dirtyProjects(): Project[]`, `all(): Project[]`, `remove(rootUri: string): void`.
@@ -248,8 +248,8 @@ Expected: FAIL — `../workspace.js` does not exist.
 - [ ] **Step 3: Implement `src/language-server/workspace.ts` (registry portion)**
 
 ```ts
-import type { Analysis } from "@pragmatic-lab/todl/language-service";
-import type { TodlDocument } from "@pragmatic-lab/todl";
+import type { Analysis } from "@pragmatic-tech-ai/todl/language-service";
+import type { TodlDocument } from "@pragmatic-tech-ai/todl";
 
 export interface Project {
   rootUri: string;
@@ -320,7 +320,7 @@ The seam that supplies each project's `SourceFile[]`: open-buffer text (pushed) 
 - Test: `src/language-server/tests/source-providers.test.ts`
 
 **Interfaces:**
-- Consumes: `Project` (Task 3); `TextDocuments<TextDocument>` from `vscode-languageserver`/`vscode-languageserver-textdocument`; `SourceFile` from `@pragmatic-lab/todl`; Node `fs`, `url`.
+- Consumes: `Project` (Task 3); `TextDocuments<TextDocument>` from `vscode-languageserver`/`vscode-languageserver-textdocument`; `SourceFile` from `@pragmatic-tech-ai/todl`; Node `fs`, `url`.
 - Produces:
   - `interface SourceProvider { initialRoots(folders: string[]): string[]; sourcesFor(project: Project, docs: TextDocuments<TextDocument>): SourceFile[] }`
   - `class PushedSourceProvider implements SourceProvider`
@@ -385,7 +385,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { join } from "node:path";
 import type { TextDocuments } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
-import type { SourceFile } from "@pragmatic-lab/todl";
+import type { SourceFile } from "@pragmatic-tech-ai/todl";
 
 export interface SourceProvider {
   // The project roots known at startup (FS: workspace folder URIs; pushed: []).
@@ -519,7 +519,7 @@ import {
   type Connection, type InitializeParams, type InitializeResult,
 } from "vscode-languageserver/node.js";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { SEMANTIC_LEGEND } from "@pragmatic-lab/todl/language-service";
+import { SEMANTIC_LEGEND } from "@pragmatic-tech-ai/todl/language-service";
 import { ProjectRegistry, PushedSourceProvider, FsSourceProvider, type SourceProvider } from "./workspace.js";
 
 export { createConnection };
@@ -628,7 +628,7 @@ Expected: FAIL — no diagnostics are ever published (no lifecycle wired, no `to
 Add the core import:
 
 ```ts
-import { analyze } from "@pragmatic-lab/todl/language-service";
+import { analyze } from "@pragmatic-tech-ai/todl/language-service";
 ```
 
 Inside `createServer`, after `const provider = …` and before `documents.listen`, add the debounce + revalidation and the change/notification wiring:
@@ -766,7 +766,7 @@ import {
   completionsAt, hoverAt, definitionAt, referencesAt, prepareRename, renameEdits,
   documentSymbols, foldingRanges, workspaceSymbols, semanticTokens, codeActions,
   formatDocument, signatureHelpAt, type Analysis,
-} from "@pragmatic-lab/todl/language-service";
+} from "@pragmatic-tech-ai/todl/language-service";
 ```
 
 Add a resolver + the handlers inside `createServer` (after the lifecycle wiring):
@@ -865,7 +865,7 @@ Create `src/language-server/tests/server-bases-multiproject.test.ts`:
 ```ts
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { check, toJSON } from "@pragmatic-lab/todl";
+import { check, toJSON } from "@pragmatic-tech-ai/todl";
 import { startServer, pushedInit } from "./harness.js";
 
 // Compile a base model defining `element` with a REQUIRED `label` field. The

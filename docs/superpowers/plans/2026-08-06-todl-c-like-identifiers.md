@@ -579,14 +579,14 @@ Expected: suite green, no type errors, build succeeds.
 - [ ] **Step 2: Bump + publish to Verdaccio**
 
 Run: `npm version minor --no-git-tag-version && npm publish`
-Expected: `@pragmatic-lab/todl@0.19.0` published to `http://localhost:4873/`. (Breaking change; pre-1.0 minor per repo convention. SP2 will republish the Plexus corpus against it.)
+Expected: `@pragmatic-tech-ai/todl@0.19.0` published to `http://localhost:4873/`. (Breaking change; pre-1.0 minor per repo convention. SP2 will republish the Plexus corpus against it.)
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add package.json
 git commit -m "$(cat <<'EOF'
-chore(release): @pragmatic-lab/todl 0.19.0 — C-like identifiers
+chore(release): @pragmatic-tech-ai/todl 0.19.0 — C-like identifiers
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 EOF
@@ -600,5 +600,5 @@ EOF
 - **The recaser must never be recased.** Steps in Task 4 explicitly skip `src/migrate/recase.ts`, `recase-ts.ts`, and their tests — those hold kebab literals *as data* (keyword sets, regexes, test fixtures) and must not be rewritten.
 - **The oracle is the contract.** Task 4's correctness = the full suite passing. A recaser miss surfaces as a specific test failure with a specific id; fix that id. Do not broaden the recaser mid-migration unless a failure class is systematic.
 - **Red window is expected** in Task 4 between the lexer flip and full green — that is inherent to a disjoint-grammar cutover, and is contained to the feature branch.
-- **Deferred (separate sub-projects):** SP2 — Plexus meta-model/library `.todl` corpus + emitters that synthesize kebab ids + `@pragmatic-lab/todl` floor bump + republish (reuses this recaser). SP3 — resume mural-resource-keys with PascalCase names (`Plexus/docs/superpowers/` spec+plan already exist).
+- **Deferred (separate sub-projects):** SP2 — Plexus meta-model/library `.todl` corpus + emitters that synthesize kebab ids + `@pragmatic-tech-ai/todl` floor bump + republish (reuses this recaser). SP3 — resume mural-resource-keys with PascalCase names (`Plexus/docs/superpowers/` spec+plan already exist).
 ```

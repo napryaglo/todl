@@ -1,4 +1,4 @@
-/** Public API for `@pragmatic-lab/todl`. */
+/** Public API for `@pragmatic-tech-ai/todl`. */
 
 export { Signal, type Disposable } from "./core/signal.js";
 

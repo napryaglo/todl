@@ -345,7 +345,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `FrozenRepository`, `Entity` (Phase 1), `toJSON`.
-- Produces: `FrozenRepository` + `graphFromJSON` on the package public surface (`@pragmatic-lab/todl`), consumed by Phase 3 codegen.
+- Produces: `FrozenRepository` + `graphFromJSON` on the package public surface (`@pragmatic-tech-ai/todl`), consumed by Phase 3 codegen.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -442,6 +442,6 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 - `FrozenRepository` loads a `TodlDocument`, is immutable (`builder()` throws), memoizes its read path (same-instance returned), freezes handles, and shares reference instances (cycle-safe) — all reusing Phase 1's `EntityBase`.
 - A hand-written `TechCatalog` client validates the Component C package-class shape (concept collection accessors + typed entity reads) over `FrozenRepository`; `fromJSON` is polymorphic so subclasses hydrate as themselves.
-- `FrozenRepository` + `graphFromJSON` are exported from `@pragmatic-lab/todl`.
+- `FrozenRepository` + `graphFromJSON` are exported from `@pragmatic-tech-ai/todl`.
 - Whole suite green, typecheck clean, build emits the new `frozen` module; no existing behaviour changed (only the behaviour-preserving `graphFromJSON` extraction).
 - Deferred to later phases (do NOT do here): generating the client `.ts` from a schema (Phase 3); `ModelDraft` overlay + cross-boundary refs (Phase 4); authoring constructors (Phase 5); the `GraphStore` seam + Cypher (Phase 6/7).

@@ -6,7 +6,7 @@
 
 **Architecture:** A first-wins `HomeRecorder` (`{ current, map }`) is threaded through the loader's third (instance) materialization pass. Every own node is created through `applyInstance` or `applyModel` — including minted reified edges and inline objects, which synthesize an `InstanceDecl` and route through `applyInstance` — so recording at those two chokepoints captures all of them. The recorder's `current` uri is set from each unit before it materializes. `loadInto` fills an optional provenance map; `load`/`check`/`checkAgainst` expose it; `fromSources` consumes it and drops its re-parse heuristic.
 
-**Tech Stack:** TypeScript (ESM, strict), `@pragmatic-lab/todl`. Tests are `node:test` + `node:assert/strict`, run with `tsx --conditions=development --test "src/**/*.test.ts"`.
+**Tech Stack:** TypeScript (ESM, strict), `@pragmatic-tech-ai/todl`. Tests are `node:test` + `node:assert/strict`, run with `tsx --conditions=development --test "src/**/*.test.ts"`.
 
 ## Global Constraints
 
@@ -672,8 +672,8 @@ EOF
 ## Rollout (post-merge, when the user asks)
 
 Not implementation tasks — the finishing step. After the branch merges to TODL main:
-1. Bump `@pragmatic-lab/todl` version and republish to **local Verdaccio** (`localhost:4873`).
-2. Bump Plexus's `@pragmatic-lab/todl` dependency to the new version.
+1. Bump `@pragmatic-tech-ai/todl` version and republish to **local Verdaccio** (`localhost:4873`).
+2. Bump Plexus's `@pragmatic-tech-ai/todl` dependency to the new version.
 
 Plexus needs **no code change** — `ArchModel.save()` already routes through `toTodlByFile()`; once TODL homes minted ids, saves land in the correct file automatically.
 

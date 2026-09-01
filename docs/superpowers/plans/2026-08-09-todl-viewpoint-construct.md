@@ -6,7 +6,7 @@
 
 **Architecture:** Every piece parallels the existing taxonomy construct: a new `DeclKind.Viewpoint` + `ViewpointDecl` AST node and `parseViewpoint`; a new `MetaKind.Viewpoint` node kind and `EdgeKind.Frames` edge kind; a `Builder.defineViewpoint`; `frames`/`framedBy`/`viewpoints`/`viewpointsFraming` Repository queries; frames references resolved through the shared `visitReferences` machinery (like `represents`); and validation for empty/non-concept frames. No `conforms`, no models, no Plexus.
 
-**Tech Stack:** TypeScript (ESM, strict), `@pragmatic-lab/todl`. Node test runner via `tsx`.
+**Tech Stack:** TypeScript (ESM, strict), `@pragmatic-tech-ai/todl`. Node test runner via `tsx`.
 
 ## Global Constraints
 

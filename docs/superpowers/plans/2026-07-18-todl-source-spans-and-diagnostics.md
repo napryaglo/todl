@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Every TODL diagnostic (lex / parse / validate) carries a `SourceSpan` (file + start/end line:column); `parse` and `load` recover from errors and return diagnostic lists instead of throwing on the first one; a `check()` convenience runs load+validate; then publish `@pragmatic-lab/todl` so Plexus can show inline editor squiggles.
+**Goal:** Every TODL diagnostic (lex / parse / validate) carries a `SourceSpan` (file + start/end line:column); `parse` and `load` recover from errors and return diagnostic lists instead of throwing on the first one; a `check()` convenience runs load+validate; then publish `@pragmatic-tech-ai/todl` so Plexus can show inline editor squiggles.
 
 **Architecture:** Spans are captured at the lexer (each `Token` records its end position, since a string token's decoded `value` ≠ its source length) and threaded through the AST (each node gets a `span`) into the Model (a `NodeId`/member → span map). A single `Diagnostic` type spans all phases. The lexer and parser recover: the lexer skips bad characters emitting a diagnostic; the parser catches per-declaration errors, records a diagnostic, and re-synchronizes to the next declaration boundary.
 
@@ -1062,7 +1062,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 ---
 
-### Task 10: Publish `@pragmatic-lab/todl` to Verdaccio
+### Task 10: Publish `@pragmatic-tech-ai/todl` to Verdaccio
 
 **Files:**
 - Modify: `package.json` (version bump)
@@ -1087,18 +1087,18 @@ Expected: `OK` (start Verdaccio if not — same registry Plexus uses). If auth i
 - [ ] **Step 4: Publish**
 
 Run: `npm publish --registry http://localhost:4873`
-Expected: `+ @pragmatic-lab/todl@0.1.0`.
+Expected: `+ @pragmatic-tech-ai/todl@0.1.0`.
 
 - [ ] **Step 5: Verify the published package resolves**
 
-Run: `curl -s http://localhost:4873/@pragmatic-lab%2ftodl | grep -o '"version":"0.1.0"' | head -1`
+Run: `curl -s http://localhost:4873/@pragmatic-tech-ai%2ftodl | grep -o '"version":"0.1.0"' | head -1`
 Expected: `"version":"0.1.0"`.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add package.json
-git commit -m "chore: publish @pragmatic-lab/todl 0.1.0 (spans, recovery, check)
+git commit -m "chore: publish @pragmatic-tech-ai/todl 0.1.0 (spans, recovery, check)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ```

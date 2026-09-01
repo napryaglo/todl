@@ -1,7 +1,7 @@
 # Meta-Model Annotations — SP1 (TODL language) Design
 
 **Status:** ✅ Finished
-**Target package:** `@pragmatic-lab/todl` (0.4.0 → **0.5.0**, reserves new keywords)
+**Target package:** `@pragmatic-tech-ai/todl` (0.4.0 → **0.5.0**, reserves new keywords)
 **Date:** 2026-08-01
 
 ## 0. Context — the three sub-projects
@@ -241,7 +241,7 @@ nodes/edges, which SP2/SP3 read.
   fixtures, as in the `model` work).
 - Additive to the graph model; existing meta-models without annotations are
   unaffected.
-- Reserving keywords is a breaking surface change → **`@pragmatic-lab/todl`
+- Reserving keywords is a breaking surface change → **`@pragmatic-tech-ai/todl`
   0.5.0**, republished to Verdaccio in SP1's release step; Plexus bumps when it
   consumes annotations (SP2).
 

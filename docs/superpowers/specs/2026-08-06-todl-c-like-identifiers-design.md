@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-06
 **Status:** Approved, ready for planning
-**Repo:** TODL (`@pragmatic-lab/todl`)
+**Repo:** TODL (`@pragmatic-tech-ai/todl`)
 **Part of:** a 3-stage effort — **SP1 (this spec):** TODL grammar cutover + recaser tool + migrate TODL's own corpus + publish. **SP2 (separate):** migrate the Plexus meta-model/library corpus + emitters, bump. **SP3 (separate):** resume the parked mural-resource-keys feature, now with PascalCase names legal.
 
 ## Goal
@@ -119,6 +119,6 @@ Apply the `.ts` fragment recaser to embedded `.todl` template literals across `s
 
 ## Out of scope (separate sub-projects)
 
-- **SP2:** the Plexus meta-model/library `.todl` corpus (e.g. the microsoft library), the Plexus emitters that *synthesize* kebab ids (slugify → C-like), the `@pragmatic-lab/todl` floor bump, and re-publishing bases. Reuses this recaser.
+- **SP2:** the Plexus meta-model/library `.todl` corpus (e.g. the microsoft library), the Plexus emitters that *synthesize* kebab ids (slugify → C-like), the `@pragmatic-tech-ai/todl` floor bump, and re-publishing bases. Reuses this recaser.
 - **SP3:** the parked mural-resource-keys feature — resume with `MuralResource`/`Key`/`ResourceKey` now legal (the spec/plan already exist under `Plexus/docs/superpowers/`).
 - No additive/back-compat kebab support (deliberate hard cutover).
