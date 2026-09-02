@@ -9,12 +9,14 @@ resources Docs {
     // Detail pane — a single ContentControl target, so wrapping / tall content
     // renders correctly (unlike tall wrapping items inside a list).
     DataTemplate [DataType = DocsSectionVM] {
-        StackPanel [ Orientation = Vertical, Margin = (16,12,16,12) ] {
-            TextBlock [ FontSize = 18, FontWeight = Bold, Margin = (0,0,0,8), Text = $Heading ]
-            TextBlock [ TextWrapping = Wrap, Foreground = @OnSurfaceVariant, Margin = (0,0,0,12), Text = $Narrative ]
-            TextBlock [ FontFamily = "Cascadia Mono, Consolas, monospace", FontSize = 13, TextWrapping = NoWrap, Text = $Source ]
-            TextBlock [ FontSize = 12, FontWeight = Bold, Foreground = @Primary, Margin = (0,10,0,6), Text = $Status ]
-            TextBlock [ FontFamily = "Cascadia Mono, Consolas, monospace", FontSize = 11, TextWrapping = NoWrap, Foreground = @OnSurfaceVariant, Text = $Json ]
+        ScrollViewer {
+            StackPanel [ Orientation = Vertical, Margin = (16,12,16,12) ] {
+                TextBlock [ FontSize = 18, FontWeight = Bold, Margin = (0,0,0,8), Text = $Heading ]
+                TextBlock [ TextWrapping = Wrap, Foreground = @OnSurfaceVariant, Margin = (0,0,0,12), Text = $Narrative ]
+                ContentControl [ Content = $SourceView ]
+                TextBlock [ FontSize = 12, FontWeight = Bold, Foreground = @Primary, Margin = (0,10,0,6), Text = $Status ]
+                ContentControl [ Content = $JsonView ]
+            }
         }
     }
     DataTemplate [DataType = DocsVM] {

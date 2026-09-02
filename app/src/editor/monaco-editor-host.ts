@@ -19,6 +19,8 @@ export class MonacoEditorHost extends DomHost {
   private updating = false;
   private modelUri?: string;
   private language = "todl";
+  private autoHeight = false;
+  private contentHeight = 0;
 
   constructor() {
     super();
@@ -38,6 +40,11 @@ export class MonacoEditorHost extends DomHost {
    *  read-only viewers). Call before mount. */
   useLanguage(language: string): void { this.language = language; }
 
+  /** Size the host's height to the editor's content (for short read-only
+   *  snippets in a stacking layout) instead of filling its container. Call
+   *  before mount. */
+  useAutoHeight(): void { this.autoHeight = true; }
+
   /** The mounted Monaco editor, once realized (for callers that register on it). */
   get Editor(): monaco.editor.IStandaloneCodeEditor | undefined { return this.editor; }
 
@@ -46,7 +53,13 @@ export class MonacoEditorHost extends DomHost {
   // the foreignObject is never created (the renderer only reads ForeignElement).
   protected override MeasureOverride(available: Size): Size {
     void this.HostElement;
-    return super.MeasureOverride(available);
+    const base = super.MeasureOverride(available);
+    // Auto-height snippets size to their content; width still fills the column.
+    if (this.autoHeight && this.contentHeight > 0) {
+      const width = Number.isFinite(available.Width) ? available.Width : base.Width;
+      return new Size(width, this.contentHeight);
+    }
+    return base;
   }
 
   protected override CreateHostElement(document: Document): HTMLElement {
@@ -64,6 +77,14 @@ export class MonacoEditorHost extends DomHost {
       this.set_property_value(MonacoEditorHost.TextKey, this.editor!.getValue());
       this.updating = false;
     });
+    if (this.autoHeight) {
+      const syncHeight = () => {
+        const h = this.editor!.getContentHeight();
+        if (h !== this.contentHeight) { this.contentHeight = h; this.InvalidateMeasure(); }
+      };
+      this.editor.onDidContentSizeChange(syncHeight);
+      syncHeight();
+    }
     // A host that fully owns input stops native events at its boundary so Mural's
     // routing doesn't fight Monaco's overlay widgets (menus, suggest, etc.).
     for (const ev of ["keydown", "keyup", "pointerdown", "pointerup"]) {
