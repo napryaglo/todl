@@ -122,6 +122,9 @@ export {
   type TodlDocument,
   type JsonNode,
   type JsonEdge,
+  type EmitOptions,
+  type NodeDebug,
+  type EdgeDebug,
 } from "./emit/json.js";
 
 export { toMetaModule, type MetaModuleOptions } from "./emit/js-module.js";

@@ -48,6 +48,23 @@ describe("compilePackage", () => {
     assert.equal(pkg.version, "0.1.0");
   });
 
+  test("debug off (default): package documents carry no debug metadata", () => {
+    const pkg = compilePackage([], [META], { id: "ea", version: "0.1.0" }).package!;
+    assert.ok(pkg.document.nodes.every((n) => n.debug === undefined), "own doc plain");
+    assert.ok(pkg.fullDocument.nodes.every((n) => n.debug === undefined), "full doc plain");
+  });
+
+  test("debug on: own + full documents carry readable metadata (with provenance)", () => {
+    const pkg = compilePackage([], [META], { id: "ea", version: "0.1.0" }, undefined, {
+      debug: true,
+    }).package!;
+    const tech = pkg.document.nodes.find((n) => n.id === "Technology");
+    assert.deepEqual(tech?.debug, {
+      kind: "concept", name: "Technology", type: "concept", namespace: "ea",
+    });
+    assert.ok(pkg.fullDocument.nodes.some((n) => n.debug !== undefined), "full doc annotated too");
+  });
+
   test("erroring sources → not ok, errors populated, no package", () => {
     const bad: SourceFile = { uri: "x.todl", text: `namespace x { concept C { f : NonexistentType; } }` };
     const out = compilePackage([], [bad], { id: "x", version: "0.1.0" });

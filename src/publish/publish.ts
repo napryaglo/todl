@@ -11,7 +11,7 @@
  */
 
 import { checkAgainst } from "../api.js";
-import { toJSON, toJSONOwn, type TodlDocument } from "../emit/json.js";
+import { toJSON, toJSONOwn, type TodlDocument, type EmitOptions } from "../emit/json.js";
 import { Severity, type Diagnostic } from "../diagnostics/diagnostic.js";
 import type { SourceFile } from "../diagnostics/span.js";
 import { preludeDocument } from "../stdlib/prelude.js";
@@ -76,10 +76,13 @@ export function compilePackage(
   sources: readonly SourceFile[],
   identity: PackageIdentity,
   dependencies?: readonly PackageRef[],
+  options?: EmitOptions,
 ): CompileOutcome {
-  const { model, diagnostics } = checkAgainst([...bases], [...sources]);
+  const { model, diagnostics, provenance } = checkAgainst([...bases], [...sources]);
   const errors = diagnostics.filter((d) => d.severity === Severity.Error);
   if (errors.length > 0) return { ok: false, diagnostics, errors };
+  // Debug emit reuses the compile's provenance for the `source` field.
+  const emit: EmitOptions | undefined = options?.debug ? { debug: true, provenance } : undefined;
 
   // Own = every node the compile added beyond the seeded base graph. The seed is
   // `mergeBases([prelude, ...bases])`, so its ids are the union of the prelude
@@ -90,8 +93,8 @@ export function compilePackage(
   for (const b of [preludeDocument(), ...bases]) for (const n of b.nodes) baseIds.add(n.id);
   const ownIds = new Set(model.allNodes().map((n) => n.id).filter((id) => !baseIds.has(id)));
 
-  const fullDocument = toJSON(model);
-  const document: PackageDocument = toJSONOwn(model, ownIds);
+  const fullDocument = toJSON(model, emit);
+  const document: PackageDocument = toJSONOwn(model, ownIds, emit);
   if (dependencies !== undefined && dependencies.length > 0) {
     document.dependencies = [...dependencies];
   }
