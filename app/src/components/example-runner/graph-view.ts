@@ -1,17 +1,44 @@
 import { Canvas, Border, TextBlock, Line, StackPanel, Path } from "@pragmatic-tech-ai/mural/basic";
 import { Pen, SolidColorBrush, Color, Thickness, RotateTransform, PointerEventArgs, PointerButton, WheelEventArgs, ModifierKeys, hasModifier, ScaleTransform } from "@pragmatic-tech-ai/mural/visual-engine";
 import { ScrollViewer } from "@pragmatic-tech-ai/mural/framework";
+import { Application } from "@pragmatic-tech-ai/mural/runtime";
 import { type GraphLayout, type LaidOutNode, edgeGeometry } from "../../../../shared/graph-layout.js";
 
-const NODE_FILL = new SolidColorBrush(new Color(238, 242, 248, 255));
-const NODE_STROKE = new Pen(new SolidColorBrush(new Color(90, 110, 140, 255)), 1);
-const SELECTED_STROKE = new Pen(new SolidColorBrush(new Color(40, 90, 200, 255)), 2);
-const EDGE_PEN = new Pen(new SolidColorBrush(new Color(120, 130, 145, 255)), 1.5);
 const ARROW = "M 0 0 L -9 -4 L -9 4 Z";                 // tip at origin, body toward -X
-const ARROW_FILL = new SolidColorBrush(new Color(120, 130, 145, 255));
-const LABEL_FILL = new SolidColorBrush(new Color(90, 100, 115, 255));
 const ARROW_INSET = 14;                                 // keep the tip off the target box
 const MIN_Z = 0.3, MAX_Z = 3;
+
+/** Resolve an active-scheme brush by its `@token` name (e.g. "OnSurface"),
+ *  falling back to the MaterialDark value so the graph stays theme-dark even if
+ *  a lookup misses. */
+function themeBrush(key: string, r: number, g: number, b: number): SolidColorBrush {
+  const found = Application.ResolveDefaultResource(key);
+  return found instanceof SolidColorBrush ? found : new SolidColorBrush(new Color(r, g, b, 255));
+}
+
+/** The theme brushes/pens the graph paints with, read from the active scheme.
+ *  Built per-render (not as module constants) because those would evaluate
+ *  before the theme is activated in main.ts. Fallbacks are the MaterialDark
+ *  token values. */
+interface GraphPalette {
+  nodeFill: SolidColorBrush; nodeStroke: Pen; selectedStroke: Pen;
+  edgePen: Pen; arrowFill: SolidColorBrush; labelFill: SolidColorBrush;
+  textFill: SolidColorBrush; subFill: SolidColorBrush;
+}
+function graphPalette(): GraphPalette {
+  const outline = themeBrush("Outline", 147, 143, 153);
+  const onSurfaceVariant = themeBrush("OnSurfaceVariant", 202, 196, 208);
+  return {
+    nodeFill: themeBrush("SurfaceContainerHigh", 43, 41, 48),   // elevated card vs the darker canvas
+    nodeStroke: new Pen(themeBrush("OutlineVariant", 73, 69, 79), 1),
+    selectedStroke: new Pen(themeBrush("Primary", 208, 188, 255), 2),
+    edgePen: new Pen(outline, 1.5),
+    arrowFill: outline,
+    labelFill: onSurfaceVariant,
+    textFill: themeBrush("OnSurface", 230, 225, 229),
+    subFill: onSurfaceVariant,
+  };
+}
 
 /** A node box that reports primary-button clicks. Subclassing + overriding the
  *  pointer virtual is the only way to handle input on an imperative visual. */
@@ -60,6 +87,7 @@ class GraphCanvas extends Canvas {
 function populateGraph(canvas: Canvas, layout: GraphLayout, onSelect: (n: LaidOutNode) => void): void {
   canvas.Width = Math.max(layout.width, 1);
   canvas.Height = Math.max(layout.height, 1);
+  const pal = graphPalette();
   const pos = new Map(layout.nodes.map((n) => [n.id, n]));
 
   // Edges first (drawn under the node boxes): line + arrowhead at the target + a
@@ -70,7 +98,7 @@ function populateGraph(canvas: Canvas, layout: GraphLayout, onSelect: (n: LaidOu
     const g = edgeGeometry(a, b);
     const line = new Line();
     line.X1 = 0; line.Y1 = 0; line.X2 = g.x2 - g.x1; line.Y2 = g.y2 - g.y1;
-    line.Stroke = EDGE_PEN;
+    line.Stroke = pal.edgePen;
     Canvas.SetLeft(line, g.x1);
     Canvas.SetTop(line, g.y1);
     canvas.AddChild(line);
@@ -78,7 +106,7 @@ function populateGraph(canvas: Canvas, layout: GraphLayout, onSelect: (n: LaidOu
     const rad = g.angleDeg * Math.PI / 180;
     const tipX = g.x2 - Math.cos(rad) * ARROW_INSET, tipY = g.y2 - Math.sin(rad) * ARROW_INSET;
     const head = new Path();
-    head.Data = ARROW; head.Fill = ARROW_FILL;
+    head.Data = ARROW; head.Fill = pal.arrowFill;
     head.RenderTransform = new RotateTransform(g.angleDeg);
     Canvas.SetLeft(head, tipX);
     Canvas.SetTop(head, tipY);
@@ -86,7 +114,7 @@ function populateGraph(canvas: Canvas, layout: GraphLayout, onSelect: (n: LaidOu
 
     if (e.label) {
       const lbl = new TextBlock();
-      lbl.Text = e.label; lbl.FontSize = 10; lbl.Foreground = LABEL_FILL;
+      lbl.Text = e.label; lbl.FontSize = 10; lbl.Foreground = pal.labelFill;
       Canvas.SetLeft(lbl, g.midX + 3);
       Canvas.SetTop(lbl, g.midY - 14);
       canvas.AddChild(lbl);
@@ -98,18 +126,18 @@ function populateGraph(canvas: Canvas, layout: GraphLayout, onSelect: (n: LaidOu
     const box = new SelectableNodeBorder();
     box.node = n;
     box.Width = n.w; box.Height = n.h;
-    box.Fill = NODE_FILL; box.Stroke = NODE_STROKE;
+    box.Fill = pal.nodeFill; box.Stroke = pal.nodeStroke;
     box.onPick = (node, b) => {
-      if (selected) selected.Stroke = NODE_STROKE;   // clear the previous highlight
-      b.Stroke = SELECTED_STROKE; selected = b;
+      if (selected) selected.Stroke = pal.nodeStroke;   // clear the previous highlight
+      b.Stroke = pal.selectedStroke; selected = b;
       onSelect(node);
     };
     const stack = new StackPanel();
     stack.Margin = new Thickness(8, 6, 8, 6);
     const label = new TextBlock();
-    label.Text = n.label; label.FontSize = 13;
+    label.Text = n.label; label.FontSize = 13; label.Foreground = pal.textFill;
     stack.AddChild(label);
-    if (n.sub) { const sub = new TextBlock(); sub.Text = n.sub; sub.FontSize = 10; stack.AddChild(sub); }
+    if (n.sub) { const sub = new TextBlock(); sub.Text = n.sub; sub.FontSize = 10; sub.Foreground = pal.subFill; stack.AddChild(sub); }
     box.SetChild(stack);
     Canvas.SetLeft(box, n.x);
     Canvas.SetTop(box, n.y);
