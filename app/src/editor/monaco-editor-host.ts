@@ -18,6 +18,7 @@ export class MonacoEditorHost extends DomHost {
   private editor?: monaco.editor.IStandaloneCodeEditor;
   private updating = false;
   private modelUri?: string;
+  private language = "todl";
 
   constructor() {
     super();
@@ -32,6 +33,10 @@ export class MonacoEditorHost extends DomHost {
 
   /** Bind the editor's model to a fixed LSP document URI (call before mount). */
   useModelUri(uri: string): void { this.modelUri = uri; }
+
+  /** Set the editor language (default "todl"; e.g. "json"/"plaintext" for
+   *  read-only viewers). Call before mount. */
+  useLanguage(language: string): void { this.language = language; }
 
   /** The mounted Monaco editor, once realized (for callers that register on it). */
   get Editor(): monaco.editor.IStandaloneCodeEditor | undefined { return this.editor; }
@@ -48,10 +53,10 @@ export class MonacoEditorHost extends DomHost {
     const el = super.CreateHostElement(document);
     registerTodlDarkTheme();
     const model = this.modelUri
-      ? monaco.editor.createModel(this.Text, "todl", monaco.Uri.parse(this.modelUri))
-      : monaco.editor.createModel(this.Text, "todl");
+      ? monaco.editor.createModel(this.Text, this.language, monaco.Uri.parse(this.modelUri))
+      : monaco.editor.createModel(this.Text, this.language);
     this.editor = monaco.editor.create(el, {
-      model, language: "todl", theme: TODL_DARK_THEME, automaticLayout: true, minimap: { enabled: false },
+      model, language: this.language, theme: TODL_DARK_THEME, automaticLayout: true, minimap: { enabled: false },
       fontSize: 13, readOnly: this.ReadOnly, scrollBeyondLastLine: false,
     });
     this.editor.onDidChangeModelContent(() => {

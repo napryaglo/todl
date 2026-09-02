@@ -23,11 +23,11 @@ resources ExampleRunner {
                     Button [ Command = $ShowGraph ]                      { TextBlock [ Text = "Graph" ] }
                 }
                 Grid {
-                    ScrollViewer [ Visibility = $TokensVisibility ] { TextBlock [ FontFamily = "Cascadia Mono, Consolas, monospace", FontSize = 12, TextWrapping = NoWrap, Text = $TokensText ] }
-                    ScrollViewer [ Visibility = $AstVisibility ]    { TextBlock [ FontFamily = "Cascadia Mono, Consolas, monospace", FontSize = 12, TextWrapping = NoWrap, Text = $AstText ] }
-                    ScrollViewer [ Visibility = $ModelVisibility ]  { TextBlock [ FontFamily = "Cascadia Mono, Consolas, monospace", FontSize = 12, TextWrapping = NoWrap, Text = $ModelText ] }
+                    ContentControl [ Visibility = $TokensVisibility, Content = $TokensView ]
+                    ContentControl [ Visibility = $AstVisibility,    Content = $AstView ]
+                    ContentControl [ Visibility = $ModelVisibility,  Content = $ModelView ]
                     ScrollViewer [ Visibility = $DiagVisibility ]   { ListBox [ Items = $Diagnostics ] }
-                    ScrollViewer [ Visibility = $JsonVisibility ]   { TextBlock [ FontFamily = "Cascadia Mono, Consolas, monospace", FontSize = 12, TextWrapping = NoWrap, Text = $Json ] }
+                    ContentControl [ Visibility = $JsonVisibility,  Content = $JsonView ]
                     DockPanel [ Visibility = $GraphVisibility ] {
                         StackPanel [ DockPanel.Dock = Top, Orientation = Horizontal, Margin = (0,0,0,6) ] {
                             Button [ Command = $ZoomOut, Margin = (0,0,4,0) ] { TextBlock [ Text = "−" ] }

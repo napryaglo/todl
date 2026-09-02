@@ -17,9 +17,13 @@ export class ExampleRunnerVM extends MuralBase {
   static EditableKey = MuralBase.RegisterProperty<boolean>(ExampleRunnerVM, "Editable", true, MetaData.None);
   static ReadOnlyKey = MuralBase.RegisterProperty<boolean>(ExampleRunnerVM, "ReadOnly", false, MetaData.None);
   static JsonKey = MuralBase.RegisterProperty<string>(ExampleRunnerVM, "Json", "", MetaData.None);
-  static TokensTextKey = MuralBase.RegisterProperty<string>(ExampleRunnerVM, "TokensText", "", MetaData.None);
-  static AstTextKey = MuralBase.RegisterProperty<string>(ExampleRunnerVM, "AstText", "", MetaData.None);
-  static ModelTextKey = MuralBase.RegisterProperty<string>(ExampleRunnerVM, "ModelText", "", MetaData.None);
+  // Read-only Monaco viewers for the code tabs — Mural TextBlock flattens `\n`,
+  // so multi-line artifacts render as one line; Monaco gives real lines + numbers
+  // (+ JSON syntax colors).
+  static JsonViewKey = MuralBase.RegisterProperty<MonacoEditorHost | undefined>(ExampleRunnerVM, "JsonView", undefined, MetaData.None);
+  static TokensViewKey = MuralBase.RegisterProperty<MonacoEditorHost | undefined>(ExampleRunnerVM, "TokensView", undefined, MetaData.None);
+  static AstViewKey = MuralBase.RegisterProperty<MonacoEditorHost | undefined>(ExampleRunnerVM, "AstView", undefined, MetaData.None);
+  static ModelViewKey = MuralBase.RegisterProperty<MonacoEditorHost | undefined>(ExampleRunnerVM, "ModelView", undefined, MetaData.None);
   static DiagnosticsKey = MuralBase.RegisterProperty<DiagnosticVM[]>(ExampleRunnerVM, "Diagnostics", [], MetaData.None);
   static StatusKey = MuralBase.RegisterProperty<string>(ExampleRunnerVM, "Status", "", MetaData.None);
   static RunKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "Run", undefined, MetaData.None);
@@ -51,9 +55,10 @@ export class ExampleRunnerVM extends MuralBase {
   get Editable(): boolean { return this.get_property_value(ExampleRunnerVM.EditableKey); }
   get ReadOnly(): boolean { return this.get_property_value(ExampleRunnerVM.ReadOnlyKey); }
   get Json(): string { return this.get_property_value(ExampleRunnerVM.JsonKey); }
-  get TokensText(): string { return this.get_property_value(ExampleRunnerVM.TokensTextKey); }
-  get AstText(): string { return this.get_property_value(ExampleRunnerVM.AstTextKey); }
-  get ModelText(): string { return this.get_property_value(ExampleRunnerVM.ModelTextKey); }
+  get JsonView(): MonacoEditorHost | undefined { return this.get_property_value(ExampleRunnerVM.JsonViewKey); }
+  get TokensView(): MonacoEditorHost | undefined { return this.get_property_value(ExampleRunnerVM.TokensViewKey); }
+  get AstView(): MonacoEditorHost | undefined { return this.get_property_value(ExampleRunnerVM.AstViewKey); }
+  get ModelView(): MonacoEditorHost | undefined { return this.get_property_value(ExampleRunnerVM.ModelViewKey); }
   get Diagnostics(): DiagnosticVM[] { return this.get_property_value(ExampleRunnerVM.DiagnosticsKey); }
   get Status(): string { return this.get_property_value(ExampleRunnerVM.StatusKey); }
   get Run(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.RunKey); }
@@ -138,6 +143,20 @@ export class ExampleRunnerVM extends MuralBase {
       pushToLsp();
     });
     pushToLsp();   // initial open
+
+    // Read-only Monaco viewers for the pipeline code tabs. They mount lazily
+    // (only when their tab is first shown) and get their text in compile().
+    this.set_property_value(ExampleRunnerVM.JsonViewKey, ExampleRunnerVM.makeViewer("json"));
+    this.set_property_value(ExampleRunnerVM.TokensViewKey, ExampleRunnerVM.makeViewer("plaintext"));
+    this.set_property_value(ExampleRunnerVM.AstViewKey, ExampleRunnerVM.makeViewer("plaintext"));
+    this.set_property_value(ExampleRunnerVM.ModelViewKey, ExampleRunnerVM.makeViewer("plaintext"));
+  }
+
+  private static makeViewer(language: string): MonacoEditorHost {
+    const v = new MonacoEditorHost();
+    v.useLanguage(language);
+    v.ReadOnly = true;
+    return v;
   }
 
   private syncing = false;
@@ -153,13 +172,15 @@ export class ExampleRunnerVM extends MuralBase {
     const hasError = s.diagnostics.some((d) => d.severity === "error");
     this.set_property_value(ExampleRunnerVM.DiagnosticsKey, s.diagnostics.map((d) => new DiagnosticVM(d)));
     this.set_property_value(ExampleRunnerVM.StatusKey, hasError ? `${s.diagnostics.length} problem(s)` : "OK");
-    this.set_property_value(ExampleRunnerVM.JsonKey, JSON.stringify(s.document, null, 2));
-    this.set_property_value(ExampleRunnerVM.TokensTextKey,
-      s.tokens.map((t) => `${t.line}:${t.column}`.padEnd(7) + `${t.kind}`.padEnd(13) + t.value).join("\n"));
-    this.set_property_value(ExampleRunnerVM.AstTextKey, s.astText);
-    this.set_property_value(ExampleRunnerVM.ModelTextKey,
-      [...s.modelRows.map((r) => `${r.id}  ${r.tier}  ${r.label}`), "",
-       ...s.edgeRows.map((e) => `${e.from} --${e.kind}--> ${e.to}`)].join("\n"));
+    const json = JSON.stringify(s.document, null, 2);
+    const tokensText = s.tokens.map((t) => `${t.line}:${t.column}`.padEnd(7) + `${t.kind}`.padEnd(13) + t.value).join("\n");
+    const modelText = [...s.modelRows.map((r) => `${r.id}  ${r.tier}  ${r.label}`), "",
+      ...s.edgeRows.map((e) => `${e.from} --${e.kind}--> ${e.to}`)].join("\n");
+    this.set_property_value(ExampleRunnerVM.JsonKey, json);   // still drives Copy/Download
+    if (this.JsonView) this.JsonView.Text = json;
+    if (this.TokensView) this.TokensView.Text = tokensText;
+    if (this.AstView) this.AstView.Text = s.astText;
+    if (this.ModelView) this.ModelView.Text = modelText;
     // A fresh Canvas each compile avoids stale-child accumulation and re-triggers
     // ContentControl presentation.
     const onSelect = (n: LaidOutNode) => this.set_property_value(ExampleRunnerVM.SelectedNodeTextKey,
