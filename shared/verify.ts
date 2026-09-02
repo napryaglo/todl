@@ -3,7 +3,7 @@
 // node update tool handles writes. This module must run in a browser (Phase 2).
 import {
   check, checkAgainst, toJSON, toJSONOwn,
-  type SourceFile, type Diagnostic, type TodlDocument, type Repository,
+  type SourceFile, type Diagnostic, type TodlDocument, type Repository, type EmitOptions,
 } from "@pragmatic-tech-ai/todl";
 import type { CorpusEntry, Golden, GoldenDiagnostic, VerifyResult, VerifySummary } from "./corpus-types.js";
 
@@ -52,8 +52,17 @@ function canonicalizeIds(doc: TodlDocument): TodlDocument {
     if (c === undefined) { c = `#r${refs.size}`; refs.set(id, c); }
     return c;
   };
-  const nodes = doc.nodes.map((n) => ({ id: map.get(n.id)!, tier: n.tier, typeOf: ref(n.typeOf)!, attrs: n.attrs }));
-  const edges = doc.edges.map((e) => ({ kind: e.kind, via: ref(e.via), from: ref(e.from)!, to: ref(e.to)! }));
+  // `debug` (opt-in) carries readable names, not ids, so it survives id
+  // canonicalization untouched. Preserved when present; a no-op for goldens
+  // (which emit without debug).
+  const nodes = doc.nodes.map((n) => ({
+    id: map.get(n.id)!, tier: n.tier, typeOf: ref(n.typeOf)!, attrs: n.attrs,
+    ...(n.debug ? { debug: n.debug } : {}),
+  }));
+  const edges = doc.edges.map((e) => ({
+    kind: e.kind, via: ref(e.via), from: ref(e.from)!, to: ref(e.to)!,
+    ...(e.debug ? { debug: e.debug } : {}),
+  }));
   return { nodes, edges };
 }
 
@@ -102,11 +111,15 @@ function preludeIds(): Set<string> {
  *  prelude and any explicit bases. Captures concepts, fields, taxonomies, terms,
  *  models, and instances — not just instance-tier nodes. Shared by golden
  *  verification and the playground's display compile. */
-export function selectOwnDocument(model: Repository, baseDocs: readonly TodlDocument[] = []): TodlDocument {
+export function selectOwnDocument(
+  model: Repository,
+  baseDocs: readonly TodlDocument[] = [],
+  emit?: EmitOptions,
+): TodlDocument {
   const excluded = new Set<string>(preludeIds());
   for (const b of baseDocs) for (const n of b.nodes) excluded.add(n.id);
   const ownIds = new Set(model.allNodes().map((n) => n.id).filter((id) => !excluded.has(id)));
-  return toJSONOwn(model, ownIds);
+  return toJSONOwn(model, ownIds, emit);
 }
 
 function compile(entry: CorpusEntry): Golden {

@@ -49,6 +49,11 @@ export class ExampleRunnerVM extends MuralBase {
   static ShowGraphKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "ShowGraph", undefined, MetaData.None);
   static DownloadKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "Download", undefined, MetaData.None);
   static CopyKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "Copy", undefined, MetaData.None);
+  // Debug flag: emit readable kind/name/type/namespace/source on each node (+ edge
+  // endpoints) into the JSON. Toggled from the toolbar; recompiles on change.
+  static DebugKey = MuralBase.RegisterProperty<boolean>(ExampleRunnerVM, "Debug", false, MetaData.None);
+  static DebugLabelKey = MuralBase.RegisterProperty<string>(ExampleRunnerVM, "DebugLabel", "Debug: off", MetaData.None);
+  static ToggleDebugKey = MuralBase.RegisterProperty<ICommand | undefined>(ExampleRunnerVM, "ToggleDebug", undefined, MetaData.None);
 
   get Source(): string { return this.get_property_value(ExampleRunnerVM.SourceKey); }
   set Source(v: string) { this.set_property_value(ExampleRunnerVM.SourceKey, v); }
@@ -83,6 +88,7 @@ export class ExampleRunnerVM extends MuralBase {
   get ShowGraph(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.ShowGraphKey); }
   get Download(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.DownloadKey); }
   get Copy(): ICommand | undefined { return this.get_property_value(ExampleRunnerVM.CopyKey); }
+  get Debug(): boolean { return this.get_property_value(ExampleRunnerVM.DebugKey); }
 
   private fileName = "playground.todl";
   private graph?: GraphController;
@@ -112,6 +118,12 @@ export class ExampleRunnerVM extends MuralBase {
     this.set_property_value(ExampleRunnerVM.ShowGraphKey, new RelayCommand(() => this.setStage("graph")));
     this.set_property_value(ExampleRunnerVM.DownloadKey, new RelayCommand(() => downloadText(this.fileName.replace(/\.todl$/, "") + ".json", this.Json)));
     this.set_property_value(ExampleRunnerVM.CopyKey, new RelayCommand(() => copyText(this.Json)));
+    this.set_property_value(ExampleRunnerVM.ToggleDebugKey, new RelayCommand(() => {
+      const on = !this.Debug;
+      this.set_property_value(ExampleRunnerVM.DebugKey, on);
+      this.set_property_value(ExampleRunnerVM.DebugLabelKey, on ? "Debug: on" : "Debug: off");
+      this.compile();   // re-emit JSON with/without debug metadata
+    }));
     this.set_property_value(ExampleRunnerVM.ZoomInKey, new RelayCommand(() => this.graph?.zoomIn()));
     this.set_property_value(ExampleRunnerVM.ZoomOutKey, new RelayCommand(() => this.graph?.zoomOut()));
     this.set_property_value(ExampleRunnerVM.FitKey, new RelayCommand(() => this.graph?.fit()));
@@ -168,7 +180,7 @@ export class ExampleRunnerVM extends MuralBase {
   }
 
   compile(): void {
-    const s = compileStages({ name: this.fileName, text: this.Source });
+    const s = compileStages({ name: this.fileName, text: this.Source }, { debug: this.Debug });
     const hasError = s.diagnostics.some((d) => d.severity === "error");
     this.set_property_value(ExampleRunnerVM.DiagnosticsKey, s.diagnostics.map((d) => new DiagnosticVM(d)));
     this.set_property_value(ExampleRunnerVM.StatusKey, hasError ? `${s.diagnostics.length} problem(s)` : "OK");

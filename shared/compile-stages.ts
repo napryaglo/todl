@@ -42,13 +42,13 @@ function formatAst(node: unknown, indent = 0): string {
   return "";
 }
 
-export function compileStages(source: ExampleSource): StageResult {
+export function compileStages(source: ExampleSource, options?: { debug?: boolean }): StageResult {
   const tokens: TokenRow[] = tokenize(source.text).map((t) => ({ kind: t.kind, value: t.value, line: t.line, column: t.column }));
   const parsed = parse(source.text, source.name);
   const astText = parsed.diagnostics.length
     ? `parse: ${parsed.diagnostics[0].message}\n\n${formatAst(parsed.namespace)}`
     : formatAst(parsed.namespace);
-  const display = compileForDisplay([source]);
+  const display = compileForDisplay([source], options);
   const modelRows: ModelRow[] = display.document.nodes.map((n) => ({
     id: String(n.id), tier: n.tier, typeOf: String(n.typeOf), label: nodeLabel(n),
   }));

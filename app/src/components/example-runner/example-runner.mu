@@ -12,6 +12,7 @@ resources ExampleRunner {
                 DockPanel [ DockPanel.Dock = Top, Margin = (0,0,0,6) ] {
                     Button [ DockPanel.Dock = Right, Command = $Download ] { TextBlock [ Text = "Download" ] }
                     Button [ DockPanel.Dock = Right, Command = $Copy, Margin = (0,0,4,0) ] { TextBlock [ Text = "Copy JSON" ] }
+                    Button [ DockPanel.Dock = Right, Command = $ToggleDebug, Margin = (0,0,4,0) ] { TextBlock [ Text = $DebugLabel ] }
                     TextBlock [ FontWeight = Bold, Text = $Status ]
                 }
                 StackPanel [ DockPanel.Dock = Top, Orientation = Horizontal, Margin = (0,0,0,6) ] {
