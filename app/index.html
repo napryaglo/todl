@@ -11,7 +11,9 @@
                  font-family: -apple-system, "Segoe UI", system-ui, sans-serif; }
     body { display: flex; flex-direction: column; }
     main { flex: 1 1 auto; min-height: 0; }
-    #app { width: 100%; height: 100%; background: #fff; overflow: hidden; cursor: default; }
+    /* Match the Mural dark @Surface (#1C1B1F) so the load flash + any edges are
+       dark, not white. The app boots the MaterialDark scheme. */
+    #app { width: 100%; height: 100%; background: #1C1B1F; overflow: hidden; cursor: default; }
     #app svg { display: block; }
   </style>
 </head>

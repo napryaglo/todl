@@ -1,4 +1,4 @@
-import "./monaco-setup.js";
+import { registerTodlDarkTheme, TODL_DARK_THEME } from "./monaco-setup.js";
 import * as monaco from "monaco-editor";
 import { DomHost } from "@pragmatic-tech-ai/mural/basic";
 import { MuralBase, MetaData, Size } from "@pragmatic-tech-ai/mural/runtime";
@@ -46,11 +46,12 @@ export class MonacoEditorHost extends DomHost {
 
   protected override CreateHostElement(document: Document): HTMLElement {
     const el = super.CreateHostElement(document);
+    registerTodlDarkTheme();
     const model = this.modelUri
       ? monaco.editor.createModel(this.Text, "todl", monaco.Uri.parse(this.modelUri))
       : monaco.editor.createModel(this.Text, "todl");
     this.editor = monaco.editor.create(el, {
-      model, language: "todl", automaticLayout: true, minimap: { enabled: false },
+      model, language: "todl", theme: TODL_DARK_THEME, automaticLayout: true, minimap: { enabled: false },
       fontSize: 13, readOnly: this.ReadOnly, scrollBeyondLastLine: false,
     });
     this.editor.onDidChangeModelContent(() => {
